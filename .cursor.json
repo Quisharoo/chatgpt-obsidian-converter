@@ -1,0 +1,36 @@
+{
+  "rules": [
+    "@AGENTS.md"
+  ],
+  "composer": {
+    "include": [
+      "AGENTS.md"
+    ]
+  },
+  "chat": {
+    "include": [
+      "AGENTS.md"
+    ]
+  },
+  "name": "ChatGPT to Obsidian Converter",
+  "description": "Convert ChatGPT conversation exports to Obsidian-friendly Markdown files with direct folder saving and chronological ordering",
+  "version": "1.0.0",
+  "instructions": "Always follow the guidelines and conventions outlined in AGENTS.md when working on this repository. This includes git workflow, testing requirements, code quality standards, and deployment considerations.",
+  "context": {
+    "technologies": [
+      "JavaScript",
+      "Python",
+      "HTML/CSS",
+      "File System Access API",
+      "Web APIs",
+      "Vercel"
+    ],
+    "patterns": [
+      "Privacy-first browser processing",
+      "Progressive enhancement",
+      "Cross-platform consistency",
+      "Chronological file ordering",
+      "Human-readable filenames"
+    ]
+  }
+} 
