@@ -32,7 +32,8 @@ Convert your ChatGPT conversation exports into Obsidian-friendly Markdown files 
 3. **Upload and Convert**:
    - Export your ChatGPT conversations (Settings → Data Controls → Export Data)
    - Drag and drop `conversations.json` into the web interface
-   - Download individual files or all as a bundle
+   - Choose your Obsidian vault folder
+   - Files are saved directly to the folder you select (no subfolders created)
 
 ### Option 2: Python CLI
 
@@ -66,11 +67,22 @@ Convert your ChatGPT conversation exports into Obsidian-friendly Markdown files 
 
 ## 📁 Output Structure
 
+### Web Interface
+Files are saved directly to your selected folder:
+```
+YourSelectedFolder/
+├── Python Best Practices.md
+├── Obsidian Workflow.md
+└── Machine Learning Intro.md
+```
+
+### Python CLI
+Creates organized output in ChatGPT directory:
 ```
 ChatGPT/
-├── 2024-12-15_python-best-practices_conv001.md
-├── 2024-12-16_obsidian-workflow_conv002.md
-└── 2024-12-17_machine-learning-intro_conv003.md
+├── Python Best Practices.md
+├── Obsidian Workflow.md
+└── Machine Learning Intro.md
 ```
 
 Each Markdown file contains:

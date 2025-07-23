@@ -155,32 +155,19 @@ async function saveFilesLocally(files) {
         return { successCount: 0, errorCount: 0 };
     }
 
-    // Create ChatGPT subdirectory
-    let chatgptDirHandle;
-    try {
-        chatgptDirHandle = await selectedDirectoryHandle.getDirectoryHandle('ChatGPT', {
-            create: true
-        });
-        console.log('✅ ChatGPT directory ready');
-    } catch (error) {
-        console.error('Error creating ChatGPT directory:', error);
-        if (error.name === 'NotAllowedError') {
-            showStatus('❌ Permission denied creating ChatGPT folder. Try a different directory.', 'error');
-        } else {
-            showStatus(`❌ Error creating ChatGPT directory: ${error.message}. Using downloads instead.`, 'error');
-        }
-        return downloadAllFiles(files);
-    }
+    // Use the selected directory directly (no subfolder)
+    const targetDirHandle = selectedDirectoryHandle;
+    console.log('✅ Using selected directory directly');
 
     // Show progress
-    showStatus(`💾 Saving ${files.length} files to ChatGPT folder...`, 'info');
-    console.log(`🔄 Starting save process: ${files.length} files to ${selectedDirectoryHandle.name}/ChatGPT/`);
+    showStatus(`💾 Saving ${files.length} files to ${selectedDirectoryHandle.name} folder...`, 'info');
+    console.log(`🔄 Starting save process: ${files.length} files to ${selectedDirectoryHandle.name}/`);
 
     // Save each file
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
-            const success = await saveFileToDirectory(file.filename, file.content, chatgptDirHandle);
+            const success = await saveFileToDirectory(file.filename, file.content, targetDirHandle);
             if (success) {
                 successCount++;
                 console.log(`✅ Saved: ${file.filename}`);
@@ -200,16 +187,16 @@ async function saveFilesLocally(files) {
 
     // Show final results
     if (successCount > 0) {
-        const message = `✅ Saved ${successCount} files to ChatGPT folder${errorCount > 0 ? ` (${errorCount} errors)` : ''}`;
+        const message = `✅ Saved ${successCount} files to ${selectedDirectoryHandle.name}${errorCount > 0 ? ` (${errorCount} errors)` : ''}`;
         showStatus(message, 'success');
         
         // Show helpful message about location
-        const locationMsg = `📁 Files saved to: ${selectedDirectoryHandle.name}/ChatGPT/`;
+        const locationMsg = `📁 Files saved to: ${selectedDirectoryHandle.name}/`;
         console.log(locationMsg);
         
         // Add a helpful message to the status
         setTimeout(() => {
-            showStatus(`✅ SUCCESS! Check your ${selectedDirectoryHandle.name}/ChatGPT/ folder for the files`, 'success');
+            showStatus(`✅ SUCCESS! Check your ${selectedDirectoryHandle.name} folder for the files`, 'success');
         }, 1000);
     } else {
         showStatus('❌ Failed to save any files. Check permissions or try downloading instead.', 'error');
@@ -227,7 +214,7 @@ function updateDirectorySelection(directoryName) {
     saveButtons.forEach(button => {
         button.style.background = '#28a745';
         button.style.animation = 'pulse 2s infinite';
-        button.textContent = `💾 Save ${convertedFiles.length} files to ${directoryName}/ChatGPT/`;
+        button.textContent = `💾 Save ${convertedFiles.length} files to ${directoryName}/`;
     });
     
     // Add CSS animation for the pulse effect
@@ -626,7 +613,7 @@ function displayResults(results) {
             saveLocalBtn.style.padding = '12px 24px';
             saveLocalBtn.style.fontWeight = 'bold';
             saveLocalBtn.textContent = selectedDirectoryHandle ? 
-                `💾 Save ${results.files.length} files to ${selectedDirectoryHandle.name}/ChatGPT/` : 
+                `💾 Save ${results.files.length} files to ${selectedDirectoryHandle.name}/` : 
                 '💾 Save to Local Folder (Select folder first)';
             saveLocalBtn.disabled = !selectedDirectoryHandle;
             saveLocalBtn.onclick = () => {
@@ -645,7 +632,7 @@ function displayResults(results) {
                     ✅ <strong>1. Upload conversations.json</strong> - Done!<br>
                     ${selectedDirectoryHandle ? '✅' : '⏳'} <strong>2. Choose your Obsidian folder</strong> ${selectedDirectoryHandle ? `- Selected: ${selectedDirectoryHandle.name}` : '- Click button above'}<br>
                     ${selectedDirectoryHandle ? '⏳' : '⬜'} <strong>3. Click "Save to Local Folder"</strong> ${selectedDirectoryHandle ? '- Ready to save!' : '- Select folder first'}<br>
-                    ⬜ <strong>4. Files appear in YourFolder/ChatGPT/</strong>
+                    ⬜ <strong>4. Files appear directly in your selected folder</strong>
                 </div>
             `;
             directorySection.appendChild(note);
