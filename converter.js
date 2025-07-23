@@ -530,6 +530,52 @@ function downloadFile(blob, filename) {
 }
 
 /**
+ * Save individual file to Obsidian directory
+ * WHY: Reuses the same File System Access API logic as bulk save for consistency
+ */
+async function saveSingleFileToObsidian(file) {
+    try {
+        // Check if File System Access API is supported
+        if (!isFileSystemAccessSupported()) {
+            showStatus('Your browser doesn\'t support direct file saving. Use download instead.', 'error');
+            return;
+        }
+
+        showStatus(`📁 Choose where to save "${file.title || file.filename}"`, 'info');
+        
+        // Let user select directory for this specific file
+        const directoryHandle = await selectDirectory();
+        
+        if (!directoryHandle) {
+            showStatus('📂 File save cancelled', 'info');
+            return;
+        }
+
+        showStatus(`💾 Saving "${file.filename}" to ${directoryHandle.name}...`, 'info');
+
+        // Use the same save logic as bulk save
+        const success = await saveFileToDirectory(file.filename, file.content, directoryHandle);
+        
+        if (success) {
+            showStatus(`✅ Saved "${file.filename}" to ${directoryHandle.name}/ folder!`, 'success');
+            console.log(`✅ Individual file saved: ${file.filename} → ${directoryHandle.name}/`);
+        } else {
+            showStatus(`❌ Failed to save "${file.filename}". Check permissions or try download instead.`, 'error');
+        }
+
+    } catch (error) {
+        console.error(`Error saving individual file ${file.filename}:`, error);
+        
+        // Provide specific error messages
+        if (error.message.includes('cancelled')) {
+            showStatus('📂 File save cancelled', 'info');
+        } else {
+            showStatus(`Failed to save "${file.filename}": ${error.message}`, 'error');
+        }
+    }
+}
+
+/**
  * Create and download a ZIP file containing all converted files
  */
 async function createZipDownload(files) {
@@ -712,21 +758,61 @@ function displayResults(results) {
         
         downloadList.appendChild(directorySection);
         
-        // Individual download links
+        // Individual file options
         const listTitle = document.createElement('h4');
-        listTitle.textContent = '📥 Download Options:';
+        listTitle.textContent = '📁 Individual File Options:';
         downloadList.appendChild(listTitle);
+        
+        // Add explanation
+        const explanation = document.createElement('p');
+        explanation.style.fontSize = '0.9rem';
+        explanation.style.color = '#666';
+        explanation.style.marginBottom = '15px';
+        explanation.innerHTML = `
+            💡 <strong>Save individually:</strong> Each file prompts for location (useful for organizing into different folders)<br>
+            📥 <strong>Download:</strong> Traditional download to your Downloads folder
+        `;
+        downloadList.appendChild(explanation);
         
         for (const file of results.files) {
             const downloadItem = document.createElement('div');
             downloadItem.className = 'download-item';
+            downloadItem.style.display = 'flex';
+            downloadItem.style.alignItems = 'center';
+            downloadItem.style.marginBottom = '10px';
+            downloadItem.style.padding = '10px';
+            downloadItem.style.background = '#f8f9fa';
+            downloadItem.style.borderRadius = '5px';
+            downloadItem.style.border = '1px solid #dee2e6';
             
             const fileInfo = document.createElement('span');
             fileInfo.textContent = file.title || file.filename;
+            fileInfo.style.flex = '1';
+            fileInfo.style.marginRight = '10px';
+            fileInfo.style.fontWeight = '500';
             
+            // Save to Obsidian button (primary action)
+            if (isFileSystemAccessSupported()) {
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'btn';
+                saveBtn.textContent = '📁 Save to Obsidian';
+                saveBtn.style.background = '#007bff';
+                saveBtn.style.color = 'white';
+                saveBtn.style.marginRight = '8px';
+                saveBtn.style.fontSize = '0.9rem';
+                saveBtn.title = 'Save directly to a folder of your choice using the same logic as bulk save';
+                saveBtn.onclick = () => saveSingleFileToObsidian(file);
+                downloadItem.appendChild(saveBtn);
+            }
+            
+            // Download button (fallback)
             const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'download-btn';
-            downloadBtn.textContent = 'Download';
+            downloadBtn.className = 'btn';
+            downloadBtn.textContent = '📥 Download';
+            downloadBtn.style.background = '#6c757d';
+            downloadBtn.style.color = 'white';
+            downloadBtn.style.fontSize = '0.9rem';
+            downloadBtn.title = 'Download to your Downloads folder';
             downloadBtn.onclick = () => {
                 const blob = createDownloadBlob(file.content);
                 downloadFile(blob, file.filename);
