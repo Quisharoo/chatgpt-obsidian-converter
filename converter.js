@@ -387,22 +387,43 @@ function convertConversationToMarkdown(conversation) {
 }
 
 /**
- * Generate filename in format: {date}_{slugified-title}_{conversation-id}.md
+ * Clean text for filename usage while keeping it readable
  */
-function generateFilename(conversation) {
-    const conversationId = conversation.id || 'unknown';
-    const title = conversation.title || 'untitled';
-    const createTime = conversation.create_time || 0;
+function cleanFilename(text) {
+    return text
+        // Replace problematic characters with safe alternatives
+        .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename chars
+        .replace(/[^\w\s.-]/g, '')    // Keep only letters, numbers, spaces, dots, hyphens
+        .replace(/\s+/g, ' ')         // Collapse multiple spaces
+        .trim()                       // Remove leading/trailing spaces
+        .substring(0, 100);           // Limit length for filesystem compatibility
+}
+
+/**
+ * Generate human-readable filename with duplicate handling
+ */
+function generateFilename(conversation, existingFilenames = []) {
+    const title = conversation.title || 'Untitled Conversation';
     
-    const dateStr = formatTimestamp(createTime);
-    let titleSlug = slugify(title);
+    // Create base filename - clean but readable
+    let baseFilename = cleanFilename(title);
     
-    // Truncate title slug if too long to keep filename reasonable
-    if (titleSlug.length > 50) {
-        titleSlug = titleSlug.substring(0, 50).replace(/-$/, '');
+    // Ensure it's not empty
+    if (!baseFilename) {
+        baseFilename = 'Conversation';
     }
     
-    return `${dateStr}_${titleSlug}_${conversationId}.md`;
+    // Start with the base filename
+    let filename = `${baseFilename}.md`;
+    
+    // Handle duplicates by adding suffix
+    let counter = 2;
+    while (existingFilenames.includes(filename)) {
+        filename = `${baseFilename} (${counter}).md`;
+        counter++;
+    }
+    
+    return filename;
 }
 
 /**
@@ -415,6 +436,9 @@ function processConversations(conversations) {
         errors: 0,
         files: []
     };
+    
+    // Track filenames to prevent duplicates
+    const usedFilenames = [];
     
     for (const conversation of conversations) {
         const conversationId = conversation.id;
@@ -436,8 +460,9 @@ function processConversations(conversations) {
             // Convert conversation to Markdown
             const markdownContent = convertConversationToMarkdown(conversation);
             
-            // Generate filename
-            const filename = generateFilename(conversation);
+            // Generate filename with duplicate checking
+            const filename = generateFilename(conversation, usedFilenames);
+            usedFilenames.push(filename);
             
             // Create file object
             const fileData = {

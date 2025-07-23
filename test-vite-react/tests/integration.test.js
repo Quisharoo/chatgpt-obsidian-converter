@@ -64,11 +64,11 @@ describe('Integration Tests - Python vs JavaScript Consistency', () => {
             });
             
             // Both should generate the same filename format
-            expect(jsFilename).toBe('2024-12-25_python-vs-javascript-test_integration_test_001.md');
+            expect(jsFilename).toBe('Python vs JavaScript Test.md');
             
         } catch (error) {
             // If Python test fails, at least verify JS implementation
-            expect(jsFilename).toBe('2024-12-25_python-vs-javascript-test_integration_test_001.md');
+            expect(jsFilename).toBe('Python vs JavaScript Test.md');
             console.warn('Python test skipped:', error.message);
         }
     });

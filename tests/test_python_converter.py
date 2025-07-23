@@ -81,7 +81,7 @@ class TestChatGPTConverter(unittest.TestCase):
     def test_generate_filename(self):
         """Test filename generation follows expected format"""
         filename = generate_filename(self.sample_conversation)
-        expected = '2023-12-25_python-best-practices_test_conv_001.md'
+        expected = 'Python Best Practices.md'
         self.assertEqual(filename, expected)
 
     def test_generate_filename_long_title(self):
@@ -90,15 +90,31 @@ class TestChatGPTConverter(unittest.TestCase):
         long_conversation['title'] = 'This is an extremely long title that should be truncated because it exceeds reasonable limits'
         
         filename = generate_filename(long_conversation)
-        self.assertLess(len(filename), 100)  # Should be truncated
-        self.assertIn('test_conv_001.md', filename)
+        self.assertLess(len(filename), 110)  # Should be truncated to reasonable length
+        self.assertTrue(filename.endswith('.md'))
 
     def test_generate_filename_missing_data(self):
         """Test filename generation handles missing data gracefully"""
         empty_conversation = {}
         filename = generate_filename(empty_conversation)
-        self.assertIn('unknown.md', filename)
-        self.assertIn('untitled', filename)
+        self.assertEqual(filename, 'Untitled Conversation.md')
+
+    def test_generate_filename_duplicates(self):
+        """Test duplicate filename handling"""
+        conversation1 = {'title': 'Python Tips'}
+        conversation2 = {'title': 'Python Tips'}  # Same title
+        
+        # First file should get the base name
+        filename1 = generate_filename(conversation1, [])
+        self.assertEqual(filename1, 'Python Tips.md')
+        
+        # Second file should get a suffix
+        filename2 = generate_filename(conversation2, [filename1])
+        self.assertEqual(filename2, 'Python Tips (2).md')
+        
+        # Third file should get next suffix
+        filename3 = generate_filename(conversation2, [filename1, filename2])
+        self.assertEqual(filename3, 'Python Tips (3).md')
 
     def test_extract_messages(self):
         """Test message extraction from mapping structure"""
@@ -227,7 +243,7 @@ class TestChatGPTConverter(unittest.TestCase):
             # Verify filename constraints
             self.assertLess(len(filename), 255)  # Filesystem limit
             self.assertTrue(filename.endswith('.md'))
-            self.assertRegex(filename, r'^\d{4}-\d{2}-\d{2}_')  # Date prefix
+            # No longer using date prefix - now human readable
             
             # Verify markdown structure
             self.assertIn('# ', markdown)
@@ -350,8 +366,7 @@ class TestConsistencyWithJavaScript(unittest.TestCase):
             
             # Test expected patterns that should match JavaScript
             self.assertTrue(filename.endswith('.md'))
-            self.assertRegex(filename, r'^\d{4}-\d{2}-\d{2}_')
-            self.assertIn(conversation['id'], filename)
+            # Human readable filenames no longer contain dates or IDs
             
             # Test length constraints
             self.assertLess(len(filename), 255)

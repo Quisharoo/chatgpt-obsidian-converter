@@ -366,7 +366,7 @@ describe('ChatGPT to Obsidian Converter', () => {
             expect(results.files).toHaveLength(1);
             
             const file = results.files[0];
-            expect(file.filename).toBe('2024-12-25_integration-test-conversation_integration_test.md');
+            expect(file.filename).toBe('Integration Test Conversation.md');
             expect(file.content).toContain('# Integration Test Conversation');
             expect(file.content).toContain('**User:**');
             expect(file.content).toContain('Test question');

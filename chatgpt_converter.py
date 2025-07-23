@@ -157,20 +157,44 @@ def get_existing_conversation_ids(output_dir: Path) -> set:
     return existing_ids
 
 
-def generate_filename(conversation: Dict) -> str:
-    """Generate filename in format: {date}_{slugified-title}_{conversation-id}.md"""
-    conversation_id = conversation.get('id', 'unknown')
-    title = conversation.get('title', 'untitled')
-    create_time = conversation.get('create_time', 0)
+def clean_filename(text: str) -> str:
+    """Clean text for filename usage while keeping it readable"""
+    import re
     
-    date_str = format_timestamp(create_time)
-    title_slug = slugify(title)
+    # Replace problematic characters with safe alternatives
+    text = re.sub(r'[<>:"/\\|?*]', '', text)  # Remove invalid filename chars
+    text = re.sub(r'[^\w\s.-]', '', text)     # Keep only letters, numbers, spaces, dots, hyphens
+    text = re.sub(r'\s+', ' ', text)          # Collapse multiple spaces
+    text = text.strip()                       # Remove leading/trailing spaces
+    text = text[:100]                         # Limit length for filesystem compatibility
     
-    # Truncate title slug if too long to keep filename reasonable
-    if len(title_slug) > 50:
-        title_slug = title_slug[:50].rstrip('-')
+    return text
+
+
+def generate_filename(conversation: Dict, existing_filenames: List[str] = None) -> str:
+    """Generate human-readable filename with duplicate handling"""
+    if existing_filenames is None:
+        existing_filenames = []
     
-    return f"{date_str}_{title_slug}_{conversation_id}.md"
+    title = conversation.get('title', 'Untitled Conversation')
+    
+    # Create base filename - clean but readable
+    base_filename = clean_filename(title)
+    
+    # Ensure it's not empty
+    if not base_filename:
+        base_filename = 'Conversation'
+    
+    # Start with the base filename
+    filename = f"{base_filename}.md"
+    
+    # Handle duplicates by adding suffix
+    counter = 2
+    while filename in existing_filenames:
+        filename = f"{base_filename} ({counter}).md"
+        counter += 1
+    
+    return filename
 
 
 def process_conversations(conversations):
@@ -189,6 +213,9 @@ def process_conversations(conversations):
     global processed_ids
     if 'processed_ids' not in globals():
         processed_ids = set()
+    
+    # Track filenames to prevent duplicates
+    used_filenames = []
     
     for conversation in conversations:
         # Handle None or non-dict conversations
@@ -214,8 +241,9 @@ def process_conversations(conversations):
             # Convert conversation to Markdown
             markdown_content = convert_conversation_to_markdown(conversation)
             
-            # Generate filename
-            filename = generate_filename(conversation)
+            # Generate filename with duplicate checking
+            filename = generate_filename(conversation, used_filenames)
+            used_filenames.append(filename)
             
             # Create file data structure
             file_data = {
