@@ -212,8 +212,8 @@ describe('ChatGPT to Obsidian Converter', () => {
             expect(markdown).toContain('# Test Conversation');
             expect(markdown).toContain('**Created:**');
             expect(markdown).toContain('---');
-            expect(markdown).toContain('**User:**');
-            expect(markdown).toContain('**Assistant:**');
+                    expect(markdown).toContain('**User:**');
+        expect(markdown).toContain('🤖 **Assistant:**');
             expect(markdown).toContain('What is Python?');
             expect(markdown).toContain('Python is a programming language.');
         });

@@ -370,9 +370,8 @@ function convertConversationToMarkdown(conversation) {
     const messages = extractMessages(mapping);
     
     // Build Markdown content
+    // Note: No title header since Obsidian shows filename as title (avoids duplication)
     const contentLines = [
-        `# ${title}`,
-        '',
         `**Created:** ${new Date(createTime * 1000).toLocaleString()}`,
         '',
         '---',
@@ -383,12 +382,15 @@ function convertConversationToMarkdown(conversation) {
         const author = message.author;
         const text = message.content;
         
-        // Format author name
-        const authorDisplay = author === 'user' ? '**User:**' : '**Assistant:**';
+        // Format author name with improved styling
+        const authorDisplay = author === 'user' 
+            ? '**User:**' 
+            : '🤖 **Assistant:**';
         
         contentLines.push(authorDisplay);
         contentLines.push('');
-        contentLines.push(text);
+        // Make message content italicized for better visual distinction
+        contentLines.push(`*${text}*`);
         contentLines.push('');
     }
     
