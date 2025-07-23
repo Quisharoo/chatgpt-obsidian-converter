@@ -1,0 +1,36 @@
+{
+  "name": "chatgpt-converter-tests",
+  "version": "1.0.0",
+  "description": "Test suite for ChatGPT to Obsidian Converter",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:unit": "jest --testPathPattern=unit"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js",
+      "<rootDir>/src/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "../converter.js",
+      "src/**/*.js",
+      "!src/**/*.test.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "html", "lcov"],
+    "moduleFileExtensions": ["js", "json"],
+    "transform": {},
+    "testTimeout": 10000
+  }
+} 

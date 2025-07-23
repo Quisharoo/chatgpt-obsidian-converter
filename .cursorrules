@@ -1,0 +1,12 @@
+@AGENTS.md
+
+Follow the guidelines and conventions outlined in AGENTS.md when working on this repository. This document contains important information about:
+
+- Git workflow and branch management
+- Deployment considerations
+- Code quality standards  
+- Testing requirements
+- Repository structure
+- Collaboration patterns
+
+Always refer to AGENTS.md for the complete set of guidelines and ensure all contributions align with these standards. 

@@ -1,0 +1,45 @@
+{
+  "name": "chatgpt-cursor-import",
+  "version": "1.0.0",
+  "description": "Convert ChatGPT conversation exports to Obsidian-friendly Markdown files",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000",
+    "build": "echo 'No build step required for static site'",
+    "deploy": "vercel --prod",
+    "test": "cd test-vite-react && npm test",
+    "test:install": "cd test-vite-react && npm install",
+    "test:watch": "cd test-vite-react && npm run test:watch",
+    "test:coverage": "cd test-vite-react && npm run test:coverage",
+    "test:python": "python3 -m pytest tests/ -v",
+    "test:all": "npm run test:python && npm run test"
+  },
+  "keywords": [
+    "chatgpt",
+    "obsidian",
+    "markdown",
+    "converter",
+    "export",
+    "conversation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/chatgpt-cursor-import.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {},
+  "files": [
+    "index.html",
+    "converter.js",
+    "chatgpt_converter.py",
+    "example_conversations.json",
+    "README.md",
+    "AGENTS.md"
+  ]
+} 
