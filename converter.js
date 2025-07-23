@@ -8,6 +8,7 @@ let convertedFiles = [];
 let processedIds = new Set();
 let selectedDirectoryHandle = null;
 let isProcessingFile = false;
+let saveLocalButton = null; // Reference to the save button for direct updates
 
 /**
  * Check if File System Access API is supported
@@ -37,6 +38,13 @@ async function selectSaveDirectory() {
         
         // Update the UI to show the selected folder and next steps
         updateDirectorySelection(directoryHandle.name);
+        
+        // Enable the save button if it exists
+        if (saveLocalButton) {
+            saveLocalButton.disabled = false;
+            saveLocalButton.style.background = '#28a745';
+            saveLocalButton.textContent = `💾 Save ${convertedFiles.length} files to ${directoryHandle.name}/`;
+        }
         
         return directoryHandle;
     } catch (error) {
@@ -72,6 +80,13 @@ async function selectSaveDirectorySimple() {
         
         // Update the UI to show the selected folder and next steps
         updateDirectorySelection(directoryHandle.name);
+        
+        // Enable the save button if it exists
+        if (saveLocalButton) {
+            saveLocalButton.disabled = false;
+            saveLocalButton.style.background = '#28a745';
+            saveLocalButton.textContent = `💾 Save ${convertedFiles.length} files to ${directoryHandle.name}/`;
+        }
         
         return directoryHandle;
     } catch (error) {
@@ -162,7 +177,8 @@ async function saveFilesLocally(files) {
 
     // Show progress
     showStatus(`💾 Saving ${files.length} files to ${selectedDirectoryHandle.name} folder...`, 'info');
-    console.log(`🔄 Starting save process: ${files.length} files to ${selectedDirectoryHandle.name}/`);
+    console.log(`🔄 Starting chronological save process: ${files.length} files to ${selectedDirectoryHandle.name}/`);
+    console.log(`📅 Files will be created oldest-first to maintain chronological order in Obsidian`);
 
     // Save each file
     for (let i = 0; i < files.length; i++) {
@@ -183,7 +199,7 @@ async function saveFilesLocally(files) {
         
         // Small delay to ensure file creation timestamps are properly ordered
         if (i < files.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 10));
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         // Update progress
@@ -440,6 +456,7 @@ function processConversations(conversations) {
         });
     
     console.log(`📅 Processing ${sortedConversations.length} conversations in chronological order (oldest first)`);
+    console.log(`🕐 This ensures newest conversations appear at top when sorted by creation date in Obsidian`);
     
     // Track filenames to prevent duplicates
     const usedFilenames = [];
@@ -637,6 +654,10 @@ function displayResults(results) {
                 console.log('🖱️ Save button clicked!');
                 saveFilesLocally(results.files);
             };
+            
+            // Store reference to the save button for future updates
+            saveLocalButton = saveLocalBtn;
+            
             directorySection.appendChild(saveLocalBtn);
             
             const note = document.createElement('p');
@@ -871,6 +892,7 @@ function initializeConverter() {
     convertedFiles = [];
     processedIds.clear();
     selectedDirectoryHandle = null;
+    saveLocalButton = null;
     
     // Check File System Access API support
     if (isFileSystemAccessSupported()) {
