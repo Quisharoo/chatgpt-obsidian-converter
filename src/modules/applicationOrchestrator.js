@@ -13,7 +13,8 @@ import {
     validateDirectoryAccess,
     downloadFile,
     createDownloadBlob,
-    isFileSystemAccessSupported
+    isFileSystemAccessSupported,
+    saveFileToDirectory
 } from './fileSystemManager.js';
 import { ERROR_MESSAGES, STATUS_MESSAGES } from '../utils/constants.js';
 
@@ -245,6 +246,54 @@ export class ChatGPTConverter {
     }
 
     /**
+     * Save individual file to Obsidian directory
+     * WHY: Reuses the same File System Access API logic as bulk save for consistency
+     * 
+     * @param {Object} file - File object to save
+     */
+    async saveSingleFileToObsidian(file) {
+        try {
+            // Check if File System Access API is supported
+            if (!isFileSystemAccessSupported()) {
+                this.showError('Your browser doesn\'t support direct file saving. Use download instead.');
+                return;
+            }
+
+            this.showInfo(`📁 Choose where to save "${file.title || file.filename}"`);
+            
+            // Let user select directory for this specific file
+            const directoryHandle = await selectDirectory();
+            
+            if (!directoryHandle) {
+                this.showInfo('📂 File save cancelled');
+                return;
+            }
+
+            this.showInfo(`💾 Saving "${file.filename}" to ${directoryHandle.name}...`);
+
+            // Use the same save logic as bulk save
+            const success = await saveFileToDirectory(file.filename, file.content, directoryHandle);
+            
+            if (success) {
+                this.showSuccess(`✅ Saved "${file.filename}" to ${directoryHandle.name}/ folder!`);
+                console.log(`✅ Individual file saved: ${file.filename} → ${directoryHandle.name}/`);
+            } else {
+                this.showError(`❌ Failed to save "${file.filename}". Check permissions or try download instead.`);
+            }
+
+        } catch (error) {
+            console.error(`Error saving individual file ${file.filename}:`, error);
+            
+            // Provide specific error messages
+            if (error.message.includes('cancelled')) {
+                this.showInfo('📂 File save cancelled');
+            } else {
+                this.showError(`Failed to save "${file.filename}": ${error.message}`);
+            }
+        }
+    }
+
+    /**
      * Download all files individually
      * WHY: Batch download fallback when local saving fails
      */
@@ -377,24 +426,64 @@ export class ChatGPTConverter {
         const section = document.createElement('div');
         
         const title = document.createElement('h4');
-        title.textContent = '📥 Download Options:';
+        title.textContent = '📁 Individual File Options:';
         section.appendChild(title);
         
-        // Individual downloads
+        // Add explanation
+        const explanation = document.createElement('p');
+        explanation.style.fontSize = '0.9rem';
+        explanation.style.color = '#666';
+        explanation.style.marginBottom = '15px';
+        explanation.innerHTML = `
+            💡 <strong>Save individually:</strong> Each file prompts for location (useful for organizing into different folders)<br>
+            📥 <strong>Download:</strong> Traditional download to your Downloads folder
+        `;
+        section.appendChild(explanation);
+        
+        // Individual file options
         for (const file of results.files) {
             const item = document.createElement('div');
             item.className = 'download-item';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
+            item.style.marginBottom = '10px';
+            item.style.padding = '10px';
+            item.style.background = '#f8f9fa';
+            item.style.borderRadius = '5px';
+            item.style.border = '1px solid #dee2e6';
             
             const info = document.createElement('span');
             info.textContent = file.title || file.filename;
+            info.style.flex = '1';
+            info.style.marginRight = '10px';
+            info.style.fontWeight = '500';
             
-            const btn = document.createElement('button');
-            btn.className = 'download-btn';
-            btn.textContent = 'Download';
-            btn.onclick = () => this.downloadSingleFile(file);
+            // Save to Obsidian button (primary action)
+            if (isFileSystemAccessSupported()) {
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'btn';
+                saveBtn.textContent = '📁 Save to Obsidian';
+                saveBtn.style.background = '#007bff';
+                saveBtn.style.color = 'white';
+                saveBtn.style.marginRight = '8px';
+                saveBtn.style.fontSize = '0.9rem';
+                saveBtn.title = 'Save directly to a folder of your choice using the same logic as bulk save';
+                saveBtn.onclick = () => this.saveSingleFileToObsidian(file);
+                item.appendChild(saveBtn);
+            }
+            
+            // Download button (fallback)
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'btn';
+            downloadBtn.textContent = '📥 Download';
+            downloadBtn.style.background = '#6c757d';
+            downloadBtn.style.color = 'white';
+            downloadBtn.style.fontSize = '0.9rem';
+            downloadBtn.title = 'Download to your Downloads folder';
+            downloadBtn.onclick = () => this.downloadSingleFile(file);
             
             item.appendChild(info);
-            item.appendChild(btn);
+            item.appendChild(downloadBtn);
             section.appendChild(item);
         }
         
