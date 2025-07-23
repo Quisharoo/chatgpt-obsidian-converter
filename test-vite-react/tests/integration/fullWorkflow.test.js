@@ -89,13 +89,14 @@ describe('Full Workflow Integration Tests', () => {
             // Verify file generation
             const firstFile = results.files[0];
             expect(firstFile.filename).toBe('Test Integration Workflow.md');
-            expect(firstFile.content).toContain('# Test Integration Workflow');
+            // Title no longer included in content (shown by Obsidian filename)
+            expect(firstFile.content).not.toContain('# Test Integration Workflow');
             expect(firstFile.content).toContain('**User:**');
-            expect(firstFile.content).toContain('How do I test modular JavaScript?');
-            expect(firstFile.content).toContain('**Assistant:**');
-            expect(firstFile.content).toContain('You can use Jest with ES modules');
-            expect(firstFile.content).toContain('What about testing file operations?');
-            expect(firstFile.content).toContain('File System Access API');
+            expect(firstFile.content).toContain('*How do I test modular JavaScript?*');
+            expect(firstFile.content).toContain('🤖 **Assistant:**');
+            expect(firstFile.content).toContain('*You can use Jest with ES modules*');
+            expect(firstFile.content).toContain('*What about testing file operations?*');
+            expect(firstFile.content).toContain('*File System Access API*');
 
             // Verify chronological ordering
             expect(results.files[0].title).toBe('Test Integration Workflow');

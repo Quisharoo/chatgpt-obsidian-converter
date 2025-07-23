@@ -36,11 +36,12 @@ describe('Conversion Engine', () => {
 
             const result = convertConversationToMarkdown(conversation);
             
-            expect(result).toContain('# Test Conversation');
+            // Title no longer included in content (shown by Obsidian filename)
+            expect(result).not.toContain('# Test Conversation');
             expect(result).toContain('**User:**');
-            expect(result).toContain('Hello, how are you?');
-            expect(result).toContain('**Assistant:**');
-            expect(result).toContain('I am doing well, thank you!');
+            expect(result).toContain('*Hello, how are you?*');
+            expect(result).toContain('🤖 **Assistant:**');
+            expect(result).toContain('*I am doing well, thank you!*');
             expect(result).toContain('**Created:**');
         });
 
@@ -92,7 +93,7 @@ describe('Conversion Engine', () => {
             const result = convertConversationToMarkdown(conversation);
             expect(result).toContain('# Empty Chat');
             expect(result).not.toContain('**User:**');
-            expect(result).not.toContain('**Assistant:**');
+            expect(result).not.toContain('🤖 **Assistant:**');
         });
 
         test('handles complex message content structures', () => {
@@ -171,7 +172,7 @@ describe('Conversion Engine', () => {
             expect(result).toContain('Valid message');
             expect(result).toContain('Another valid message');
             // Should not contain empty assistant message
-            const assistantCount = (result.match(/\*\*Assistant:\*\*/g) || []).length;
+            const assistantCount = (result.match(/🤖 \*\*Assistant:\*\*/g) || []).length;
             expect(assistantCount).toBe(0);
         });
     });
