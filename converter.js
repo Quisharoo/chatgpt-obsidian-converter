@@ -180,6 +180,11 @@ async function saveFilesLocally(files) {
             errorCount++;
         }
         
+        // Small delay to ensure file creation timestamps are properly ordered
+        if (i < files.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        
         // Update progress
         const progress = Math.round(((i + 1) / files.length) * 100);
         showStatus(`💾 Saving files... ${progress}% (${successCount + errorCount}/${files.length})`, 'info');
@@ -424,10 +429,21 @@ function processConversations(conversations) {
         files: []
     };
     
+    // Sort conversations by creation time (oldest first) to match chronological order
+    const sortedConversations = conversations
+        .filter(conv => conv && typeof conv === 'object') // Filter out invalid entries
+        .sort((a, b) => {
+            const timeA = a.create_time || 0;
+            const timeB = b.create_time || 0;
+            return timeA - timeB; // Ascending order (oldest first)
+        });
+    
+    console.log(`📅 Processing ${sortedConversations.length} conversations in chronological order (oldest first)`);
+    
     // Track filenames to prevent duplicates
     const usedFilenames = [];
     
-    for (const conversation of conversations) {
+    for (const conversation of sortedConversations) {
         const conversationId = conversation.id;
         
         if (!conversationId) {

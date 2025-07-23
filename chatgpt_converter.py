@@ -214,10 +214,16 @@ def process_conversations(conversations):
     if 'processed_ids' not in globals():
         processed_ids = set()
     
+    # Sort conversations by creation time (oldest first) to match chronological order
+    valid_conversations = [conv for conv in conversations if conv and isinstance(conv, dict)]
+    sorted_conversations = sorted(valid_conversations, key=lambda x: x.get('create_time', 0))
+    
+    print(f"📅 Processing {len(sorted_conversations)} conversations in chronological order (oldest first)")
+    
     # Track filenames to prevent duplicates
     used_filenames = []
     
-    for conversation in conversations:
+    for conversation in sorted_conversations:
         # Handle None or non-dict conversations
         if not conversation or not isinstance(conversation, dict):
             print("⚠️  Warning: Invalid conversation data found, skipping")
@@ -300,7 +306,7 @@ def main():
     results = process_conversations(conversations)
     
     # Write files to disk
-    for file_data in results['files']:
+    for i, file_data in enumerate(results['files']):
         output_path = output_dir / file_data['filename']
         
         try:
@@ -308,6 +314,11 @@ def main():
                 f.write(file_data['content'])
             
             print(f"✅ Converted: {file_data['title']} → {file_data['filename']}")
+            
+            # Small delay to ensure file creation timestamps are properly ordered
+            if i < len(results['files']) - 1:
+                import time
+                time.sleep(0.01)  # 10ms delay
             
         except Exception as e:
             print(f"❌ Error writing file '{file_data['filename']}': {e}")

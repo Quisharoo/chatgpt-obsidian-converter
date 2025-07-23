@@ -10,6 +10,7 @@ Convert your ChatGPT conversation exports into Obsidian-friendly Markdown files 
 - **✨ Clean Markdown Formatting**: Properly formats conversations with clear author attribution
 - **📁 Obsidian-Friendly**: Generates files with metadata and structure optimized for Obsidian
 - **🔒 Safe Filenames**: Automatically slugifies titles and handles special characters
+- **📅 Chronological Order**: Files are created oldest-first to match conversation timeline
 - **⚡ Vercel Deployment**: Deploy your own instance to Vercel with one click
 - **🛡️ Privacy-First**: All processing happens in your browser - no server uploads
 

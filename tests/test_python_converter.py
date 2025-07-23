@@ -186,7 +186,7 @@ class TestChatGPTConverter(unittest.TestCase):
             {
                 'id': 'duplicate_test',  # Same ID
                 'title': 'Second Instance',
-                'create_time': 1703522622,
+                'create_time': 1703522623,  # Different time to test sorting
                 'mapping': {}
             }
         ]
@@ -198,6 +198,41 @@ class TestChatGPTConverter(unittest.TestCase):
         results = process_conversations(conversations)
         self.assertEqual(results['processed'], 1)
         self.assertEqual(results['skipped'], 1)
+
+    def test_conversations_sorted_chronologically(self):
+        """Test that conversations are processed in chronological order (oldest first)"""
+        conversations = [
+            {
+                'id': 'newest',
+                'title': 'Newest Conversation',
+                'create_time': 1703522625,  # Latest
+                'mapping': {}
+            },
+            {
+                'id': 'oldest',
+                'title': 'Oldest Conversation', 
+                'create_time': 1703522620,  # Earliest
+                'mapping': {}
+            },
+            {
+                'id': 'middle',
+                'title': 'Middle Conversation',
+                'create_time': 1703522622,  # Middle
+                'mapping': {}
+            }
+        ]
+        
+        # Reset processed IDs
+        global processed_ids
+        processed_ids = set()
+        
+        results = process_conversations(conversations)
+        self.assertEqual(results['processed'], 3)
+        
+        # Check that files are ordered by creation time (oldest first)
+        file_titles = [file_data['title'] for file_data in results['files']]
+        expected_order = ['Oldest Conversation', 'Middle Conversation', 'Newest Conversation']
+        self.assertEqual(file_titles, expected_order)
 
     def test_process_conversations_no_id(self):
         """Test conversations without IDs are handled"""
