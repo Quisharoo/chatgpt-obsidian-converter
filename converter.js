@@ -7,6 +7,7 @@
 let convertedFiles = [];
 let processedIds = new Set();
 let selectedDirectoryHandle = null;
+let isProcessingFile = false;
 
 /**
  * Check if File System Access API is supported
@@ -729,6 +730,16 @@ function displayResults(results) {
  * Handle file processing
  */
 async function handleFileUpload(file) {
+    console.log('🔄 handleFileUpload called with file:', file.name, file.size, 'bytes');
+    
+    // Prevent multiple simultaneous processing
+    if (isProcessingFile) {
+        console.log('⚠️ File processing already in progress, ignoring duplicate call');
+        return;
+    }
+    
+    isProcessingFile = true;
+    
     try {
         // Show progress
         const progressContainer = document.getElementById('progressContainer');
@@ -776,6 +787,10 @@ async function handleFileUpload(file) {
     } catch (error) {
         console.error('Error processing file:', error);
         showStatus(`Error: ${error.message}`, 'error');
+    } finally {
+        // Reset processing flag
+        isProcessingFile = false;
+        console.log('✅ File processing completed, ready for next file');
     }
 }
 
@@ -785,6 +800,7 @@ async function handleFileUpload(file) {
 function initializeDragAndDrop() {
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
+    const chooseFileBtn = document.getElementById('chooseFileBtn');
     
     if (!uploadArea || !fileInput) return;
     
@@ -814,16 +830,33 @@ function initializeDragAndDrop() {
         }
     });
     
-    // Handle click to upload
-    uploadArea.addEventListener('click', () => {
+    // Handle click to upload (but not on the button)
+    uploadArea.addEventListener('click', (e) => {
+        // Don't trigger if the click was on the button
+        if (e.target.id === 'chooseFileBtn' || e.target.closest('#chooseFileBtn')) {
+            console.log('🚫 Upload area click ignored - button was clicked');
+            return;
+        }
+        console.log('📂 Upload area clicked - opening file picker');
         fileInput.click();
     });
+    
+    // Handle button click separately
+    if (chooseFileBtn) {
+        chooseFileBtn.addEventListener('click', (e) => {
+            console.log('🖱️ Choose File button clicked');
+            e.stopPropagation(); // Prevent bubbling to upload area
+            fileInput.click();
+        });
+    }
     
     // Handle file input change
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
             handleFileUpload(file);
+            // Clear the input so the same file can be selected again if needed
+            e.target.value = '';
         }
     });
 }
