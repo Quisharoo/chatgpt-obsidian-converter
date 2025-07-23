@@ -4,7 +4,7 @@
   "description": "Test suite for ChatGPT to Obsidian Converter",
   "type": "module",
   "scripts": {
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:integration": "jest --testPathPattern=integration",
@@ -19,13 +19,11 @@
     "testEnvironment": "jsdom",
     "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
     "testMatch": [
-      "<rootDir>/tests/**/*.test.js",
-      "<rootDir>/src/**/*.test.js"
+      "<rootDir>/tests/**/*.test.js"
     ],
     "collectCoverageFrom": [
-      "../converter.js",
-      "src/**/*.js",
-      "!src/**/*.test.js"
+      "../src/**/*.js",
+      "!../src/**/*.test.js"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": ["text", "html", "lcov"],
