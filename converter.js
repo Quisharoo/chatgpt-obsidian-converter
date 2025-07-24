@@ -760,10 +760,43 @@ function displayResults(results) {
         
         downloadList.appendChild(directorySection);
         
-        // Individual file options
+        // Individual file options with collapsible header
+        const individualSection = document.createElement('div');
+        individualSection.id = 'individualFileSection';
+        
+        // Collapsible header with toggle button
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.style.cursor = 'pointer';
+        header.style.marginBottom = '15px';
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('aria-expanded', 'true');
+        header.setAttribute('aria-controls', 'individualFileContent');
+        
         const listTitle = document.createElement('h4');
         listTitle.textContent = '📁 Individual File Options:';
-        downloadList.appendChild(listTitle);
+        listTitle.style.margin = '0';
+        listTitle.style.flex = '1';
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.id = 'individualFileToggle';
+        toggleIcon.textContent = '🔽';
+        toggleIcon.style.fontSize = '1.2rem';
+        toggleIcon.style.marginLeft = '10px';
+        toggleIcon.style.transition = 'transform 0.3s ease';
+        toggleIcon.setAttribute('aria-hidden', 'true');
+        
+        header.appendChild(listTitle);
+        header.appendChild(toggleIcon);
+        individualSection.appendChild(header);
+        
+        // Content container (collapsible)
+        const contentContainer = document.createElement('div');
+        contentContainer.id = 'individualFileContent';
+        contentContainer.style.transition = 'all 0.3s ease';
+        contentContainer.style.overflow = 'hidden';
         
         // Add explanation
         const explanation = document.createElement('p');
@@ -774,7 +807,39 @@ function displayResults(results) {
             💡 <strong>Save individually:</strong> Each file prompts for location (useful for organizing into different folders)<br>
             📥 <strong>Download:</strong> Traditional download to your Downloads folder
         `;
-        downloadList.appendChild(explanation);
+        contentContainer.appendChild(explanation);
+        
+        // Toggle functionality for legacy version
+        let isCollapsed = false;
+        const toggleSection = () => {
+            isCollapsed = !isCollapsed;
+            
+            if (isCollapsed) {
+                // Collapse
+                contentContainer.style.maxHeight = '0';
+                contentContainer.style.marginBottom = '0';
+                contentContainer.style.opacity = '0';
+                toggleIcon.textContent = '▶️';
+                toggleIcon.style.transform = 'rotate(-90deg)';
+                header.setAttribute('aria-expanded', 'false');
+            } else {
+                // Expand
+                contentContainer.style.maxHeight = 'none';
+                contentContainer.style.marginBottom = '';
+                contentContainer.style.opacity = '1';
+                toggleIcon.textContent = '🔽';
+                toggleIcon.style.transform = 'rotate(0deg)';
+                header.setAttribute('aria-expanded', 'true');
+            }
+        };
+        
+        header.addEventListener('click', toggleSection);
+        header.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleSection();
+            }
+        });
         
         // TODO: Add pagination and sorting controls like the modular version
         // For now, showing all files with enhanced display including creation date
@@ -836,8 +901,11 @@ function displayResults(results) {
             
             downloadItem.appendChild(fileInfoContainer);
             downloadItem.appendChild(downloadBtn);
-            downloadList.appendChild(downloadItem);
+            contentContainer.appendChild(downloadItem);
         }
+        
+        individualSection.appendChild(contentContainer);
+        downloadList.appendChild(individualSection);
         
         // Store files globally for ZIP download
         convertedFiles = results.files;

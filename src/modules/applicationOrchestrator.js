@@ -424,10 +424,41 @@ export class ChatGPTConverter {
      */
     createDownloadSection(results) {
         const section = document.createElement('div');
+        section.id = 'individualFileSection';
+        
+        // Collapsible header with toggle button
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.style.cursor = 'pointer';
+        header.style.marginBottom = '15px';
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('aria-expanded', 'true');
+        header.setAttribute('aria-controls', 'individualFileContent');
         
         const title = document.createElement('h4');
         title.textContent = '📁 Individual File Options:';
-        section.appendChild(title);
+        title.style.margin = '0';
+        title.style.flex = '1';
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.id = 'individualFileToggle';
+        toggleIcon.textContent = '🔽';
+        toggleIcon.style.fontSize = '1.2rem';
+        toggleIcon.style.marginLeft = '10px';
+        toggleIcon.style.transition = 'transform 0.3s ease';
+        toggleIcon.setAttribute('aria-hidden', 'true');
+        
+        header.appendChild(title);
+        header.appendChild(toggleIcon);
+        section.appendChild(header);
+        
+        // Content container (collapsible)
+        const contentContainer = document.createElement('div');
+        contentContainer.id = 'individualFileContent';
+        contentContainer.style.transition = 'all 0.3s ease';
+        contentContainer.style.overflow = 'hidden';
         
         // Add explanation
         const explanation = document.createElement('p');
@@ -438,16 +469,34 @@ export class ChatGPTConverter {
             💡 <strong>Save individually:</strong> Each file prompts for location (useful for organizing into different folders)<br>
             📥 <strong>Download:</strong> Traditional download to your Downloads folder
         `;
-        section.appendChild(explanation);
+        contentContainer.appendChild(explanation);
         
         // Add sorting and pagination controls
         const controlsContainer = this.createFileSortingControls(results);
-        section.appendChild(controlsContainer);
+        contentContainer.appendChild(controlsContainer);
         
         // Add file list container (will be populated by updateFileList)
         const fileListContainer = document.createElement('div');
         fileListContainer.id = 'fileListContainer';
-        section.appendChild(fileListContainer);
+        contentContainer.appendChild(fileListContainer);
+        
+        section.appendChild(contentContainer);
+        
+        // Initialize collapse state
+        this.isIndividualSectionCollapsed = false;
+        
+        // Add toggle functionality
+        const toggleSection = () => {
+            this.toggleIndividualFileSection();
+        };
+        
+        header.addEventListener('click', toggleSection);
+        header.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleSection();
+            }
+        });
         
         // Initialize pagination state
         this.currentPage = 1;
@@ -460,6 +509,42 @@ export class ChatGPTConverter {
         this.updateFileList();
         
         return section;
+    }
+
+    /**
+     * Toggle the collapse/expand state of individual file section
+     * WHY: Provides cleaner UI by allowing users to hide the section when not needed
+     */
+    toggleIndividualFileSection() {
+        const contentContainer = document.getElementById('individualFileContent');
+        const toggleIcon = document.getElementById('individualFileToggle');
+        const header = contentContainer?.parentElement?.querySelector('[aria-expanded]');
+        
+        if (!contentContainer || !toggleIcon) return;
+        
+        this.isIndividualSectionCollapsed = !this.isIndividualSectionCollapsed;
+        
+        if (this.isIndividualSectionCollapsed) {
+            // Collapse
+            contentContainer.style.maxHeight = '0';
+            contentContainer.style.marginBottom = '0';
+            contentContainer.style.opacity = '0';
+            toggleIcon.textContent = '▶️';
+            toggleIcon.style.transform = 'rotate(-90deg)';
+            if (header) {
+                header.setAttribute('aria-expanded', 'false');
+            }
+        } else {
+            // Expand
+            contentContainer.style.maxHeight = 'none';
+            contentContainer.style.marginBottom = '';
+            contentContainer.style.opacity = '1';
+            toggleIcon.textContent = '🔽';
+            toggleIcon.style.transform = 'rotate(0deg)';
+            if (header) {
+                header.setAttribute('aria-expanded', 'true');
+            }
+        }
     }
 
     /**
