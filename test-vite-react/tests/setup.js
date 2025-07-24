@@ -1,25 +1,106 @@
 /**
- * Jest setup file for ChatGPT to Obsidian Converter tests
- * Following AGENTS.md testing guidelines
+ * Jest Test Environment Setup
+ * Configures mocks and global environment for testing
+ * Following AGENTS.md principle: reliable test infrastructure
  */
 
-import { jest } from '@jest/globals';
-
-// Mock DOM globals for testing environment
-global.Blob = class Blob {
-    constructor(parts, options = {}) {
-        this.parts = parts;
-        this.type = options.type || '';
-        this.size = parts.reduce((size, part) => size + part.length, 0);
-    }
+// Enhanced DOM mocking
+const createMockElement = (id, tagName = 'div') => {
+    const element = {
+        id,
+        tagName,
+        textContent: '',
+        innerHTML: '',
+        className: '',
+        style: {},
+        disabled: false,
+        onclick: null,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        appendChild: jest.fn(),
+        removeChild: jest.fn(),
+        setAttribute: jest.fn(),
+        getAttribute: jest.fn(),
+        classList: {
+            add: jest.fn(),
+            remove: jest.fn(),
+            contains: jest.fn(),
+            toggle: jest.fn()
+        },
+        querySelector: jest.fn(),
+        querySelectorAll: jest.fn(() => []),
+        click: jest.fn(),
+        focus: jest.fn(),
+        blur: jest.fn()
+    };
+    
+    return element;
 };
 
+// Mock document with jest.fn() functions  
+const mockGetElementById = jest.fn();
+const mockCreateElement = jest.fn((tagName) => createMockElement('mock', tagName));
+const mockQuerySelector = jest.fn();
+const mockQuerySelectorAll = jest.fn(() => []);
+const mockAddEventListener = jest.fn();
+const mockRemoveEventListener = jest.fn();
+
+// File System Access API Mocks
+const mockWritableStream = {
+    write: jest.fn(),
+    close: jest.fn()
+};
+
+const mockFileHandle = {
+    requestPermission: jest.fn(),
+    createWritable: jest.fn()
+};
+
+const mockDirectoryHandle = {
+    requestPermission: jest.fn(),
+    getFileHandle: jest.fn()
+};
+
+global.document = {
+    getElementById: mockGetElementById,
+    createElement: mockCreateElement,
+    querySelector: mockQuerySelector,
+    querySelectorAll: mockQuerySelectorAll,
+    body: createMockElement('body', 'body'),
+    readyState: 'complete',
+    addEventListener: mockAddEventListener,
+    removeEventListener: mockRemoveEventListener
+};
+
+// Mock window with File System Access API support
+global.window = {
+    showDirectoryPicker: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    location: {
+        protocol: 'https:',
+        hostname: 'localhost'
+    },
+    isSecureContext: true
+};
+
+// Mock console to reduce noise in tests
+global.console = {
+    ...console,
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn()
+};
+
+// Mock URL APIs
 global.URL = {
-    createObjectURL: jest.fn(() => 'mock-blob-url'),
+    createObjectURL: jest.fn(() => 'mock-url'),
     revokeObjectURL: jest.fn()
 };
 
-global.FileReader = class FileReader {
+// Mock File APIs
+global.FileReader = class MockFileReader {
     constructor() {
         this.onload = null;
         this.onerror = null;
@@ -28,48 +109,49 @@ global.FileReader = class FileReader {
     
     readAsText(file) {
         setTimeout(() => {
-            this.result = file.content || '{}';
             if (this.onload) {
+                this.result = '{"test": "data"}';
                 this.onload({ target: { result: this.result } });
             }
         }, 0);
     }
 };
 
-// Mock File System Access API
-global.window = {
-    showDirectoryPicker: jest.fn()
-};
-
-// Mock document
-global.document = {
-    getElementById: jest.fn((id) => ({
-        id,
-        textContent: '',
-        className: '',
-        style: {},
-        appendChild: jest.fn(),
-        removeChild: jest.fn()
-    })),
-    createElement: jest.fn((tag) => ({
-        tagName: tag,
-        textContent: '',
-        className: '',
-        style: {},
-        onclick: null,
-        appendChild: jest.fn(),
-        removeChild: jest.fn(),
-        click: jest.fn(),
-        href: '',
-        download: ''
-    })),
-    body: {
-        appendChild: jest.fn(),
-        removeChild: jest.fn()
+global.Blob = class MockBlob {
+    constructor(parts, options) {
+        this.parts = parts;
+        this.size = parts.join('').length;
+        this.type = options?.type || '';
     }
 };
 
-// Console setup for test output
+// Export utilities for tests using CommonJS
+module.exports = { 
+    createMockElement,
+    mockGetElementById,
+    mockCreateElement,
+    mockQuerySelector,
+    mockQuerySelectorAll,
+    mockAddEventListener,
+    mockRemoveEventListener
+};
+
+// Make mocks available globally for tests
+global.testMocks = {
+    mockGetElementById,
+    mockCreateElement,
+    mockQuerySelector,
+    mockQuerySelectorAll,
+    mockAddEventListener,
+    mockRemoveEventListener,
+    mockDirectoryHandle,
+    mockFileHandle,
+    mockWritableStream
+};
+
+// Export for ES modules
+export const testMocks = global.testMocks;
+
 console.log('🧪 Test environment setup complete');
 console.log('📊 Running ChatGPT to Obsidian Converter tests...');
 

@@ -38,10 +38,10 @@ describe('Conversion Engine', () => {
             
             // Title no longer included in content (shown by Obsidian filename)
             expect(result).not.toContain('# Test Conversation');
-            expect(result).toContain('**User:**');
-            expect(result).toContain('*Hello, how are you?*');
-            expect(result).toContain('🤖 **Assistant:**');
-            expect(result).toContain('*I am doing well, thank you!*');
+            expect(result).toContain('**🧑‍💬 User**');
+            expect(result).toContain('Hello, how are you?');
+            expect(result).toContain('**🤖 Assistant**');
+            expect(result).toContain('I am doing well, thank you!');
             expect(result).toContain('**Created:**');
         });
 
@@ -61,7 +61,8 @@ describe('Conversion Engine', () => {
             };
 
             const result = convertConversationToMarkdown(conversation);
-            expect(result).toContain('# Untitled Conversation');
+            // Title no longer included in content - shown as filename instead
+            expect(result).toContain('**Created:**');
         });
 
         test('handles conversation without create_time', () => {
@@ -80,7 +81,7 @@ describe('Conversion Engine', () => {
             };
 
             const result = convertConversationToMarkdown(conversation);
-            expect(result).toContain('**Created:** Thu Jan 01 1970');
+            expect(result).toContain('1970-01-01, 01:00:00');
         });
 
         test('handles empty mapping', () => {
@@ -91,9 +92,10 @@ describe('Conversion Engine', () => {
             };
 
             const result = convertConversationToMarkdown(conversation);
-            expect(result).toContain('# Empty Chat');
-            expect(result).not.toContain('**User:**');
-            expect(result).not.toContain('🤖 **Assistant:**');
+            // Title no longer included in content
+            expect(result).toContain('**Created:**');
+            expect(result).not.toContain('**🧑‍💬 User**');
+            expect(result).not.toContain('**🤖 Assistant**');
         });
 
         test('handles complex message content structures', () => {
@@ -214,8 +216,8 @@ describe('Conversion Engine', () => {
             expect(file.conversationId).toBe('conv_1');
             expect(file.createTime).toBe(1703522622);
             expect(file.createdDate).toBe(new Date(1703522622 * 1000).toLocaleDateString());
-            expect(file.content).toContain('**User:**');
-            expect(file.content).toContain('*Test message*');
+            expect(file.content).toContain('**🧑‍💬 User**');
+            expect(file.content).toContain('Test message');
         });
 
         test('processes conversations in chronological order', () => {
