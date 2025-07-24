@@ -32,9 +32,17 @@ export const UI_CONFIG = {
     }
 };
 
-// API capabilities
+// API capabilities - using function for dynamic checking
 export const API_SUPPORT = {
-    FILE_SYSTEM_ACCESS: 'showDirectoryPicker' in window
+    get FILE_SYSTEM_ACCESS() {
+        // More robust File System Access API detection
+        return (
+            'showDirectoryPicker' in window &&
+            typeof window.showDirectoryPicker === 'function' &&
+            window.isSecureContext && // Must be in secure context (HTTPS or localhost)
+            (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+        );
+    }
 };
 
 // Error messages - centralized for consistency
