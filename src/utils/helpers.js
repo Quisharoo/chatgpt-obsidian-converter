@@ -77,7 +77,7 @@ export function delay(ms) {
  */
 export function isValidJsonFile(file) {
     return FILE_SYSTEM.SUPPORTED_MIME_TYPES.includes(file.type) || 
-           FILE_SYSTEM.SUPPORTED_EXTENSIONS.some(ext => file.name.endsWith(ext));
+           FILE_SYSTEM.SUPPORTED_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext));
 }
 
 /**

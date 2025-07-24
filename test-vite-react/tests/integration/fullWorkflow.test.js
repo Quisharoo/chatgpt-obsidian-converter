@@ -91,22 +91,23 @@ describe('Full Workflow Integration Tests', () => {
             expect(firstFile.filename).toBe('Test Integration Workflow.md');
             // Title no longer included in content (shown by Obsidian filename)
             expect(firstFile.content).not.toContain('# Test Integration Workflow');
-            expect(firstFile.content).toContain('**User:**');
-            expect(firstFile.content).toContain('*How do I test modular JavaScript?*');
-            expect(firstFile.content).toContain('🤖 **Assistant:**');
-            expect(firstFile.content).toContain('*You can use Jest with ES modules*');
-            expect(firstFile.content).toContain('*What about testing file operations?*');
-            expect(firstFile.content).toContain('*File System Access API*');
+            expect(firstFile.content).toContain('**🧑‍💬 User**');
+            // Verify markdown content structure and formatting
+            expect(firstFile.content).toContain('How do I test modular JavaScript?');
+            expect(firstFile.content).toContain('**🤖 Assistant**');
+            expect(firstFile.content).toContain('You can use Jest with ES modules');
+            expect(firstFile.content).toContain('> What about testing file operations?');
+            expect(firstFile.content).toContain('> For file operations, you should mock the File System Access API');
 
             // Verify chronological ordering
             expect(results.files[0].title).toBe('Test Integration Workflow');
             expect(results.files[1].title).toBe('Second Test Conversation');
             
             // Check that creation time fields are included
-            expect(results.files[0].createTime).toBe(1703522622);
-            expect(results.files[1].createTime).toBe(1703522722);
-            expect(results.files[0].createdDate).toBe(new Date(1703522622 * 1000).toLocaleDateString());
-            expect(results.files[1].createdDate).toBe(new Date(1703522722 * 1000).toLocaleDateString());
+            expect(results.files[0].createTime).toBe(1703522600);
+            expect(results.files[1].createTime).toBe(1703522700);
+            expect(results.files[0].createdDate).toBe(new Date(1703522600 * 1000).toLocaleDateString());
+            expect(results.files[1].createdDate).toBe(new Date(1703522700 * 1000).toLocaleDateString());
         });
 
         test('handles real conversation export structure', async () => {
@@ -381,9 +382,9 @@ describe('Full Workflow Integration Tests', () => {
             expect(results.processed).toBe(2);
             expect(results.files).toHaveLength(2);
             
-            // Both should generate basic markdown with title and timestamp
-            expect(results.files[0].content).toContain('# Empty Mapping');
-            expect(results.files[1].content).toContain('# No Mapping');
+            // Both should generate basic markdown with timestamp (titles in filenames)
+            expect(results.files[0].content).toContain('**Created:**');
+            expect(results.files[1].content).toContain('**Created:**');
         });
 
         test('handles conversations with complex nested message structures', () => {

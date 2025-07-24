@@ -251,7 +251,10 @@ No environment variables or build steps required! This is a static site that run
 ```
 chatgpt-cursor-import/
 ├── index.html              # Web interface
-├── converter.js            # Frontend conversion logic  
+├── src/                    # Frontend application source
+│   ├── components/        # UI components (FileUploader, ProgressDisplay)
+│   ├── modules/          # Core modules (orchestrator, conversion, filesystem)
+│   └── utils/            # Utility functions and constants  
 ├── chatgpt_converter.py    # Python CLI tool
 ├── example_conversations.json # Sample data for testing
 ├── vercel.json            # Vercel deployment config

@@ -4,8 +4,8 @@
   "description": "Convert ChatGPT conversation exports to Obsidian-friendly Markdown files",
   "main": "index.html",
   "scripts": {
-    "start": "python -m http.server 8000",
-    "dev": "python -m http.server 8000",
+    "start": "kill-port 5173 && vite",
+    "dev": "kill-port 5173 && vite",
     "build": "echo 'No build step required for static site'",
     "deploy": "vercel --prod",
     "test": "cd test-vite-react && npm test",
@@ -32,14 +32,16 @@
   "engines": {
     "node": ">=14.0.0"
   },
-  "devDependencies": {},
-  "dependencies": {},
+  "devDependencies": {
+    "kill-port": "^2.0.1",
+    "vite": "^7.0.6"
+  },
   "files": [
     "index.html",
-    "converter.js",
+    "src/",
     "chatgpt_converter.py",
     "example_conversations.json",
     "README.md",
     "AGENTS.md"
   ]
-} 
+}
