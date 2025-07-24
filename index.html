@@ -10,6 +10,81 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
     
     <style>
+        /* CSS Custom Properties - Dark Theme Design System */
+        :root {
+            /* Core Dark Theme Colors */
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #242424;
+            --bg-card: #1e1e1e;
+            --bg-input: #2a2a2a;
+            
+            /* Subtle Contrast Colors */
+            --border-primary: #333333;
+            --border-secondary: #404040;
+            --border-accent: #4a5568;
+            
+            /* Text Colors */
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --text-muted: #8a8a8a;
+            --text-accent: #60a5fa;
+            
+            /* Accent Colors */
+            --accent-primary: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-light: rgba(59, 130, 246, 0.1);
+            
+            /* State Colors */
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --error: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.1);
+            
+            /* Typography System */
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
+            --font-size-xs: 12px;
+            --font-size-sm: 14px;
+            --font-size-base: 16px;
+            --font-size-lg: 18px;
+            --font-size-xl: 20px;
+            --font-size-2xl: 24px;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --line-height-tight: 1.25;
+            --line-height-normal: 1.5;
+            
+            /* Spacing Grid System */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-8: 32px;
+            --space-10: 40px;
+            --space-12: 48px;
+            --space-16: 64px;
+            
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            
+            /* Sidebar */
+            --sidebar-width: 240px;
+            --sidebar-collapsed-width: 60px;
+        }
+
+        /* Reset and Base Styles */
         * {
             margin: 0;
             padding: 0;
@@ -17,199 +92,365 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-family);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            line-height: var(--line-height-tight);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Layout Grid */
+        .app-layout {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: auto 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
             min-height: 100vh;
+            transition: grid-template-columns 0.3s ease;
+        }
+
+        .app-layout.sidebar-collapsed {
+            grid-template-columns: var(--sidebar-collapsed-width) 1fr;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            grid-area: sidebar;
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-primary);
+            padding: var(--space-6);
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-8);
+            padding-bottom: var(--space-4);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--accent-primary);
+            border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            font-size: var(--font-size-lg);
+            flex-shrink: 0;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            max-width: 800px;
-            width: 100%;
+        .sidebar-title {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+            white-space: nowrap;
         }
 
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2.5rem;
-            font-weight: 600;
+        .sidebar-nav {
+            list-style: none;
         }
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 1.1rem;
+        .sidebar-nav-item {
+            margin-bottom: var(--space-2);
         }
 
-        /* File upload drag and drop styles */
-        .upload-area {
-            border: 2px dashed #ddd;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            margin: 20px 0;
-            transition: all 0.3s ease;
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            transition: all 0.2s ease;
             cursor: pointer;
-            background: #fafafa;
         }
 
-        .upload-area:hover, .upload-area.dragover {
-            border-color: #007bff;
-            background: #f0f8ff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+        .sidebar-nav-link:hover {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-nav-link.active {
+            background-color: var(--accent-light);
+            color: var(--accent-primary);
+        }
+
+        .sidebar-nav-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-nav-text {
+            white-space: nowrap;
+        }
+
+        .sidebar-collapse-btn {
+            position: absolute;
+            top: var(--space-6);
+            right: calc(var(--space-3) * -1);
+            width: var(--space-6);
+            height: var(--space-6);
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-collapse-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Main Header */
+        .main-header {
+            grid-area: header;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-primary);
+            padding: var(--space-4) var(--space-6);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+        }
+
+        .header-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+            margin-top: var(--space-1);
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: var(--space-1);
+            margin-left: auto;
+        }
+
+        .tab-button {
+            padding: var(--space-2) var(--space-4);
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-button:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .tab-button.active {
+            background: var(--accent-light);
+            color: var(--accent-primary);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            grid-area: main;
+            padding: var(--space-6);
+            overflow-y: auto;
+        }
+
+        /* Card Components */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: var(--space-5) var(--space-6);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .card-title {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-1);
+        }
+
+        .card-description {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        .card-content {
+            padding: var(--space-6);
+        }
+
+        .card-actions {
+            padding: var(--space-4) var(--space-6);
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-primary);
+            display: flex;
+            gap: var(--space-3);
+            justify-content: flex-end;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-12);
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            background: var(--bg-input);
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--accent-primary);
+            background: var(--accent-light);
         }
 
         .upload-area:focus {
-            outline: 2px solid #007bff;
+            outline: 2px solid var(--accent-primary);
             outline-offset: 2px;
         }
 
         .upload-icon {
-            font-size: 4rem;
-            color: #667eea;
-            margin-bottom: 20px;
+            width: 48px;
+            height: 48px;
+            margin: 0 auto var(--space-4);
+            color: var(--text-muted);
         }
 
         .upload-text {
-            font-size: 1.2rem;
-            color: #333;
-            margin-bottom: 10px;
-            font-weight: 500;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
         }
 
         .upload-subtext {
-            color: #666;
-            font-size: 0.95rem;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-4);
         }
 
-        .file-input {
-            display: none;
-        }
-
+        /* Buttons */
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-4);
             border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 500;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 20px;
+            transition: all 0.2s ease;
+            text-decoration: none;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-input);
+            border-color: var(--border-accent);
         }
 
         .btn:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
 
-        /* Progress bar styles */
+        /* Progress Components */
         .progress-bar {
             width: 100%;
-            height: 20px;
-            background: #f0f0f0;
-            border-radius: 10px;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
             overflow: hidden;
-            margin: 10px 0;
+            margin: var(--space-4) 0;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #28a745, #20c997);
+            background: var(--accent-primary);
             transition: width 0.3s ease;
-            border-radius: 10px;
+            border-radius: var(--radius-sm);
         }
 
-        /* Status message styles */
+        /* Status Messages */
         .status {
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            margin: var(--space-4) 0;
+            border-left: 4px solid;
         }
 
         .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border-left: 4px solid #17a2b8;
+            background: var(--accent-light);
+            color: var(--accent-primary);
+            border-left-color: var(--accent-primary);
         }
 
         .status.success {
-            background: #d4edda;
-            color: #155724;
-            border-left: 4px solid #28a745;
+            background: var(--success-bg);
+            color: var(--success);
+            border-left-color: var(--success);
         }
 
         .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border-left: 4px solid #dc3545;
+            background: var(--error-bg);
+            color: var(--error);
+            border-left-color: var(--error);
         }
 
-        /* Download item styles */
-        .download-item {
-            transition: all 0.2s ease;
+        /* Hidden Elements */
+        .file-input {
+            display: none;
         }
 
-        .download-item:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        /* Collapsible section styles */
-        .collapsible-header {
-            transition: all 0.3s ease;
-            border-radius: 5px;
-            padding: 5px;
-        }
-
-        .collapsible-header:hover {
-            background: rgba(0,123,255,0.05);
-        }
-
-        .collapsible-header:focus {
-            outline: 2px solid #007bff;
-            outline-offset: 2px;
-        }
-
-        .collapsible-content {
-            transition: all 0.3s ease;
-        }
-
-        .collapsible-content.collapsed {
-            max-height: 0 !important;
-            opacity: 0 !important;
-            margin-bottom: 0 !important;
-            pointer-events: none;
-        }
-
-        /* Toggle icon animation */
-        .toggle-icon {
-            transition: transform 0.3s ease;
-            display: inline-block;
-        }
-
-        .toggle-icon.collapsed {
-            transform: rotate(-90deg);
-        }
-
-        /* Screen reader only content */
         .sr-only {
             position: absolute;
             width: 1px;
@@ -222,81 +463,355 @@
             border: 0;
         }
 
-        @media (max-width: 600px) {
-            .container {
-                margin: 10px;
-                padding: 30px 20px;
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "main";
             }
 
-            h1 {
-                font-size: 2rem;
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: var(--sidebar-width);
+                height: 100vh;
+                z-index: 1000;
+                transition: left 0.3s ease;
             }
 
-            .upload-area {
-                padding: 40px 20px;
+            .sidebar.mobile-open {
+                left: 0;
             }
+
+            .main-content {
+                padding: var(--space-4);
+            }
+
+            .tab-navigation {
+                margin-left: 0;
+                margin-top: var(--space-3);
+                order: 2;
+                width: 100%;
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* SVG Icons */
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Collapsed sidebar styles */
+        .app-layout.sidebar-collapsed .sidebar-nav-text,
+        .app-layout.sidebar-collapsed .sidebar-title {
+            display: none;
+        }
+
+        .app-layout.sidebar-collapsed .sidebar {
+            padding: var(--space-4);
+        }
+
+        .app-layout.sidebar-collapsed .sidebar-nav-link {
+            justify-content: center;
+            padding: var(--space-3);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🧠 VaultGPT</h1>
-        <p class="subtitle">Transform your ChatGPT conversations into Obsidian-ready Markdown files</p>
-
-        <main role="main" aria-labelledby="main-title" aria-describedby="main-description">
-            <section class="upload-section" aria-labelledby="upload-heading">
-                <h2 id="upload-heading" class="sr-only">File Upload</h2>
-                
-                <div class="upload-area" id="uploadArea" role="button" aria-describedby="upload-instructions">
-                    <div class="upload-icon" aria-hidden="true">📄</div>
-                    <div class="upload-text">Drop your conversations.json file here</div>
-                    <div class="upload-subtext" id="upload-instructions">or click to browse files</div>
-                    <button class="btn" id="chooseFileBtn" aria-describedby="file-requirements">
-                        Choose File
-                    </button>
+    <div class="app-layout" id="appLayout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
                 </div>
+                <h1 class="sidebar-title">VaultGPT</h1>
+            </div>
+            
+            <nav>
+                <ul class="sidebar-nav">
+                    <li class="sidebar-nav-item">
+                        <a href="#" class="sidebar-nav-link active" data-view="upload">
+                            <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            </svg>
+                            <span class="sidebar-nav-text">Upload</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="#" class="sidebar-nav-link" data-view="process">
+                            <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24">
+                                <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
+                            </svg>
+                            <span class="sidebar-nav-text">Process</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="#" class="sidebar-nav-link" data-view="results">
+                            <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24">
+                                <path d="M5,9V21H1V9H5M9,21A2,2 0 0,1 7,19V9C7,8.45 7.22,7.95 7.59,7.59L14.17,1L15.23,2.06C15.5,2.33 15.67,2.7 15.67,3.11L15.64,3.43L14.69,8H21C21.83,8 22.54,8.5 22.84,9.22C23.03,9.67 23.03,10.16 22.84,10.62L19.84,17.47C19.54,18.16 18.86,18.67 18.05,18.67H9.05C8.65,18.67 8.26,18.55 7.93,18.32L7,17.8V21M9,17H18.03L21,10V9H13.6L14.79,3.23L9,9V17Z"/>
+                            </svg>
+                            <span class="sidebar-nav-text">Results</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="#" class="sidebar-nav-link" data-view="files">
+                            <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24">
+                                <path d="M16,0H8C6.89,0 6,0.89 6,2V18A2,2 0 0,0 8,20H20A2,2 0 0,0 22,18V6L16,0M20,18H8V2H15V7H20V18Z"/>
+                            </svg>
+                            <span class="sidebar-nav-text">Files</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <button class="sidebar-collapse-btn" id="sidebarCollapseBtn">
+                <svg class="icon" viewBox="0 0 24 24">
+                    <path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z"/>
+                </svg>
+            </button>
+        </aside>
 
-                <input type="file" id="fileInput" class="file-input" accept=".json" aria-label="Select conversations.json file" />
+        <!-- Main Header -->
+        <header class="main-header">
+            <div class="header-content">
+                <div>
+                    <h1 class="header-title">ChatGPT to Obsidian Converter</h1>
+                    <p class="header-subtitle">Transform your conversations into organized Markdown files</p>
+                </div>
+                
+                <nav class="tab-navigation">
+                    <button class="tab-button active" data-view="upload">Upload</button>
+                    <button class="tab-button" data-view="process">Process</button>
+                    <button class="tab-button" data-view="results">Results</button>
+                    <button class="tab-button" data-view="files">Files</button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload View -->
+            <div class="view active" id="uploadView">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Upload Conversations</h2>
+                        <p class="card-description">Select your ChatGPT conversations.json file to begin conversion</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="upload-area" id="uploadArea" role="button" aria-describedby="upload-instructions">
+                            <svg class="upload-icon" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            </svg>
+                            <div class="upload-text">Drop your conversations.json file here</div>
+                            <div class="upload-subtext" id="upload-instructions">or click to browse files</div>
+                        </div>
+                        <input type="file" id="fileInput" class="file-input" accept=".json" aria-label="Select conversations.json file" />
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary" id="chooseFileBtn">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            </svg>
+                            Choose File
+                        </button>
+                    </div>
+                </div>
                 
                 <div id="file-requirements" class="sr-only">
                     Please select a conversations.json file exported from ChatGPT. The file should contain an array of conversation objects.
                 </div>
-            </section>
+            </div>
 
-            <section class="progress-section" aria-labelledby="progress-heading">
-                <h2 id="progress-heading" class="sr-only">Processing Progress</h2>
-                <div class="progress-container" id="progressContainer" style="display: none;">
-                    <!-- Progress content will be dynamically generated by ProgressDisplay component -->
+            <!-- Process View -->
+            <div class="view" id="processView">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Processing Conversations</h2>
+                        <p class="card-description">Converting your ChatGPT conversations to Markdown format</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="progress-container" id="progressContainer" style="display: none;">
+                            <!-- Progress content will be dynamically generated by ProgressDisplay component -->
+                        </div>
+                    </div>
                 </div>
-            </section>
+            </div>
 
-            <section class="results-section" aria-labelledby="results-heading">
-                <h2 id="results-heading" class="sr-only">Conversion Results</h2>
-                <div class="results" id="results" style="display: none;">
-                    <h3>Conversion Complete!</h3>
-                    <div class="download-section">
-                        <div id="downloadList" role="region" aria-label="Download options"></div>
-                        <div class="zip-download">
-                            <button class="btn zip-btn" id="downloadZip" aria-describedby="zip-description">
-                                📦 Download All as ZIP
-                            </button>
-                            <div id="zip-description" class="sr-only">
-                                Download all converted files in a single ZIP archive
+            <!-- Results View -->
+            <div class="view" id="resultsView">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Conversion Complete</h2>
+                        <p class="card-description">Your conversations have been successfully converted</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="results" id="results" style="display: none;">
+                            <div class="download-section">
+                                <div id="downloadList" role="region" aria-label="Download options"></div>
+                                <div class="zip-download">
+                                    <button class="btn btn-primary" id="downloadZip" aria-describedby="zip-description">
+                                        <svg class="icon" viewBox="0 0 24 24">
+                                            <path d="M14,17H12V19H14M10,17H8V19H10M6,17H4V19H6M6,13H4V15H6M14,13H12V15H14M16,15H18V13H16M8,13H6V15H8M18,13H20V11H18M4,13H2V11H4M12,13H10V15H12M14,9H12V11H14M10,9H8V11H10M6,9H4V11H6M14,5H12V7H14M10,5H8V7H10M6,5H4V7H6M14,1H12V3H14M10,1H8V3H10M6,1H4V3H6Z"/>
+                                        </svg>
+                                        Download All as ZIP
+                                    </button>
+                                    <div id="zip-description" class="sr-only">
+                                        Download all converted files in a single ZIP archive
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </section>
-        </main>
+            </div>
 
-        <footer>
-            <p class="sr-only">
-                This tool processes your files locally in your browser for privacy. 
-                No data is sent to external servers.
-            </p>
-        </footer>
+            <!-- Files View -->
+            <div class="view" id="filesView">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Individual Files</h2>
+                        <p class="card-description">Browse, sort, and download individual conversation files</p>
+                    </div>
+                    <div class="card-content">
+                        <div id="filesContainer" style="display: none;">
+                            <!-- File controls will be added here -->
+                            <div id="fileControls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); padding: var(--space-3); background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                                <div id="resultsInfo" style="font-size: var(--font-size-sm); color: var(--text-secondary);"></div>
+                                <div style="display: flex; gap: var(--space-3); align-items: center;">
+                                    <label style="font-size: var(--font-size-sm); color: var(--text-secondary);">Sort by:</label>
+                                    <select id="sortSelect" style="background: var(--bg-input); border: 1px solid var(--border-secondary); border-radius: var(--radius-sm); padding: var(--space-2); color: var(--text-primary); font-size: var(--font-size-sm);">
+                                        <option value="name-asc">Name (A-Z)</option>
+                                        <option value="name-desc">Name (Z-A)</option>
+                                        <option value="date-asc">Date (Oldest)</option>
+                                        <option value="date-desc" selected>Date (Newest)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Files table -->
+                            <div style="overflow-x: auto; border: 1px solid var(--border-primary); border-radius: var(--radius-md);">
+                                <table id="fileTable" style="width: 100%; border-collapse: collapse; background: var(--bg-card);">
+                                    <thead style="background: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary);">
+                                        <tr>
+                                            <th style="padding: var(--space-3) var(--space-4); text-align: left; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm);">Title</th>
+                                            <th style="padding: var(--space-3) var(--space-4); text-align: left; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm);">Filename</th>
+                                            <th style="padding: var(--space-3) var(--space-4); text-align: left; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm);">Date</th>
+                                            <th style="padding: var(--space-3) var(--space-4); text-align: right; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm);">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fileTableBody">
+                                        <!-- File rows will be dynamically generated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <div id="paginationContainer" style="display: flex; justify-content: center; align-items: center; gap: var(--space-2); margin-top: var(--space-4);">
+                                <!-- Pagination buttons will be dynamically generated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script type="module" src="src/main.js"></script>
+    <script>
+        // View Navigation Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const views = ['upload', 'process', 'results', 'files'];
+            const sidebarLinks = document.querySelectorAll('[data-view]');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
+            const appLayout = document.getElementById('appLayout');
+            
+            // View switching function
+            function switchView(viewName) {
+                // Hide all views
+                views.forEach(view => {
+                    const viewElement = document.getElementById(view + 'View');
+                    if (viewElement) {
+                        viewElement.classList.remove('active');
+                    }
+                });
+                
+                // Show selected view
+                const selectedView = document.getElementById(viewName + 'View');
+                if (selectedView) {
+                    selectedView.classList.add('active');
+                }
+                
+                // Update sidebar navigation
+                sidebarLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.view === viewName) {
+                        link.classList.add('active');
+                    }
+                });
+                
+                // Update tab navigation
+                tabButtons.forEach(button => {
+                    button.classList.remove('active');
+                    if (button.dataset.view === viewName) {
+                        button.classList.add('active');
+                    }
+                });
+            }
+            
+            // Add click listeners to sidebar and tab navigation
+            [...sidebarLinks, ...tabButtons].forEach(element => {
+                element.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchView(element.dataset.view);
+                });
+            });
+            
+            // Sidebar collapse functionality
+            if (sidebarCollapseBtn) {
+                sidebarCollapseBtn.addEventListener('click', () => {
+                    appLayout.classList.toggle('sidebar-collapsed');
+                    
+                    // Update collapse button icon
+                    const icon = sidebarCollapseBtn.querySelector('svg path');
+                    if (appLayout.classList.contains('sidebar-collapsed')) {
+                        icon.setAttribute('d', 'M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z');
+                    } else {
+                        icon.setAttribute('d', 'M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z');
+                    }
+                });
+            }
+            
+            // Expose view switching function globally for other components
+            window.switchToView = switchView;
+        });
+    </script>
+
+    <footer>
+        <p class="sr-only">
+            This tool processes your files locally in your browser for privacy. 
+            No data is sent to external servers.
+        </p>
+    </footer>
 </body>
 </html> 

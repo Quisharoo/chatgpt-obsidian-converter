@@ -26,85 +26,110 @@ export class FileUploader {
 
     /**
      * Validate required DOM elements exist
-     * WHY: Fail early if required elements are missing
+     * WHY: Prevents runtime errors if elements are missing
      */
     validateElements() {
         if (!this.uploadArea) {
-            throw new Error('Upload area element not found');
+            throw new Error(`Upload area element with id 'uploadArea' not found`);
         }
         if (!this.fileInput) {
-            throw new Error('File input element not found');
+            throw new Error(`File input element with id 'fileInput' not found`);
         }
         if (!this.chooseButton) {
-            throw new Error('Choose button element not found');
+            throw new Error(`Choose button element with id 'chooseFileBtn' not found`);
         }
     }
 
     /**
-     * Initialize accessibility attributes
-     * WHY: Ensures component is accessible to all users
+     * Initialize accessibility features
+     * WHY: Ensures component is usable by all users including keyboard and screen reader users
      */
     initializeAccessibility() {
-        // Make upload area focusable and keyboard accessible
+        // Set up proper ARIA attributes
         this.uploadArea.setAttribute('tabindex', '0');
         this.uploadArea.setAttribute('role', 'button');
-        this.uploadArea.setAttribute('aria-label', 'Upload conversations.json file or click to browse');
-        this.uploadArea.setAttribute('aria-describedby', 'upload-instructions');
+        this.uploadArea.setAttribute('aria-label', 'Upload area for ChatGPT conversations.json file');
         
-        // Add instructions for screen readers
-        const instructions = document.createElement('div');
-        instructions.id = 'upload-instructions';
-        instructions.className = 'sr-only';
-        instructions.textContent = 'Drag and drop your conversations.json file here, or press Enter or Space to open file browser';
-        this.uploadArea.appendChild(instructions);
-        
-        // Ensure button has proper labeling
-        if (!this.chooseButton.getAttribute('aria-label')) {
-            this.chooseButton.setAttribute('aria-label', 'Choose conversations.json file to upload');
+        // Ensure file input is properly labeled
+        if (!this.fileInput.getAttribute('aria-label')) {
+            this.fileInput.setAttribute('aria-label', 'Select conversations.json file');
         }
     }
 
     /**
-     * Attach all event listeners for interaction
-     * WHY: Handles mouse, keyboard, and drag interactions
+     * Attach all event listeners
+     * WHY: Sets up user interaction handling for upload functionality
      */
     attachEventListeners() {
+        // Click events
+        this.uploadArea.addEventListener('click', this.handleUploadAreaClick.bind(this));
+        this.chooseButton.addEventListener('click', this.handleChooseButtonClick.bind(this));
+        
+        // File input change
+        this.fileInput.addEventListener('change', this.handleFileInputChange.bind(this));
+        
         // Drag and drop events
         this.uploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
         this.uploadArea.addEventListener('dragleave', this.handleDragLeave.bind(this));
         this.uploadArea.addEventListener('drop', this.handleDrop.bind(this));
         
-        // Click events (avoiding duplicate triggers)
-        this.uploadArea.addEventListener('click', this.handleUploadAreaClick.bind(this));
-        this.chooseButton.addEventListener('click', this.handleChooseButtonClick.bind(this));
-        
-        // Keyboard accessibility
+        // Keyboard events for accessibility
         this.uploadArea.addEventListener('keydown', this.handleKeyDown.bind(this));
         
-        // File input change
-        this.fileInput.addEventListener('change', this.handleFileInputChange.bind(this));
+        // Prevent default drag behaviors on the window
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('drop', (e) => e.preventDefault());
     }
 
     /**
-     * Handle drag over event with visual feedback
+     * Handle upload area click
+     * WHY: Provides intuitive click-to-upload functionality
+     */
+    handleUploadAreaClick(event) {
+        if (this.isProcessing) return;
+        
+        // Don't trigger if clicking the button inside
+        if (event.target === this.chooseButton || this.chooseButton.contains(event.target)) {
+            return;
+        }
+        
+        this.fileInput.click();
+    }
+
+    /**
+     * Handle choose button click
+     * WHY: Explicit button for file selection
+     */
+    handleChooseButtonClick(event) {
+        if (this.isProcessing) return;
+        
+        event.stopPropagation();
+        this.fileInput.click();
+    }
+
+    /**
+     * Handle file input change
+     * WHY: Processes selected files from input element
+     */
+    handleFileInputChange(event) {
+        const files = event.target.files;
+        if (files && files.length > 0) {
+            this.processFile(files[0]);
+        }
+    }
+
+    /**
+     * Handle drag over event
      * WHY: Provides visual feedback during drag operations
      */
     handleDragOver(event) {
         event.preventDefault();
-        this.uploadArea.classList.add(UI_CONFIG.DRAG_HOVER_CLASS);
+        event.stopPropagation();
         
-        // Update ARIA state
-        this.uploadArea.setAttribute('aria-describedby', 'upload-instructions drop-feedback');
+        if (this.isProcessing) return;
         
-        // Add drop feedback for screen readers
-        if (!document.getElementById('drop-feedback')) {
-            const feedback = document.createElement('div');
-            feedback.id = 'drop-feedback';
-            feedback.className = 'sr-only';
-            feedback.setAttribute('aria-live', 'polite');
-            feedback.textContent = 'File ready to drop';
-            this.uploadArea.appendChild(feedback);
-        }
+        this.uploadArea.classList.add('dragover');
+        event.dataTransfer.dropEffect = 'copy';
     }
 
     /**
@@ -113,67 +138,40 @@ export class FileUploader {
      */
     handleDragLeave(event) {
         event.preventDefault();
-        this.uploadArea.classList.remove(UI_CONFIG.DRAG_HOVER_CLASS);
+        event.stopPropagation();
         
-        // Clean up drop feedback
-        const feedback = document.getElementById('drop-feedback');
-        if (feedback) {
-            feedback.remove();
+        // Only remove dragover if actually leaving the upload area
+        if (!this.uploadArea.contains(event.relatedTarget)) {
+            this.uploadArea.classList.remove('dragover');
         }
-        
-        this.uploadArea.setAttribute('aria-describedby', 'upload-instructions');
     }
 
     /**
-     * Handle file drop with validation
-     * WHY: Processes dropped files with proper error handling
+     * Handle drop event
+     * WHY: Processes dropped files
      */
     handleDrop(event) {
         event.preventDefault();
-        this.uploadArea.classList.remove(UI_CONFIG.DRAG_HOVER_CLASS);
+        event.stopPropagation();
         
-        // Clean up drop feedback
-        const feedback = document.getElementById('drop-feedback');
-        if (feedback) {
-            feedback.remove();
-        }
+        this.uploadArea.classList.remove('dragover');
+        
+        if (this.isProcessing) return;
         
         const files = event.dataTransfer.files;
-        if (files.length > 0) {
+        if (files && files.length > 0) {
             this.processFile(files[0]);
         }
     }
 
     /**
-     * Handle upload area click (excluding button clicks)
-     * WHY: Allows area click to trigger file selection without duplicate events
-     */
-    handleUploadAreaClick(event) {
-        // Don't trigger if the click was on the button
-        if (event.target === this.chooseButton || event.target.closest('#' + this.chooseButton.id)) {
-            return;
-        }
-        
-        console.log('📂 Upload area clicked - opening file picker');
-        this.fileInput.click();
-    }
-
-    /**
-     * Handle choose button click
-     * WHY: Provides explicit button interaction for file selection
-     */
-    handleChooseButtonClick(event) {
-        event.stopPropagation();
-        console.log('🖱️ Choose File button clicked');
-        this.fileInput.click();
-    }
-
-    /**
      * Handle keyboard navigation
-     * WHY: Ensures component is fully keyboard accessible
+     * WHY: Ensures keyboard accessibility for the upload area
      */
     handleKeyDown(event) {
-        // Enter or Space to activate file picker
+        if (this.isProcessing) return;
+        
+        // Activate on Enter or Space
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             this.fileInput.click();
@@ -181,48 +179,40 @@ export class FileUploader {
     }
 
     /**
-     * Handle file input change
-     * WHY: Processes selected files from file input
-     */
-    handleFileInputChange(event) {
-        const file = event.target.files[0];
-        if (file) {
-            this.processFile(file);
-            // Clear input so same file can be selected again
-            event.target.value = '';
-        }
-    }
-
-    /**
-     * Process selected file with validation
-     * WHY: Validates file before processing and provides user feedback
+     * Process selected file
+     * WHY: Validates and handles file processing with proper feedback
      * 
      * @param {File} file - Selected file to process
      */
     processFile(file) {
-        if (this.isProcessing) {
-            console.log('⚠️ File processing already in progress');
-            return;
-        }
-
-        // Validate file type
-        if (!isValidJsonFile(file)) {
-            this.showError('Please upload a JSON file (.json)');
-            return;
-        }
-
-        // Announce file selection to screen readers
-        this.announceFileSelection(file.name);
-
-        // Process file if callback is set
-        if (this.onFileSelected) {
-            this.onFileSelected(file);
+        try {
+            // Validate file type and content
+            if (!isValidJsonFile(file)) {
+                this.showFileError(ERROR_MESSAGES.INVALID_FILE_TYPE);
+                return;
+            }
+            
+            // Clear any previous errors
+            this.clearFileError();
+            
+            // Update UI state
+            this.setProcessingState(true);
+            
+            // Call the callback if set
+            if (this.onFileSelected && typeof this.onFileSelected === 'function') {
+                this.onFileSelected(file);
+            }
+            
+        } catch (error) {
+            console.error('Error processing file:', error);
+            this.showFileError(ERROR_MESSAGES.FILE_PROCESSING_ERROR);
+            this.setProcessingState(false);
         }
     }
 
     /**
-     * Set callback for file selection
-     * WHY: Allows external handling of file processing
+     * Set file selected callback
+     * WHY: Allows parent component to handle file processing
      * 
      * @param {Function} callback - Function to call when file is selected
      */
@@ -232,74 +222,88 @@ export class FileUploader {
 
     /**
      * Set processing state
-     * WHY: Prevents multiple simultaneous uploads
+     * WHY: Updates UI to reflect current processing status
      * 
-     * @param {boolean} processing - Whether processing is active
+     * @param {boolean} isProcessing - Whether file is currently being processed
      */
-    setProcessingState(processing) {
-        this.isProcessing = processing;
+    setProcessingState(isProcessing) {
+        this.isProcessing = isProcessing;
         
-        // Update UI state
-        this.uploadArea.style.pointerEvents = processing ? 'none' : 'auto';
-        this.chooseButton.disabled = processing;
+        // Update button state
+        this.chooseButton.disabled = isProcessing;
         
-        // Update ARIA state
-        this.uploadArea.setAttribute('aria-busy', processing.toString());
-        
-        if (processing) {
-            this.uploadArea.setAttribute('aria-label', 'Processing file upload...');
+        // Update upload area state
+        if (isProcessing) {
+            this.uploadArea.classList.add('processing');
+            this.uploadArea.setAttribute('aria-busy', 'true');
         } else {
-            this.uploadArea.setAttribute('aria-label', 'Upload conversations.json file or click to browse');
+            this.uploadArea.classList.remove('processing');
+            this.uploadArea.setAttribute('aria-busy', 'false');
+        }
+        
+        // Update visual feedback
+        this.updateUploadAreaText(isProcessing);
+    }
+
+    /**
+     * Update upload area text based on state
+     * WHY: Provides contextual feedback to users
+     * 
+     * @param {boolean} isProcessing - Current processing state
+     */
+    updateUploadAreaText(isProcessing) {
+        const uploadText = this.uploadArea.querySelector('.upload-text');
+        const uploadSubtext = this.uploadArea.querySelector('.upload-subtext');
+        
+        if (uploadText && uploadSubtext) {
+            if (isProcessing) {
+                uploadText.textContent = 'Processing your file...';
+                uploadSubtext.textContent = 'Please wait while we convert your conversations';
+            } else {
+                uploadText.textContent = 'Drop your conversations.json file here';
+                uploadSubtext.textContent = 'or click to browse files';
+            }
         }
     }
 
     /**
-     * Show error message
-     * WHY: Provides accessible error feedback
+     * Show file error message
+     * WHY: Provides clear feedback when file validation fails
      * 
      * @param {string} message - Error message to display
      */
-    showError(message) {
-        // Create or update error display
-        let errorElement = document.getElementById('upload-error');
-        if (!errorElement) {
-            errorElement = document.createElement('div');
-            errorElement.id = 'upload-error';
-            errorElement.className = 'status error';
-            errorElement.setAttribute('role', 'alert');
-            errorElement.setAttribute('aria-live', 'assertive');
-            this.uploadArea.appendChild(errorElement);
+    showFileError(message) {
+        // Remove any existing error
+        this.clearFileError();
+        
+        // Create error element
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'status error';
+        errorDiv.id = 'uploadError';
+        errorDiv.setAttribute('role', 'alert');
+        errorDiv.textContent = message;
+        
+        // Insert after upload area
+        const uploadCard = this.uploadArea.closest('.card');
+        if (uploadCard) {
+            const cardContent = uploadCard.querySelector('.card-content');
+            if (cardContent) {
+                cardContent.appendChild(errorDiv);
+            }
         }
         
-        errorElement.textContent = message;
-        
-        // Auto-remove error after delay
-        setTimeout(() => {
-            if (errorElement && errorElement.parentNode) {
-                errorElement.remove();
-            }
-        }, 5000);
+        // Reset file input
+        this.fileInput.value = '';
     }
 
     /**
-     * Announce file selection to screen readers
-     * WHY: Provides feedback about successful file selection
-     * 
-     * @param {string} filename - Name of selected file
+     * Clear file error message
+     * WHY: Removes error when user selects a new file
      */
-    announceFileSelection(filename) {
-        const announcement = document.createElement('div');
-        announcement.className = 'sr-only';
-        announcement.setAttribute('aria-live', 'polite');
-        announcement.textContent = `File selected: ${filename}. Processing...`;
-        
-        document.body.appendChild(announcement);
-        
-        // Remove announcement after screen readers process it
-        setTimeout(() => {
-            if (announcement.parentNode) {
-                announcement.remove();
-            }
-        }, 2000);
+    clearFileError() {
+        const existingError = document.getElementById('uploadError');
+        if (existingError) {
+            existingError.remove();
+        }
     }
 } 
