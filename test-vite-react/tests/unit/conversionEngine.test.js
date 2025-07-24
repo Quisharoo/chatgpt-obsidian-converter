@@ -184,71 +184,83 @@ describe('Conversion Engine', () => {
             mockProcessedIds = new Set();
         });
 
-        test('processes valid conversations successfully', () => {
-            const conversations = [
-                {
-                    id: 'conv_1',
-                    title: 'First Conversation',
-                    create_time: 1703522600,
-                    mapping: {
-                        'msg_1': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['Test message'] }
-                            },
-                            children: [],
-                            parent: null
-                        }
-                    }
-                },
-                {
-                    id: 'conv_2',
-                    title: 'Second Conversation',
-                    create_time: 1703522610,
-                    mapping: {
-                        'msg_1': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['Another test'] }
-                            },
-                            children: [],
-                            parent: null
-                        }
+        test('processes single conversation correctly', () => {
+            const conversations = [{
+                id: 'conv_1',
+                title: 'First Conversation',
+                create_time: 1703522622,
+                mapping: {
+                    'msg_1': {
+                        message: {
+                            author: { role: 'user' },
+                            content: { parts: ['Test message'] }
+                        },
+                        children: [],
+                        parent: null
                     }
                 }
-            ];
+            }];
 
-            const results = processConversations(conversations, mockProcessedIds);
-
-            expect(results.processed).toBe(2);
+            const results = processConversations(conversations);
+            
+            expect(results.processed).toBe(1);
             expect(results.skipped).toBe(0);
             expect(results.errors).toBe(0);
-            expect(results.files).toHaveLength(2);
-            expect(results.files[0].filename).toBe('First Conversation.md');
-            expect(results.files[1].filename).toBe('Second Conversation.md');
+            expect(results.files).toHaveLength(1);
+            
+            const file = results.files[0];
+            expect(file.filename).toBe('First Conversation.md');
+            expect(file.title).toBe('First Conversation');
+            expect(file.conversationId).toBe('conv_1');
+            expect(file.createTime).toBe(1703522622);
+            expect(file.createdDate).toBe(new Date(1703522622 * 1000).toLocaleDateString());
+            expect(file.content).toContain('**User:**');
+            expect(file.content).toContain('*Test message*');
         });
 
-        test('sorts conversations chronologically', () => {
+        test('processes conversations in chronological order', () => {
             const conversations = [
                 {
                     id: 'conv_new',
                     title: 'Newer Conversation',
-                    create_time: 1703522610,
-                    mapping: { 'msg_1': { message: { author: { role: 'user' }, content: { parts: ['New'] } }, children: [], parent: null } }
+                    create_time: 1703522722, // Later time
+                    mapping: {
+                        'msg_1': {
+                            message: {
+                                author: { role: 'user' },
+                                content: { parts: ['New message'] }
+                            },
+                            children: [],
+                            parent: null
+                        }
+                    }
                 },
                 {
                     id: 'conv_old',
                     title: 'Older Conversation',
-                    create_time: 1703522600,
-                    mapping: { 'msg_1': { message: { author: { role: 'user' }, content: { parts: ['Old'] } }, children: [], parent: null } }
+                    create_time: 1703522622, // Earlier time
+                    mapping: {
+                        'msg_1': {
+                            message: {
+                                author: { role: 'user' },
+                                content: { parts: ['Old message'] }
+                            },
+                            children: [],
+                            parent: null
+                        }
+                    }
                 }
             ];
 
-            const results = processConversations(conversations, mockProcessedIds);
-
-            // Should be processed oldest first
+            const results = processConversations(conversations);
+            
+            expect(results.files).toHaveLength(2);
+            
+            // Should be ordered oldest first (for chronological file creation)
             expect(results.files[0].title).toBe('Older Conversation');
             expect(results.files[1].title).toBe('Newer Conversation');
+            expect(results.files[0].createTime).toBe(1703522622);
+            expect(results.files[1].createTime).toBe(1703522722);
         });
 
         test('skips conversations without ID', () => {

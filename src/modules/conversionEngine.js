@@ -209,7 +209,9 @@ function processSingleConversation(conversation, processedIds, usedFilenames) {
             filename: filename,
             content: markdownContent,
             title: conversation.title || 'Untitled',
-            conversationId: conversationId
+            conversationId: conversationId,
+            createTime: conversation.create_time || 0, // Add creation time for sorting and display
+            createdDate: new Date((conversation.create_time || 0) * 1000).toLocaleDateString() // Formatted date for display
         }
     };
 } 

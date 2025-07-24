@@ -1,3 +1,5 @@
+always_include: AGENTS.md
+
 @AGENTS.md
 
 Follow the guidelines and conventions outlined in AGENTS.md when working on this repository. This document contains important information about:
@@ -9,4 +11,4 @@ Follow the guidelines and conventions outlined in AGENTS.md when working on this
 - Repository structure
 - Collaboration patterns
 
-Always refer to AGENTS.md for the complete set of guidelines and ensure all contributions align with these standards. 
+Always refer to AGENTS.md for the complete set of guidelines and ensure all contributions align with these standards.
