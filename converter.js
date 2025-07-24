@@ -843,47 +843,108 @@ function displayResults(results) {
         
         // TODO: Add pagination and sorting controls like the modular version
         // For now, showing all files with enhanced display including creation date
+        
+        // Add basic table structure for better organization (simplified version)
+        const tableContainer = document.createElement('div');
+        tableContainer.style.overflowX = 'auto';
+        tableContainer.style.marginBottom = '15px';
+        
+        const fileTable = document.createElement('table');
+        fileTable.style.width = '100%';
+        fileTable.style.borderCollapse = 'collapse';
+        fileTable.style.background = 'white';
+        fileTable.style.borderRadius = '8px';
+        fileTable.style.overflow = 'hidden';
+        fileTable.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        
+        // Create table header
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <th style="padding: 12px; text-align: left; width: 60%;">📄 Conversation Name</th>
+                <th style="padding: 12px; text-align: left; width: 20%;">📅 Created</th>
+                <th style="padding: 12px; text-align: center; width: 20%;">Actions</th>
+            </tr>
+        `;
+        
+        const tbody = document.createElement('tbody');
+        
         for (const file of results.files) {
-            const downloadItem = document.createElement('div');
-            downloadItem.className = 'download-item';
-            downloadItem.style.display = 'flex';
-            downloadItem.style.alignItems = 'center';
-            downloadItem.style.marginBottom = '10px';
-            downloadItem.style.padding = '12px';
-            downloadItem.style.background = '#f8f9fa';
-            downloadItem.style.borderRadius = '5px';
-            downloadItem.style.border = '1px solid #dee2e6';
+            const row = document.createElement('tr');
+            row.style.borderBottom = '1px solid #dee2e6';
+            row.style.transition = 'background-color 0.2s ease';
             
-            // File info container with title and creation date
-            const fileInfoContainer = document.createElement('div');
-            fileInfoContainer.style.flex = '1';
-            fileInfoContainer.style.marginRight = '10px';
+            // Add hover effect
+            row.addEventListener('mouseenter', () => {
+                row.style.backgroundColor = '#f8f9fa';
+            });
+            row.addEventListener('mouseleave', () => {
+                row.style.backgroundColor = '';
+            });
             
+            // Name column
+            const nameCell = document.createElement('td');
+            nameCell.style.padding = '12px';
+            nameCell.style.verticalAlign = 'middle';
+            
+            const nameContainer = document.createElement('div');
             const titleSpan = document.createElement('div');
             titleSpan.textContent = file.title || file.filename;
             titleSpan.style.fontWeight = '500';
             titleSpan.style.marginBottom = '2px';
+            titleSpan.style.color = '#333';
             
-            const dateSpan = document.createElement('div');
-            dateSpan.textContent = `📅 Created: ${file.createdDate || 'Unknown'}`;
-            dateSpan.style.fontSize = '0.8rem';
-            dateSpan.style.color = '#666';
+            const filenameSpan = document.createElement('div');
+            filenameSpan.textContent = file.filename;
+            filenameSpan.style.fontSize = '0.8rem';
+            filenameSpan.style.color = '#666';
             
-            fileInfoContainer.appendChild(titleSpan);
-            fileInfoContainer.appendChild(dateSpan);
+            nameContainer.appendChild(titleSpan);
+            nameContainer.appendChild(filenameSpan);
+            nameCell.appendChild(nameContainer);
+            
+            // Date column
+            const dateCell = document.createElement('td');
+            dateCell.style.padding = '12px';
+            dateCell.style.verticalAlign = 'middle';
+            dateCell.textContent = file.createdDate || 'Unknown';
+            dateCell.style.color = '#666';
+            
+            // Actions column
+            const actionsCell = document.createElement('td');
+            actionsCell.style.padding = '12px';
+            actionsCell.style.textAlign = 'center';
+            actionsCell.style.verticalAlign = 'middle';
+            
+            const actionsContainer = document.createElement('div');
+            actionsContainer.style.display = 'flex';
+            actionsContainer.style.gap = '8px';
+            actionsContainer.style.justifyContent = 'center';
             
             // Save to Obsidian button (primary action)
             if (isFileSystemAccessSupported()) {
                 const saveBtn = document.createElement('button');
                 saveBtn.className = 'btn';
-                saveBtn.textContent = '📁 Save to Obsidian';
+                saveBtn.textContent = '📁 Save';
                 saveBtn.style.background = '#007bff';
                 saveBtn.style.color = 'white';
-                saveBtn.style.marginRight = '8px';
-                saveBtn.style.fontSize = '0.9rem';
-                saveBtn.title = 'Save directly to a folder of your choice using the same logic as bulk save';
+                saveBtn.style.fontSize = '0.8rem';
+                saveBtn.style.padding = '6px 10px';
+                saveBtn.style.border = 'none';
+                saveBtn.style.borderRadius = '4px';
+                saveBtn.style.cursor = 'pointer';
+                saveBtn.style.transition = 'background-color 0.2s ease';
+                saveBtn.title = 'Save directly to a folder of your choice';
                 saveBtn.onclick = () => saveSingleFileToObsidian(file);
-                downloadItem.appendChild(saveBtn);
+                
+                saveBtn.addEventListener('mouseenter', () => {
+                    saveBtn.style.backgroundColor = '#0056b3';
+                });
+                saveBtn.addEventListener('mouseleave', () => {
+                    saveBtn.style.backgroundColor = '#007bff';
+                });
+                
+                actionsContainer.appendChild(saveBtn);
             }
             
             // Download button (fallback)
@@ -892,18 +953,38 @@ function displayResults(results) {
             downloadBtn.textContent = '📥 Download';
             downloadBtn.style.background = '#6c757d';
             downloadBtn.style.color = 'white';
-            downloadBtn.style.fontSize = '0.9rem';
+            downloadBtn.style.fontSize = '0.8rem';
+            downloadBtn.style.padding = '6px 10px';
+            downloadBtn.style.border = 'none';
+            downloadBtn.style.borderRadius = '4px';
+            downloadBtn.style.cursor = 'pointer';
+            downloadBtn.style.transition = 'background-color 0.2s ease';
             downloadBtn.title = 'Download to your Downloads folder';
             downloadBtn.onclick = () => {
                 const blob = createDownloadBlob(file.content);
                 downloadFile(blob, file.filename);
             };
             
-            downloadItem.appendChild(fileInfoContainer);
-            downloadItem.appendChild(downloadBtn);
-            contentContainer.appendChild(downloadItem);
+            downloadBtn.addEventListener('mouseenter', () => {
+                downloadBtn.style.backgroundColor = '#545b62';
+            });
+            downloadBtn.addEventListener('mouseleave', () => {
+                downloadBtn.style.backgroundColor = '#6c757d';
+            });
+            
+            actionsContainer.appendChild(downloadBtn);
+            actionsCell.appendChild(actionsContainer);
+            
+            row.appendChild(nameCell);
+            row.appendChild(dateCell);
+            row.appendChild(actionsCell);
+            tbody.appendChild(row);
         }
         
+        fileTable.appendChild(thead);
+        fileTable.appendChild(tbody);
+        tableContainer.appendChild(fileTable);
+        contentContainer.appendChild(tableContainer);
         individualSection.appendChild(contentContainer);
         downloadList.appendChild(individualSection);
         
