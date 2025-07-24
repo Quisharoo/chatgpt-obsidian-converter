@@ -94,6 +94,25 @@ function extractMessageContent(message) {
 }
 
 /**
+ * Format message content as blockquotes while preserving line breaks
+ * WHY: Obsidian blockquotes provide better visual distinction for message content
+ * 
+ * @param {string} content - Raw message content
+ * @returns {string} - Content formatted as blockquotes
+ */
+function formatAsBlockquote(content) {
+    if (!content || typeof content !== 'string') {
+        return '';
+    }
+    
+    // Split by line breaks and prefix each non-empty line with '> '
+    return content
+        .split('\n')
+        .map(line => line.trim() === '' ? '>' : `> ${line}`)
+        .join('\n');
+}
+
+/**
  * Convert a single conversation to Markdown format
  * WHY: Obsidian uses Markdown, so we need consistent formatting
  * 
@@ -107,25 +126,30 @@ export function convertConversationToMarkdown(conversation) {
     
     const messages = extractMessagesFromMapping(mapping);
     
-    // Build Markdown with consistent structure
-    // Note: No title header since Obsidian shows filename as title (avoids duplication)
+    // Build Markdown with Obsidian-optimized structure
+    // Format timestamp as YYYY-MM-DD, HH:mm:ss for consistency
+    const timestamp = new Date(createTime * 1000);
+    const formattedTimestamp = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}, ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}:${String(timestamp.getSeconds()).padStart(2, '0')}`;
+    
     const contentLines = [
-        `**Created:** ${new Date(createTime * 1000).toLocaleString()}`,
+        `**Created:** ${formattedTimestamp}`,
         '',
         '---',
         ''
     ];
     
-    // Add formatted messages with improved styling
+    // Add formatted messages with clean Obsidian styling
     for (const message of messages) {
         const authorDisplay = message.author === 'user' 
-            ? '**User:**' 
-            : '🤖 **Assistant:**';
+            ? '**🧑‍💬 User**' 
+            : '**🤖 Assistant**';
         
         contentLines.push(authorDisplay);
         contentLines.push('');
-        // Make message content italicized for better visual distinction
-        contentLines.push(`*${message.content}*`);
+        
+        // Format content as blockquotes while preserving original formatting
+        const blockquotedContent = formatAsBlockquote(message.content);
+        contentLines.push(blockquotedContent);
         contentLines.push('');
     }
     

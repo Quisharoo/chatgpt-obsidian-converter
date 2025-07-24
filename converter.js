@@ -43,7 +43,7 @@ async function selectSaveDirectory() {
         if (saveLocalButton) {
             saveLocalButton.disabled = false;
             saveLocalButton.style.background = '#28a745';
-            saveLocalButton.textContent = `💾 Save ${convertedFiles.length} files to ${directoryHandle.name}/`;
+            saveLocalButton.textContent = `💾 Save ${convertedFiles.length} files to selected folder`;
         }
         
         return directoryHandle;
@@ -85,7 +85,7 @@ async function selectSaveDirectorySimple() {
         if (saveLocalButton) {
             saveLocalButton.disabled = false;
             saveLocalButton.style.background = '#28a745';
-            saveLocalButton.textContent = `💾 Save ${convertedFiles.length} files to ${directoryHandle.name}/`;
+            saveLocalButton.textContent = `💾 Save ${convertedFiles.length} files to selected folder`;
         }
         
         return directoryHandle;
@@ -236,7 +236,7 @@ function updateDirectorySelection(directoryName) {
     saveButtons.forEach(button => {
         button.style.background = '#28a745';
         button.style.animation = 'pulse 2s infinite';
-        button.textContent = `💾 Save ${convertedFiles.length} files to ${directoryName}/`;
+        button.textContent = `💾 Save ${convertedFiles.length} files to selected folder`;
     });
     
     // Add CSS animation for the pulse effect
@@ -359,6 +359,21 @@ function extractMessages(mapping) {
 }
 
 /**
+ * Format message content as blockquotes while preserving line breaks
+ */
+function formatAsBlockquote(content) {
+    if (!content || typeof content !== 'string') {
+        return '';
+    }
+    
+    // Split by line breaks and prefix each non-empty line with '> '
+    return content
+        .split('\n')
+        .map(line => line.trim() === '' ? '>' : `> ${line}`)
+        .join('\n');
+}
+
+/**
  * Convert a single conversation to Markdown format
  */
 function convertConversationToMarkdown(conversation) {
@@ -369,10 +384,13 @@ function convertConversationToMarkdown(conversation) {
     // Extract and format messages
     const messages = extractMessages(mapping);
     
-    // Build Markdown content
-    // Note: No title header since Obsidian shows filename as title (avoids duplication)
+    // Build Markdown content with Obsidian-optimized structure
+    // Format timestamp as YYYY-MM-DD, HH:mm:ss for consistency
+    const timestamp = new Date(createTime * 1000);
+    const formattedTimestamp = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}, ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}:${String(timestamp.getSeconds()).padStart(2, '0')}`;
+    
     const contentLines = [
-        `**Created:** ${new Date(createTime * 1000).toLocaleString()}`,
+        `**Created:** ${formattedTimestamp}`,
         '',
         '---',
         ''
@@ -382,15 +400,17 @@ function convertConversationToMarkdown(conversation) {
         const author = message.author;
         const text = message.content;
         
-        // Format author name with improved styling
+        // Format author name with clean Obsidian styling
         const authorDisplay = author === 'user' 
-            ? '**User:**' 
-            : '🤖 **Assistant:**';
+            ? '**🧑‍💬 User**' 
+            : '**🤖 Assistant**';
         
         contentLines.push(authorDisplay);
         contentLines.push('');
-        // Make message content italicized for better visual distinction
-        contentLines.push(`*${text}*`);
+        
+        // Format content as blockquotes while preserving original formatting
+        const blockquotedContent = formatAsBlockquote(text);
+        contentLines.push(blockquotedContent);
         contentLines.push('');
     }
     
@@ -697,7 +717,7 @@ function displayResults(results) {
             saveLocalBtn.style.padding = '12px 24px';
             saveLocalBtn.style.fontWeight = 'bold';
             saveLocalBtn.textContent = selectedDirectoryHandle ? 
-                `💾 Save ${results.files.length} files to ${selectedDirectoryHandle.name}/` : 
+                `💾 Save ${results.files.length} files to selected folder` : 
                 '💾 Save to Local Folder (Select folder first)';
             saveLocalBtn.disabled = !selectedDirectoryHandle;
             saveLocalBtn.onclick = () => {

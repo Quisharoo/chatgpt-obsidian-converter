@@ -93,16 +93,14 @@ export class ChatGPTConverter {
                 this.displayResults(results);
                 this.progressDisplay.hide();
                 
-                // Switch to results view
+                // Switch to results view and stay there
                 if (window.switchToView) {
                     window.switchToView('results');
                     
-                    // Also populate the Files view in the background
+                    // Populate the Files view in the background but don't switch to it automatically
                     setTimeout(() => {
-                        if (window.switchToView) {
-                            window.switchToView('files');
-                        }
-                    }, 1000);
+                        this.populateFilesView(results);
+                    }, 100);
                 }
             }, 500);
             
@@ -339,7 +337,7 @@ export class ChatGPTConverter {
             this.saveLocalButton.style.background = this.selectedDirectoryHandle ? '#28a745' : '#6c757d';
             
             if (this.selectedDirectoryHandle) {
-                this.saveLocalButton.textContent = `💾 Save ${this.convertedFiles.length} files to ${this.selectedDirectoryHandle.name}/`;
+                this.saveLocalButton.textContent = `💾 Save ${this.convertedFiles.length} files to selected folder`;
                 this.saveLocalButton.style.animation = 'pulse 2s infinite';
             } else {
                 this.saveLocalButton.textContent = '💾 Save to Local Folder (Select folder first)';
@@ -597,8 +595,8 @@ export class ChatGPTConverter {
                 const content = decodeURIComponent(btn.dataset.content);
                 if (this.selectedDirectoryHandle) {
                     try {
-                        await saveFileToDirectory(this.selectedDirectoryHandle, filename, content);
-                        this.showSuccessMessage(`File saved: ${filename}`);
+                        await saveFileToDirectory(filename, content, this.selectedDirectoryHandle);
+                        this.showSuccess(`File saved: ${filename}`);
                     } catch (error) {
                         console.error('Error saving file:', error);
                         this.showError(`Failed to save ${filename}: ${error.message}`);
@@ -1376,7 +1374,7 @@ export class ChatGPTConverter {
         btn.style.padding = '12px 24px';
         btn.style.fontWeight = 'bold';
         btn.textContent = this.selectedDirectoryHandle ? 
-            `💾 Save ${results.files.length} files to ${this.selectedDirectoryHandle.name}/` : 
+            `💾 Save ${results.files.length} files to selected folder` : 
             '💾 Save to Local Folder (Select folder first)';
         btn.disabled = !this.selectedDirectoryHandle;
         btn.onclick = () => this.handleLocalSave();
@@ -1459,7 +1457,13 @@ export class ChatGPTConverter {
      */
     showStatusMessage(message, type) {
         if (this.progressDisplay && this.progressDisplay.isVisible) {
-            this.progressDisplay.updateStatus(message, type);
+            // Use the correct methods that exist on ProgressDisplay
+            if (type === 'error') {
+                this.progressDisplay.showError(message);
+            } else {
+                // For info/success messages, use updateProgress with current or max percentage
+                this.progressDisplay.updateProgress(100, message);
+            }
         } else {
             // Fallback: log to console
             console.log(`${type.toUpperCase()}: ${message}`);

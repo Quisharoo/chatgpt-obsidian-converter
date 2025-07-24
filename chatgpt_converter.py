@@ -104,6 +104,16 @@ def escape_markdown(text: str) -> str:
     return text
 
 
+def format_as_blockquote(content: str) -> str:
+    """Format message content as blockquotes while preserving line breaks."""
+    if not content or not isinstance(content, str):
+        return ''
+    
+    # Split by line breaks and prefix each non-empty line with '> '
+    lines = content.split('\n')
+    return '\n'.join('>' if line.strip() == '' else f'> {line}' for line in lines)
+
+
 def convert_conversation_to_markdown(conversation: Dict) -> str:
     """Convert a single conversation to Markdown format."""
     title = conversation.get('title', 'Untitled Conversation')
@@ -113,11 +123,13 @@ def convert_conversation_to_markdown(conversation: Dict) -> str:
     # Extract and format messages
     messages = extract_messages(mapping)
     
-    # Build Markdown content
+    # Build Markdown content with Obsidian-optimized structure
+    # Format timestamp as YYYY-MM-DD, HH:mm:ss for consistency
+    timestamp = datetime.fromtimestamp(create_time)
+    formatted_timestamp = timestamp.strftime('%Y-%m-%d, %H:%M:%S')
+    
     content_lines = [
-        f"# {title}",
-        "",
-        f"**Created:** {datetime.fromtimestamp(create_time).strftime('%Y-%m-%d %H:%M:%S')}",
+        f"**Created:** {formatted_timestamp}",
         "",
         "---",
         ""
@@ -127,12 +139,15 @@ def convert_conversation_to_markdown(conversation: Dict) -> str:
         author = message['author']
         text = message['content']
         
-        # Format author name
-        author_display = "**User:**" if author == "user" else "**Assistant:**"
+        # Format author name with clean Obsidian styling
+        author_display = "**🧑‍💬 User**" if author == "user" else "**🤖 Assistant**"
         
         content_lines.append(author_display)
         content_lines.append("")
-        content_lines.append(text)
+        
+        # Format content as blockquotes while preserving original formatting
+        blockquoted_content = format_as_blockquote(text)
+        content_lines.append(blockquoted_content)
         content_lines.append("")
     
     return '\n'.join(content_lines)
