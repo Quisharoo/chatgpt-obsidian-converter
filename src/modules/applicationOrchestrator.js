@@ -420,7 +420,7 @@ export class ChatGPTConverter {
 
     /**
      * Create download section with individual file links
-     * WHY: Provides fallback download options
+     * WHY: Provides paginated, sortable download options with creation date display
      */
     createDownloadSection(results) {
         const section = document.createElement('div');
@@ -440,54 +440,385 @@ export class ChatGPTConverter {
         `;
         section.appendChild(explanation);
         
-        // Individual file options
-        for (const file of results.files) {
-            const item = document.createElement('div');
-            item.className = 'download-item';
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
-            item.style.marginBottom = '10px';
-            item.style.padding = '10px';
-            item.style.background = '#f8f9fa';
-            item.style.borderRadius = '5px';
-            item.style.border = '1px solid #dee2e6';
-            
-            const info = document.createElement('span');
-            info.textContent = file.title || file.filename;
-            info.style.flex = '1';
-            info.style.marginRight = '10px';
-            info.style.fontWeight = '500';
-            
-            // Save to Obsidian button (primary action)
-            if (isFileSystemAccessSupported()) {
-                const saveBtn = document.createElement('button');
-                saveBtn.className = 'btn';
-                saveBtn.textContent = '📁 Save to Obsidian';
-                saveBtn.style.background = '#007bff';
-                saveBtn.style.color = 'white';
-                saveBtn.style.marginRight = '8px';
-                saveBtn.style.fontSize = '0.9rem';
-                saveBtn.title = 'Save directly to a folder of your choice using the same logic as bulk save';
-                saveBtn.onclick = () => this.saveSingleFileToObsidian(file);
-                item.appendChild(saveBtn);
-            }
-            
-            // Download button (fallback)
-            const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'btn';
-            downloadBtn.textContent = '📥 Download';
-            downloadBtn.style.background = '#6c757d';
-            downloadBtn.style.color = 'white';
-            downloadBtn.style.fontSize = '0.9rem';
-            downloadBtn.title = 'Download to your Downloads folder';
-            downloadBtn.onclick = () => this.downloadSingleFile(file);
-            
-            item.appendChild(info);
-            item.appendChild(downloadBtn);
-            section.appendChild(item);
-        }
+        // Add sorting and pagination controls
+        const controlsContainer = this.createFileSortingControls(results);
+        section.appendChild(controlsContainer);
+        
+        // Add file list container (will be populated by updateFileList)
+        const fileListContainer = document.createElement('div');
+        fileListContainer.id = 'fileListContainer';
+        section.appendChild(fileListContainer);
+        
+        // Initialize pagination state
+        this.currentPage = 1;
+        this.filesPerPage = 10;
+        this.currentSort = 'name';
+        this.sortDirection = 'asc';
+        this.allFiles = results.files;
+        
+        // Initial display
+        this.updateFileList();
         
         return section;
+    }
+
+    /**
+     * Create sorting controls for file list
+     * WHY: Provides user control over file organization and display
+     */
+    createFileSortingControls(results) {
+        const container = document.createElement('div');
+        container.style.marginBottom = '15px';
+        container.style.padding = '10px';
+        container.style.background = '#f8f9fa';
+        container.style.borderRadius = '5px';
+        container.style.border = '1px solid #dee2e6';
+        
+        // Sort controls
+        const sortContainer = document.createElement('div');
+        sortContainer.style.display = 'flex';
+        sortContainer.style.alignItems = 'center';
+        sortContainer.style.gap = '10px';
+        sortContainer.style.marginBottom = '10px';
+        
+        const sortLabel = document.createElement('label');
+        sortLabel.textContent = '🔄 Sort by:';
+        sortLabel.style.fontWeight = '500';
+        
+        const sortSelect = document.createElement('select');
+        sortSelect.id = 'sortSelect';
+        sortSelect.style.padding = '5px';
+        sortSelect.style.borderRadius = '3px';
+        sortSelect.innerHTML = `
+            <option value="name">Name (A-Z)</option>
+            <option value="date">Date Created</option>
+        `;
+        sortSelect.addEventListener('change', () => {
+            const [sortBy, direction] = sortSelect.value === 'name' ? ['name', 'asc'] : ['date', 'desc'];
+            this.setSortOrder(sortBy, direction);
+        });
+        
+        const directionBtn = document.createElement('button');
+        directionBtn.id = 'sortDirectionBtn';
+        directionBtn.textContent = '⬆️ Asc';
+        directionBtn.style.padding = '5px 10px';
+        directionBtn.style.borderRadius = '3px';
+        directionBtn.style.border = '1px solid #ccc';
+        directionBtn.style.background = 'white';
+        directionBtn.style.cursor = 'pointer';
+        directionBtn.addEventListener('click', () => this.toggleSortDirection());
+        
+        sortContainer.appendChild(sortLabel);
+        sortContainer.appendChild(sortSelect);
+        sortContainer.appendChild(directionBtn);
+        
+        // Results info and pagination controls
+        const infoContainer = document.createElement('div');
+        infoContainer.style.display = 'flex';
+        infoContainer.style.justifyContent = 'space-between';
+        infoContainer.style.alignItems = 'center';
+        
+        const resultsInfo = document.createElement('span');
+        resultsInfo.id = 'resultsInfo';
+        resultsInfo.style.fontSize = '0.9rem';
+        resultsInfo.style.color = '#666';
+        
+        const paginationContainer = document.createElement('div');
+        paginationContainer.id = 'paginationControls';
+        paginationContainer.style.display = 'flex';
+        paginationContainer.style.gap = '5px';
+        
+        infoContainer.appendChild(resultsInfo);
+        infoContainer.appendChild(paginationContainer);
+        
+        container.appendChild(sortContainer);
+        container.appendChild(infoContainer);
+        
+        return container;
+    }
+
+    /**
+     * Set sort order and update display
+     * WHY: Allows users to organize files by preference
+     */
+    setSortOrder(sortBy, direction) {
+        this.currentSort = sortBy;
+        this.sortDirection = direction;
+        this.currentPage = 1; // Reset to first page
+        this.updateFileList();
+        this.updateSortControls();
+    }
+
+    /**
+     * Toggle sort direction
+     * WHY: Provides easy way to reverse sort order
+     */
+    toggleSortDirection() {
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        this.updateFileList();
+        this.updateSortControls();
+    }
+
+    /**
+     * Update sort control displays
+     * WHY: Provides visual feedback of current sort state
+     */
+    updateSortControls() {
+        const directionBtn = document.getElementById('sortDirectionBtn');
+        if (directionBtn) {
+            directionBtn.textContent = this.sortDirection === 'asc' ? '⬆️ Asc' : '⬇️ Desc';
+        }
+    }
+
+    /**
+     * Sort files based on current criteria
+     * WHY: Organizes files according to user preference
+     */
+    getSortedFiles() {
+        const sorted = [...this.allFiles];
+        
+        sorted.sort((a, b) => {
+            let compareValue = 0;
+            
+            if (this.currentSort === 'name') {
+                compareValue = (a.title || a.filename).localeCompare(b.title || b.filename);
+            } else if (this.currentSort === 'date') {
+                compareValue = (a.createTime || 0) - (b.createTime || 0);
+            }
+            
+            return this.sortDirection === 'desc' ? -compareValue : compareValue;
+        });
+        
+        return sorted;
+    }
+
+    /**
+     * Update file list display with pagination
+     * WHY: Provides clean, organized view of files with navigation
+     */
+    updateFileList() {
+        const container = document.getElementById('fileListContainer');
+        if (!container) return;
+        
+        const sortedFiles = this.getSortedFiles();
+        const totalFiles = sortedFiles.length;
+        const startIndex = (this.currentPage - 1) * this.filesPerPage;
+        const endIndex = Math.min(startIndex + this.filesPerPage, totalFiles);
+        const currentPageFiles = sortedFiles.slice(startIndex, endIndex);
+        
+        // Clear container
+        container.innerHTML = '';
+        
+        // Add files for current page
+        currentPageFiles.forEach(file => {
+            const item = this.createFileItem(file);
+            container.appendChild(item);
+        });
+        
+        // Update results info
+        this.updateResultsInfo(startIndex + 1, endIndex, totalFiles);
+        
+        // Update pagination controls
+        this.updatePaginationControls(totalFiles);
+    }
+
+    /**
+     * Create individual file item with enhanced display
+     * WHY: Shows file info with creation date and action buttons
+     */
+    createFileItem(file) {
+        const item = document.createElement('div');
+        item.className = 'download-item';
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.marginBottom = '10px';
+        item.style.padding = '12px';
+        item.style.background = '#f8f9fa';
+        item.style.borderRadius = '5px';
+        item.style.border = '1px solid #dee2e6';
+        
+        // File info container
+        const infoContainer = document.createElement('div');
+        infoContainer.style.flex = '1';
+        infoContainer.style.marginRight = '10px';
+        
+        const titleSpan = document.createElement('div');
+        titleSpan.textContent = file.title || file.filename;
+        titleSpan.style.fontWeight = '500';
+        titleSpan.style.marginBottom = '2px';
+        
+        const dateSpan = document.createElement('div');
+        dateSpan.textContent = `📅 Created: ${file.createdDate || 'Unknown'}`;
+        dateSpan.style.fontSize = '0.8rem';
+        dateSpan.style.color = '#666';
+        
+        infoContainer.appendChild(titleSpan);
+        infoContainer.appendChild(dateSpan);
+        
+        // Action buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.display = 'flex';
+        buttonsContainer.style.gap = '8px';
+        
+        // Save to Obsidian button (primary action)
+        if (isFileSystemAccessSupported()) {
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn';
+            saveBtn.textContent = '📁 Save to Obsidian';
+            saveBtn.style.background = '#007bff';
+            saveBtn.style.color = 'white';
+            saveBtn.style.fontSize = '0.9rem';
+            saveBtn.style.padding = '6px 12px';
+            saveBtn.title = 'Save directly to a folder of your choice using the same logic as bulk save';
+            saveBtn.onclick = () => this.saveSingleFileToObsidian(file);
+            buttonsContainer.appendChild(saveBtn);
+        }
+        
+        // Download button (fallback)
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'btn';
+        downloadBtn.textContent = '📥 Download';
+        downloadBtn.style.background = '#6c757d';
+        downloadBtn.style.color = 'white';
+        downloadBtn.style.fontSize = '0.9rem';
+        downloadBtn.style.padding = '6px 12px';
+        downloadBtn.title = 'Download to your Downloads folder';
+        downloadBtn.onclick = () => this.downloadSingleFile(file);
+        buttonsContainer.appendChild(downloadBtn);
+        
+        item.appendChild(infoContainer);
+        item.appendChild(buttonsContainer);
+        
+        return item;
+    }
+
+    /**
+     * Update results information display
+     * WHY: Shows current pagination status to users
+     */
+    updateResultsInfo(start, end, total) {
+        const resultsInfo = document.getElementById('resultsInfo');
+        if (resultsInfo) {
+            resultsInfo.textContent = `Showing ${start}-${end} of ${total} conversations`;
+        }
+    }
+
+    /**
+     * Update pagination controls
+     * WHY: Provides navigation between pages
+     */
+    updatePaginationControls(totalFiles) {
+        const container = document.getElementById('paginationControls');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const totalPages = Math.ceil(totalFiles / this.filesPerPage);
+        
+        if (totalPages <= 1) return; // No pagination needed
+        
+        // Previous button
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '« Prev';
+        prevBtn.style.padding = '5px 10px';
+        prevBtn.style.fontSize = '0.8rem';
+        prevBtn.style.border = '1px solid #ccc';
+        prevBtn.style.borderRadius = '3px';
+        prevBtn.style.background = this.currentPage === 1 ? '#f0f0f0' : 'white';
+        prevBtn.style.cursor = this.currentPage === 1 ? 'not-allowed' : 'pointer';
+        prevBtn.disabled = this.currentPage === 1;
+        prevBtn.onclick = () => this.goToPage(this.currentPage - 1);
+        container.appendChild(prevBtn);
+        
+        // Page numbers (show current, prev, next, first, last)
+        const pagesToShow = this.getPageNumbers(this.currentPage, totalPages);
+        pagesToShow.forEach(pageNum => {
+            if (pageNum === '...') {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '...';
+                ellipsis.style.padding = '5px';
+                container.appendChild(ellipsis);
+            } else {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = pageNum;
+                pageBtn.style.padding = '5px 10px';
+                pageBtn.style.fontSize = '0.8rem';
+                pageBtn.style.border = '1px solid #ccc';
+                pageBtn.style.borderRadius = '3px';
+                pageBtn.style.background = pageNum === this.currentPage ? '#007bff' : 'white';
+                pageBtn.style.color = pageNum === this.currentPage ? 'white' : 'black';
+                pageBtn.style.cursor = 'pointer';
+                pageBtn.onclick = () => this.goToPage(pageNum);
+                container.appendChild(pageBtn);
+            }
+        });
+        
+        // Next button
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Next »';
+        nextBtn.style.padding = '5px 10px';
+        nextBtn.style.fontSize = '0.8rem';
+        nextBtn.style.border = '1px solid #ccc';
+        nextBtn.style.borderRadius = '3px';
+        nextBtn.style.background = this.currentPage === totalPages ? '#f0f0f0' : 'white';
+        nextBtn.style.cursor = this.currentPage === totalPages ? 'not-allowed' : 'pointer';
+        nextBtn.disabled = this.currentPage === totalPages;
+        nextBtn.onclick = () => this.goToPage(this.currentPage + 1);
+        container.appendChild(nextBtn);
+    }
+
+    /**
+     * Get page numbers to display in pagination
+     * WHY: Shows relevant page numbers with ellipsis for large page counts
+     */
+    getPageNumbers(currentPage, totalPages) {
+        const pages = [];
+        
+        if (totalPages <= 7) {
+            // Show all pages if 7 or fewer
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            // Always show first page
+            pages.push(1);
+            
+            if (currentPage > 3) {
+                pages.push('...');
+            }
+            
+            // Show pages around current page
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+            
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            
+            if (currentPage < totalPages - 2) {
+                pages.push('...');
+            }
+            
+            // Always show last page
+            if (totalPages > 1) {
+                pages.push(totalPages);
+            }
+        }
+        
+        return pages;
+    }
+
+    /**
+     * Navigate to specific page
+     * WHY: Handles pagination navigation
+     */
+    goToPage(pageNumber) {
+        if (pageNumber < 1 || pageNumber > Math.ceil(this.allFiles.length / this.filesPerPage)) {
+            return;
+        }
+        
+        this.currentPage = pageNumber;
+        this.updateFileList();
     }
 
     /**

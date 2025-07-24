@@ -101,6 +101,12 @@ describe('Full Workflow Integration Tests', () => {
             // Verify chronological ordering
             expect(results.files[0].title).toBe('Test Integration Workflow');
             expect(results.files[1].title).toBe('Second Test Conversation');
+            
+            // Check that creation time fields are included
+            expect(results.files[0].createTime).toBe(1703522622);
+            expect(results.files[1].createTime).toBe(1703522722);
+            expect(results.files[0].createdDate).toBe(new Date(1703522622 * 1000).toLocaleDateString());
+            expect(results.files[1].createdDate).toBe(new Date(1703522722 * 1000).toLocaleDateString());
         });
 
         test('handles real conversation export structure', async () => {

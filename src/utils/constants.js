@@ -18,11 +18,18 @@ export const FILE_SYSTEM = {
     DEFAULT_FILENAME: 'Conversation'
 };
 
-// UI constants
+// UI configuration constants
 export const UI_CONFIG = {
-    PULSE_ANIMATION_DURATION_MS: 2000,
-    STATUS_DISPLAY_DELAY_MS: 1000,
-    DRAG_HOVER_CLASS: 'dragover'
+    FILES_PER_PAGE: 10,          // Default number of files to show per page
+    MAX_PAGINATION_BUTTONS: 7,   // Maximum number of pagination buttons to display
+    SORT_OPTIONS: {
+        NAME: 'name',
+        DATE: 'date'
+    },
+    SORT_DIRECTIONS: {
+        ASC: 'asc',
+        DESC: 'desc'
+    }
 };
 
 // API capabilities

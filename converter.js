@@ -492,7 +492,9 @@ function processConversations(conversations) {
                 filename: filename,
                 content: markdownContent,
                 title: conversation.title || 'Untitled',
-                conversationId: conversationId
+                conversationId: conversationId,
+                createTime: conversation.create_time || 0, // Add creation time for sorting and display
+                createdDate: new Date((conversation.create_time || 0) * 1000).toLocaleDateString() // Formatted date for display
             };
             
             results.files.push(fileData);
@@ -774,22 +776,36 @@ function displayResults(results) {
         `;
         downloadList.appendChild(explanation);
         
+        // TODO: Add pagination and sorting controls like the modular version
+        // For now, showing all files with enhanced display including creation date
         for (const file of results.files) {
             const downloadItem = document.createElement('div');
             downloadItem.className = 'download-item';
             downloadItem.style.display = 'flex';
             downloadItem.style.alignItems = 'center';
             downloadItem.style.marginBottom = '10px';
-            downloadItem.style.padding = '10px';
+            downloadItem.style.padding = '12px';
             downloadItem.style.background = '#f8f9fa';
             downloadItem.style.borderRadius = '5px';
             downloadItem.style.border = '1px solid #dee2e6';
             
-            const fileInfo = document.createElement('span');
-            fileInfo.textContent = file.title || file.filename;
-            fileInfo.style.flex = '1';
-            fileInfo.style.marginRight = '10px';
-            fileInfo.style.fontWeight = '500';
+            // File info container with title and creation date
+            const fileInfoContainer = document.createElement('div');
+            fileInfoContainer.style.flex = '1';
+            fileInfoContainer.style.marginRight = '10px';
+            
+            const titleSpan = document.createElement('div');
+            titleSpan.textContent = file.title || file.filename;
+            titleSpan.style.fontWeight = '500';
+            titleSpan.style.marginBottom = '2px';
+            
+            const dateSpan = document.createElement('div');
+            dateSpan.textContent = `📅 Created: ${file.createdDate || 'Unknown'}`;
+            dateSpan.style.fontSize = '0.8rem';
+            dateSpan.style.color = '#666';
+            
+            fileInfoContainer.appendChild(titleSpan);
+            fileInfoContainer.appendChild(dateSpan);
             
             // Save to Obsidian button (primary action)
             if (isFileSystemAccessSupported()) {
@@ -818,7 +834,7 @@ function displayResults(results) {
                 downloadFile(blob, file.filename);
             };
             
-            downloadItem.appendChild(fileInfo);
+            downloadItem.appendChild(fileInfoContainer);
             downloadItem.appendChild(downloadBtn);
             downloadList.appendChild(downloadItem);
         }
