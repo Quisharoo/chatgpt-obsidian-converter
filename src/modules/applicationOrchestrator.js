@@ -65,6 +65,11 @@ export class ChatGPTConverter {
     async handleFileUpload(file) {
         console.log(`🔄 Processing file: ${file.name} (${file.size} bytes)`);
         
+        // Switch to process view
+        if (window.switchToView) {
+            window.switchToView('process');
+        }
+        
         this.fileUploader.setProcessingState(true);
         this.progressDisplay.show();
         
@@ -83,10 +88,22 @@ export class ChatGPTConverter {
             this.progressDisplay.updateProgress(100, STATUS_MESSAGES.COMPLETE);
             this.convertedFiles = results.files;
             
-            // Display results
+            // Display results with delay for smooth transition
             setTimeout(() => {
                 this.displayResults(results);
                 this.progressDisplay.hide();
+                
+                // Switch to results view
+                if (window.switchToView) {
+                    window.switchToView('results');
+                    
+                    // Also populate the Files view in the background
+                    setTimeout(() => {
+                        if (window.switchToView) {
+                            window.switchToView('files');
+                        }
+                    }, 1000);
+                }
             }, 500);
             
         } catch (error) {
@@ -346,19 +363,274 @@ export class ChatGPTConverter {
         resultsDiv.style.display = 'block';
         downloadList.innerHTML = '';
         
-        // Add summary
-        const summary = this.createResultsSummary(results);
-        downloadList.appendChild(summary);
+        // Add summary card
+        const summaryCard = this.createResultsSummaryCard(results);
+        downloadList.appendChild(summaryCard);
         
         if (results.files.length > 0) {
-            // Add directory selection and save options
-            const directorySection = this.createDirectorySection(results);
-            downloadList.appendChild(directorySection);
+            // Add directory selection card
+            const directoryCard = this.createDirectoryCard(results);
+            downloadList.appendChild(directoryCard);
             
-            // Add individual download options
-            const downloadSection = this.createDownloadSection(results);
-            downloadList.appendChild(downloadSection);
+            // Store files for the dedicated Files view
+            this.populateFilesView(results);
         }
+    }
+
+    /**
+     * Populate the dedicated Files view with sorting and pagination
+     * WHY: Provides a dedicated interface for browsing individual files
+     */
+    populateFilesView(results) {
+        const filesContainer = document.getElementById('filesContainer');
+        const fileTableBody = document.getElementById('fileTableBody');
+        const resultsInfo = document.getElementById('resultsInfo');
+        const sortSelect = document.getElementById('sortSelect');
+        const paginationContainer = document.getElementById('paginationContainer');
+        
+        if (!filesContainer || !fileTableBody || !resultsInfo) return;
+        
+        // Show files container
+        filesContainer.style.display = 'block';
+        
+        // Store files data for pagination/sorting
+        this.allFiles = results.files;
+        this.currentPage = 1;
+        this.filesPerPage = 10;
+        this.currentSort = 'date-desc';
+        
+        // Set up sort handler
+        if (sortSelect) {
+            sortSelect.value = this.currentSort;
+            sortSelect.addEventListener('change', (e) => {
+                this.currentSort = e.target.value;
+                this.currentPage = 1;
+                this.renderFilesTable();
+            });
+        }
+        
+        // Initial render
+        this.renderFilesTable();
+    }
+
+    /**
+     * Render files table with current sorting and pagination
+     * WHY: Displays files with proper sorting and pagination controls
+     */
+    renderFilesTable() {
+        const fileTableBody = document.getElementById('fileTableBody');
+        const resultsInfo = document.getElementById('resultsInfo');
+        const paginationContainer = document.getElementById('paginationContainer');
+        
+        if (!fileTableBody || !this.allFiles) return;
+        
+        // Sort files
+        const sortedFiles = this.sortFiles([...this.allFiles], this.currentSort);
+        
+        // Calculate pagination
+        const totalFiles = sortedFiles.length;
+        const totalPages = Math.ceil(totalFiles / this.filesPerPage);
+        const startIndex = (this.currentPage - 1) * this.filesPerPage;
+        const endIndex = Math.min(startIndex + this.filesPerPage, totalFiles);
+        const currentFiles = sortedFiles.slice(startIndex, endIndex);
+        
+        // Update results info
+        if (resultsInfo) {
+            resultsInfo.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalFiles} files`;
+        }
+        
+        // Clear table body
+        fileTableBody.innerHTML = '';
+        
+                // Render current page files
+        currentFiles.forEach(file => {
+            const row = document.createElement('tr');
+            row.style.borderBottom = '1px solid var(--border-primary)';
+            
+            const dateCreated = file.create_time ? new Date(file.create_time * 1000).toLocaleDateString() : 'Unknown';
+            
+            row.innerHTML = `
+                <td style="padding: var(--space-3) var(--space-4); color: var(--text-primary); font-weight: var(--font-weight-medium);">
+                    ${file.title}
+                </td>
+                <td style="padding: var(--space-3) var(--space-4); color: var(--text-secondary); font-size: var(--font-size-sm); font-family: monospace;">
+                    ${file.filename}
+                </td>
+                <td style="padding: var(--space-3) var(--space-4); color: var(--text-secondary); font-size: var(--font-size-sm);">
+                    ${dateCreated}
+                </td>
+                <td style="padding: var(--space-3) var(--space-4); text-align: right;">
+                     <div style="display: flex; gap: var(--space-2); justify-content: flex-end;">
+                         <button class="btn btn-secondary download-file-btn" style="padding: var(--space-2) var(--space-3); font-size: var(--font-size-xs);" data-filename="${file.filename}" data-content="${encodeURIComponent(file.content)}">
+                             <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                                 <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+                             </svg>
+                         </button>
+                         ${this.selectedDirectoryHandle ? `
+                         <button class="btn btn-primary save-file-btn" style="padding: var(--space-2) var(--space-3); font-size: var(--font-size-xs);" data-filename="${file.filename}" data-content="${encodeURIComponent(file.content)}">
+                             <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                                 <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
+                             </svg>
+                         </button>
+                         ` : ''}
+                     </div>
+                 </td>
+            `;
+            
+            fileTableBody.appendChild(row);
+        });
+        
+        // Add event listeners to buttons
+        this.attachFileButtonHandlers();
+        
+        // Render pagination
+        this.renderPagination(totalPages);
+    }
+
+    /**
+     * Sort files based on selected criteria
+     * WHY: Allows users to organize files by name or date
+     */
+    sortFiles(files, sortType) {
+        const [field, direction] = sortType.split('-');
+        
+        return files.sort((a, b) => {
+            let aValue, bValue;
+            
+            if (field === 'name') {
+                aValue = a.title.toLowerCase();
+                bValue = b.title.toLowerCase();
+            } else if (field === 'date') {
+                aValue = a.create_time || 0;
+                bValue = b.create_time || 0;
+            }
+            
+            if (direction === 'asc') {
+                return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+            } else {
+                return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+            }
+        });
+    }
+
+    /**
+     * Render pagination controls
+     * WHY: Provides navigation for large numbers of files
+     */
+    renderPagination(totalPages) {
+        const paginationContainer = document.getElementById('paginationContainer');
+        if (!paginationContainer || totalPages <= 1) {
+            if (paginationContainer) paginationContainer.innerHTML = '';
+            return;
+        }
+        
+        paginationContainer.innerHTML = '';
+        
+        const maxButtons = 7;
+        let startPage = Math.max(1, this.currentPage - Math.floor(maxButtons / 2));
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        
+        // Adjust start if we're near the end
+        if (endPage - startPage + 1 < maxButtons) {
+            startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+        
+        // Previous button
+        if (this.currentPage > 1) {
+            const prevBtn = this.createPaginationButton('‹', this.currentPage - 1);
+            paginationContainer.appendChild(prevBtn);
+        }
+        
+        // Page number buttons
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = this.createPaginationButton(i.toString(), i, i === this.currentPage);
+            paginationContainer.appendChild(pageBtn);
+        }
+        
+        // Next button
+        if (this.currentPage < totalPages) {
+            const nextBtn = this.createPaginationButton('›', this.currentPage + 1);
+            paginationContainer.appendChild(nextBtn);
+        }
+    }
+
+    /**
+     * Create pagination button
+     * WHY: Creates consistent pagination button styling and behavior
+     */
+    createPaginationButton(text, page, isActive = false) {
+        const button = document.createElement('button');
+        button.textContent = text;
+        button.className = `btn ${isActive ? 'btn-primary' : 'btn-secondary'}`;
+        button.style.padding = 'var(--space-2) var(--space-3)';
+        button.style.fontSize = 'var(--font-size-sm)';
+        button.style.minWidth = '40px';
+        
+        if (!isActive) {
+            button.addEventListener('click', () => {
+                this.currentPage = page;
+                this.renderFilesTable();
+            });
+        }
+        
+        return button;
+    }
+
+    /**
+     * Attach event handlers to file action buttons
+     * WHY: Enables download and save functionality for individual files
+     */
+    attachFileButtonHandlers() {
+        // Download buttons
+        document.querySelectorAll('.download-file-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filename = btn.dataset.filename;
+                const content = decodeURIComponent(btn.dataset.content);
+                downloadFile(filename, content);
+            });
+        });
+
+        // Save buttons
+        document.querySelectorAll('.save-file-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const filename = btn.dataset.filename;
+                const content = decodeURIComponent(btn.dataset.content);
+                if (this.selectedDirectoryHandle) {
+                    try {
+                        await saveFileToDirectory(this.selectedDirectoryHandle, filename, content);
+                        this.showSuccessMessage(`File saved: ${filename}`);
+                    } catch (error) {
+                        console.error('Error saving file:', error);
+                        this.showError(`Failed to save ${filename}: ${error.message}`);
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Show success message
+     * WHY: Provides feedback when files are saved successfully
+     */
+    showSuccessMessage(message) {
+        // Create temporary success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'status success';
+        successDiv.style.position = 'fixed';
+        successDiv.style.top = 'var(--space-4)';
+        successDiv.style.right = 'var(--space-4)';
+        successDiv.style.zIndex = '1000';
+        successDiv.style.maxWidth = '300px';
+        successDiv.textContent = message;
+        
+        document.body.appendChild(successDiv);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.remove();
+            }
+        }, 3000);
     }
 
     /**
@@ -378,45 +650,149 @@ export class ChatGPTConverter {
     }
 
     /**
-     * Create directory selection section
-     * WHY: Provides local save options with clear instructions
+     * Create summary card for results
+     * WHY: Displays conversion statistics in a clean card format
      */
-    createDirectorySection(results) {
-        const section = document.createElement('div');
-        section.style.marginBottom = '20px';
-        section.style.padding = '15px';
-        section.style.background = '#f8f9fa';
-        section.style.borderRadius = '8px';
-        section.style.border = '1px solid #dee2e6';
+    createResultsSummaryCard(results) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.marginBottom = 'var(--space-6)';
         
-        const title = document.createElement('h4');
-        title.textContent = '📁 Save Location:';
-        section.appendChild(title);
+        const header = document.createElement('div');
+        header.className = 'card-header';
+        
+        const title = document.createElement('h3');
+        title.className = 'card-title';
+        title.innerHTML = `
+            <svg class="icon" style="margin-right: var(--space-2);" viewBox="0 0 24 24">
+                <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
+            </svg>
+            Conversion Summary
+        `;
+        
+        const description = document.createElement('p');
+        description.className = 'card-description';
+        description.textContent = 'Your ChatGPT conversations have been successfully converted';
+        
+        header.appendChild(title);
+        header.appendChild(description);
+        
+        const content = document.createElement('div');
+        content.className = 'card-content';
+        
+        const stats = document.createElement('div');
+        stats.style.display = 'grid';
+        stats.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))';
+        stats.style.gap = 'var(--space-4)';
+        
+        // Create stat items
+        const statItems = [
+            { label: 'Files Created', value: results.files.length, icon: 'M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z' },
+            { label: 'Conversations', value: results.processed, icon: 'M12,3C6.5,3 2,6.58 2,11A7.18,7.18 0 0,0 2.24,12.65C2.09,13.6 2,14.62 2,15.68C2,17.68 2.5,19.5 3.5,21L12,12.5C12,12.33 12,12.17 12,12A1,1 0 0,1 13,11A1,1 0 0,1 14,12C14,12.17 14,12.33 14,12.5L22.5,21C23.5,19.5 24,17.68 24,15.68C24,14.62 23.91,13.6 23.76,12.65A7.18,7.18 0 0,0 24,11C24,6.58 19.5,3 14,3H12Z' },
+            { label: 'Duplicates Skipped', value: results.duplicates, icon: 'M19,7H22V9H19V12H17V9H14V7H17V4H19V7M17,19H2V17S2,10 9,10C13.5,10 16.24,11.69 17,15.5V19Z' }
+        ];
+        
+        if (results.errors > 0) {
+            statItems.push({ label: 'Errors', value: results.errors, icon: 'M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z' });
+        }
+        
+        statItems.forEach(item => {
+            const statCard = document.createElement('div');
+            statCard.style.padding = 'var(--space-4)';
+            statCard.style.backgroundColor = 'var(--bg-tertiary)';
+            statCard.style.borderRadius = 'var(--radius-md)';
+            statCard.style.textAlign = 'center';
+            
+            statCard.innerHTML = `
+                <svg class="icon" style="color: var(--accent-primary); margin-bottom: var(--space-2);" viewBox="0 0 24 24">
+                    <path d="${item.icon}"/>
+                </svg>
+                <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text-primary); margin-bottom: var(--space-1);">${item.value}</div>
+                <div style="font-size: var(--font-size-sm); color: var(--text-secondary);">${item.label}</div>
+            `;
+            
+            stats.appendChild(statCard);
+        });
+        
+        content.appendChild(stats);
+        card.appendChild(header);
+        card.appendChild(content);
+        
+        return card;
+    }
+
+    /**
+     * Create directory selection card
+     * WHY: Provides local save options with clear instructions in card format
+     */
+    createDirectoryCard(results) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.marginBottom = 'var(--space-6)';
+        
+        const header = document.createElement('div');
+        header.className = 'card-header';
+        
+        const title = document.createElement('h3');
+        title.className = 'card-title';
+        title.innerHTML = `
+            <svg class="icon" style="margin-right: var(--space-2);" viewBox="0 0 24 24">
+                <path d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+            </svg>
+            Save Location
+        `;
+        
+        const description = document.createElement('p');
+        description.className = 'card-description';
+        description.textContent = 'Choose where to save your converted files';
+        
+        header.appendChild(title);
+        header.appendChild(description);
+        
+        const content = document.createElement('div');
+        content.className = 'card-content';
         
         if (isFileSystemAccessSupported()) {
-            // Main directory button
+            // Directory selection buttons
+            const buttonGroup = document.createElement('div');
+            buttonGroup.style.display = 'flex';
+            buttonGroup.style.gap = 'var(--space-3)';
+            buttonGroup.style.marginBottom = 'var(--space-4)';
+            
             const selectBtn = this.createDirectoryButton();
-            section.appendChild(selectBtn);
-            
-            // Simple directory button
             const simpleBtn = this.createSimpleDirectoryButton();
-            section.appendChild(simpleBtn);
             
-            // Save button
-            const saveBtn = this.createSaveButton(results);
-            section.appendChild(saveBtn);
+            buttonGroup.appendChild(selectBtn);
+            buttonGroup.appendChild(simpleBtn);
+            content.appendChild(buttonGroup);
             
             // Instructions
             const instructions = this.createInstructions();
-            section.appendChild(instructions);
+            content.appendChild(instructions);
             
         } else {
             const warning = this.createUnsupportedWarning();
-            section.appendChild(warning);
+            content.appendChild(warning);
         }
         
-        return section;
+        const actions = document.createElement('div');
+        actions.className = 'card-actions';
+        
+        if (isFileSystemAccessSupported()) {
+            const saveBtn = this.createSaveButton(results);
+            actions.appendChild(saveBtn);
+        }
+        
+        card.appendChild(header);
+        card.appendChild(content);
+        if (actions.children.length > 0) {
+            card.appendChild(actions);
+        }
+        
+        return card;
     }
+
+
 
     /**
      * Create download section with individual file links
@@ -955,7 +1331,7 @@ export class ChatGPTConverter {
         }
         
         this.currentPage = pageNumber;
-        this.updateFileList();
+        this.renderFilesTable();
     }
 
     /**
@@ -1013,22 +1389,28 @@ export class ChatGPTConverter {
 
     /**
      * Create instructions element
-     * WHY: Guides users through the process
+     * WHY: Provides clear guidance for saving files
      */
     createInstructions() {
         const instructions = document.createElement('p');
-        instructions.style.marginTop = '10px';
-        instructions.style.fontSize = '0.9rem';
-        instructions.style.color = '#666';
-        instructions.innerHTML = `
-            💡 <strong>Step-by-Step Process:</strong><br>
-            <div style="margin-left: 15px; margin-top: 8px;">
-                ✅ <strong>1. Upload conversations.json</strong> - Done!<br>
-                ${this.selectedDirectoryHandle ? '✅' : '⏳'} <strong>2. Choose your Obsidian folder</strong> ${this.selectedDirectoryHandle ? `- Selected: ${this.selectedDirectoryHandle.name}` : '- Click button above'}<br>
-                ${this.selectedDirectoryHandle ? '⏳' : '⬜'} <strong>3. Click "Save to Local Folder"</strong> ${this.selectedDirectoryHandle ? '- Ready to save!' : '- Select folder first'}<br>
-                ⬜ <strong>4. Files appear directly in your selected folder</strong>
-            </div>
-        `;
+        instructions.style.marginTop = 'var(--space-3)';
+        instructions.style.fontSize = 'var(--font-size-sm)';
+        instructions.style.color = 'var(--text-secondary)';
+        instructions.style.lineHeight = 'var(--line-height-normal)';
+        
+        if (this.selectedDirectoryHandle) {
+            instructions.innerHTML = `
+                <strong style="color: var(--success);">✓ Ready to save</strong><br>
+                Selected folder: <strong>${this.selectedDirectoryHandle.name}</strong><br>
+                Click "Save to Local Folder" to save all files directly to your chosen location.
+            `;
+        } else {
+            instructions.innerHTML = `
+                <strong>Select your Obsidian vault folder</strong><br>
+                Choose where you want to save your converted Markdown files.
+            `;
+        }
+        
         return instructions;
     }
 

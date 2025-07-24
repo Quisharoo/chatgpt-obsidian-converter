@@ -24,7 +24,7 @@ export class ProgressDisplay {
 
     /**
      * Initialize progress display elements
-     * WHY: Sets up accessible DOM structure with ARIA attributes
+     * WHY: Sets up accessible DOM structure with ARIA attributes for dark theme
      */
     initialize() {
         if (!this.container) return;
@@ -44,26 +44,29 @@ export class ProgressDisplay {
     }
 
     /**
-     * Show progress display with accessibility announcements
-     * WHY: Makes progress visible to all users including screen reader users
+     * Show progress display
+     * WHY: Makes progress visible to user with proper styling
      */
     show() {
         if (!this.container) return;
         
-        if (!this.progressBar) {
-            this.initialize();
-        }
-        
+        this.initialize();
         this.container.style.display = 'block';
         this.isVisible = true;
         
-        // Announce to screen readers
-        this.updateStatus(STATUS_MESSAGES.PROCESSING, 'info');
+        // Ensure the process view card is visible
+        const processView = document.getElementById('processView');
+        if (processView) {
+            const card = processView.querySelector('.card');
+            if (card) {
+                card.style.display = 'block';
+            }
+        }
     }
 
     /**
      * Hide progress display
-     * WHY: Clean up UI when processing complete
+     * WHY: Clears progress when conversion is complete
      */
     hide() {
         if (!this.container) return;
@@ -73,73 +76,40 @@ export class ProgressDisplay {
     }
 
     /**
-     * Update progress with accessibility support
-     * WHY: Provides real-time feedback to all users
+     * Update progress value and status message
+     * WHY: Provides real-time feedback with accessibility support
      * 
      * @param {number} percentage - Progress percentage (0-100)
-     * @param {string} message - Status message
+     * @param {string} message - Status message to display
      */
     updateProgress(percentage, message) {
-        if (!this.isVisible || !this.progressFill || !this.progressBar) return;
-
-        // Clamp percentage to valid range
-        const clampedPercent = Math.min(100, Math.max(0, percentage));
+        if (!this.progressFill || !this.statusText) return;
         
-        // Update visual progress
-        this.progressFill.style.width = `${clampedPercent}%`;
+        // Update progress bar
+        this.progressFill.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+        this.progressBar.setAttribute('aria-valuenow', percentage);
         
-        // Update ARIA attributes for screen readers
-        this.progressBar.setAttribute('aria-valuenow', clampedPercent);
-        this.progressBar.setAttribute('aria-valuetext', `${clampedPercent}% complete`);
-        
-        // Update status message
-        if (message) {
-            this.updateStatus(message, 'info');
-        }
-    }
-
-    /**
-     * Update status message with appropriate styling
-     * WHY: Provides contextual feedback with visual and semantic meaning
-     * 
-     * @param {string} message - Status message to display
-     * @param {string} type - Message type: 'info', 'success', 'error'
-     */
-    updateStatus(message, type = 'info') {
-        if (!this.statusText) return;
-
+        // Update status message with appropriate styling
         this.statusText.textContent = message;
-        this.statusText.className = `status ${type}`;
+        this.statusText.className = 'status info'; // Reset to info style
         
-        // Update ARIA role based on message type
-        switch (type) {
-            case 'error':
-                this.statusText.setAttribute('role', 'alert');
-                break;
-            case 'success':
-                this.statusText.setAttribute('role', 'status');
-                break;
-            default:
-                this.statusText.setAttribute('role', 'status');
+        // Add completion styling if at 100%
+        if (percentage >= 100) {
+            this.statusText.className = 'status success';
         }
     }
 
     /**
-     * Complete progress with success message
-     * WHY: Provides clear completion feedback
-     */
-    complete() {
-        this.updateProgress(100, STATUS_MESSAGES.COMPLETE);
-        this.updateStatus(STATUS_MESSAGES.COMPLETE, 'success');
-    }
-
-    /**
-     * Show error state
-     * WHY: Provides clear error feedback with accessibility support
+     * Display error message
+     * WHY: Provides clear error feedback with appropriate styling
      * 
      * @param {string} errorMessage - Error message to display
      */
     showError(errorMessage) {
-        this.updateStatus(errorMessage, 'error');
+        if (!this.statusText) return;
+        
+        this.statusText.textContent = errorMessage;
+        this.statusText.className = 'status error';
+        this.statusText.setAttribute('role', 'alert');
     }
 } 
