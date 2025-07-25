@@ -137,9 +137,16 @@ export class ProgressDisplay {
         this.statusText.textContent = message;
         this.statusText.className = 'status info'; // Reset to info style
         
+        // Create visual progress bar effect with background gradient
+        const clampedPercentage = Math.max(0, Math.min(100, percentage));
+        this.statusText.style.background = `linear-gradient(90deg, var(--accent-primary) ${clampedPercentage}%, var(--accent-light) ${clampedPercentage}%)`;
+        this.statusText.style.backgroundSize = '100% 100%';
+        this.statusText.style.transition = 'background 0.3s ease';
+        
         // Add completion styling if at 100%
         if (percentage >= 100) {
             this.statusText.className = 'status success';
+            this.statusText.style.background = 'var(--success-bg)';
         }
         
         // Log progress for debugging
