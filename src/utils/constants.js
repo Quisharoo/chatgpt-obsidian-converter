@@ -52,7 +52,9 @@ export const ERROR_MESSAGES = {
     NO_DIRECTORY: 'Please select a folder first',
     PERMISSION_DENIED: 'Permission denied. Try selecting a different folder or use downloads instead.',
     SECURITY_RESTRICTION: 'Security restriction. Try a folder in your Documents or Desktop.',
-    FILE_SYSTEM_UNSUPPORTED: 'File System Access API not supported. Files will be downloaded instead.'
+    FILE_SYSTEM_UNSUPPORTED: 'File System Access API not supported. Files will be downloaded instead.',
+    FILE_EXISTS: 'File already exists. Do you want to overwrite it?',
+    CANCELLED: 'Operation cancelled by user'
 };
 
 // Status messages - centralized for consistency
@@ -63,5 +65,6 @@ export const STATUS_MESSAGES = {
     CONVERTING: 'Converting conversations...',
     COMPLETE: 'Conversion complete!',
     SAVING: 'Saving files...',
-    CANCELLED: 'Directory selection cancelled'
+    CANCELLED: 'Directory selection cancelled',
+    FILE_EXISTS_CHECK: 'Checking for existing files...'
 }; 
