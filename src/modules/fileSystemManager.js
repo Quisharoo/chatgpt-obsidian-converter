@@ -89,20 +89,44 @@ function handleDirectorySelectionError(error) {
 }
 
 /**
- * Save a single file to directory with permission handling
- * WHY: File saving needs individual error handling and permission checks
+ * Save a single file to directory with permission handling and duplicate detection
+ * WHY: File saving needs individual error handling, permission checks, and duplicate detection
  * 
  * @param {string} filename - Name of file to create
  * @param {string} content - File content to write
  * @param {FileSystemDirectoryHandle} directoryHandle - Target directory
- * @returns {Promise<boolean>} - Success status
+ * @param {boolean} forceOverwrite - Whether to overwrite without asking (for bulk operations)
+ * @returns {Promise<Object>} - Detailed result with success status and information
  */
-export async function saveFileToDirectory(filename, content, directoryHandle) {
+export async function saveFileToDirectory(filename, content, directoryHandle, forceOverwrite = false) {
     try {
         // Sanitize filename for filesystem compatibility
         const safeFilename = sanitizeFilename(filename);
         
-        // Create file handle
+        // Check if file already exists
+        let fileExists = false;
+        try {
+            await directoryHandle.getFileHandle(safeFilename);
+            fileExists = true;
+        } catch (error) {
+            // File doesn't exist, which is fine
+            fileExists = false;
+        }
+        
+        // If file exists and we're not forcing overwrite, ask for confirmation
+        if (fileExists && !forceOverwrite) {
+            const shouldOverwrite = await showFileExistsConfirmation(safeFilename);
+            if (!shouldOverwrite) {
+                return { 
+                    success: false, 
+                    cancelled: true, 
+                    message: `File "${safeFilename}" already exists and user chose not to overwrite.`,
+                    filename: safeFilename 
+                };
+            }
+        }
+        
+        // Create file handle (this will overwrite if exists)
         const fileHandle = await directoryHandle.getFileHandle(safeFilename, {
             create: true
         });
@@ -111,7 +135,12 @@ export async function saveFileToDirectory(filename, content, directoryHandle) {
         const permission = await fileHandle.requestPermission({ mode: 'readwrite' });
         if (permission !== 'granted') {
             console.error(`Permission denied for file: ${safeFilename}`);
-            return false;
+            return { 
+                success: false, 
+                cancelled: false, 
+                message: `Permission denied for file: ${safeFilename}`,
+                filename: safeFilename 
+            };
         }
         
         // Write content
@@ -119,11 +148,159 @@ export async function saveFileToDirectory(filename, content, directoryHandle) {
         await writable.write(content);
         await writable.close();
         
-        return true;
+        return { 
+            success: true, 
+            cancelled: false, 
+            message: fileExists ? `File "${safeFilename}" overwritten successfully.` : `File "${safeFilename}" created successfully.`,
+            filename: safeFilename,
+            wasOverwrite: fileExists 
+        };
     } catch (error) {
         console.error(`Error saving file ${filename}:`, error);
-        return false;
+        return { 
+            success: false, 
+            cancelled: false, 
+            message: `Error saving file ${filename}: ${error.message}`,
+            filename: sanitizeFilename(filename) 
+        };
     }
+}
+
+/**
+ * Show confirmation dialog for existing file
+ * WHY: Provides user choice when file already exists
+ * 
+ * @param {string} filename - Name of the existing file
+ * @returns {Promise<boolean>} - Whether user confirmed to overwrite
+ */
+async function showFileExistsConfirmation(filename) {
+    return new Promise((resolve) => {
+        // Create confirmation dialog
+        const dialog = document.createElement('div');
+        dialog.className = 'file-exists-dialog';
+        dialog.innerHTML = `
+            <div class="dialog-overlay">
+                <div class="dialog-content">
+                    <h3>File Already Exists</h3>
+                    <p>The file "<strong>${filename}</strong>" already exists in the selected folder.</p>
+                    <p>Do you want to overwrite it?</p>
+                    <div class="dialog-buttons">
+                        <button class="btn btn-secondary cancel-btn">Cancel</button>
+                        <button class="btn btn-primary overwrite-btn">Overwrite</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add dialog styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .file-exists-dialog .dialog-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(2px);
+            }
+            .file-exists-dialog .dialog-content {
+                background: #2a2a2a;
+                border: 1px solid #444;
+                border-radius: 12px;
+                padding: 32px;
+                max-width: 450px;
+                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+                position: relative;
+            }
+            .file-exists-dialog h3 {
+                margin: 0 0 20px 0;
+                color: #ffffff;
+                font-size: 20px;
+                font-weight: 600;
+            }
+            .file-exists-dialog p {
+                margin: 0 0 16px 0;
+                color: #cccccc;
+                line-height: 1.6;
+                font-size: 15px;
+            }
+            .file-exists-dialog .dialog-buttons {
+                display: flex;
+                gap: 16px;
+                justify-content: flex-end;
+                margin-top: 24px;
+            }
+            .file-exists-dialog .btn {
+                padding: 12px 20px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                min-width: 90px;
+            }
+            .file-exists-dialog .btn-secondary {
+                background: #404040;
+                color: #ffffff;
+                border: 1px solid #555;
+            }
+            .file-exists-dialog .btn-secondary:hover {
+                background: #4a4a4a;
+                border-color: #666;
+            }
+            .file-exists-dialog .btn-primary {
+                background: #007acc;
+                color: #ffffff;
+            }
+            .file-exists-dialog .btn-primary:hover {
+                background: #0066aa;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+            }
+        `;
+        
+        // Add to document
+        document.head.appendChild(style);
+        document.body.appendChild(dialog);
+        
+        // Focus the overwrite button for better UX
+        const overwriteBtn = dialog.querySelector('.overwrite-btn');
+        const cancelBtn = dialog.querySelector('.cancel-btn');
+        
+        // Handle button clicks
+        overwriteBtn.addEventListener('click', () => {
+            document.body.removeChild(dialog);
+            document.head.removeChild(style);
+            resolve(true);
+        });
+        
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(dialog);
+            document.head.removeChild(style);
+            resolve(false);
+        });
+        
+        // Handle escape key
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                document.removeEventListener('keydown', handleKeyDown);
+                document.body.removeChild(dialog);
+                document.head.removeChild(style);
+                resolve(false);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        
+        // Focus the overwrite button
+        setTimeout(() => overwriteBtn.focus(), 100);
+    });
 }
 
 /**
@@ -134,60 +311,560 @@ export async function saveFileToDirectory(filename, content, directoryHandle) {
  * @returns {string} - Sanitized filename
  */
 function sanitizeFilename(filename) {
-    const sanitized = filename.replace(/[<>:"/\\|?*]/g, '_');
+    if (!filename || typeof filename !== 'string') {
+        console.warn('Invalid filename provided for sanitization:', filename);
+        return 'untitled.md';
+    }
+    
+    // Remove or replace problematic characters
+    let sanitized = filename
+        .replace(/[<>:"/\\|?*]/g, '_')  // Replace invalid chars with underscore
+        .replace(/\s+/g, ' ')          // Normalize whitespace
+        .replace(/\.+$/, '')           // Remove trailing dots
+        .trim();                       // Remove leading/trailing whitespace
+    
+    // Ensure filename isn't too long (most filesystems have 255 char limit)
+    if (sanitized.length > 200) {
+        const ext = sanitized.slice(sanitized.lastIndexOf('.'));
+        const nameWithoutExt = sanitized.slice(0, sanitized.lastIndexOf('.'));
+        sanitized = nameWithoutExt.slice(0, 200 - ext.length) + ext;
+        console.warn(`Filename truncated due to length: ${filename} → ${sanitized}`);
+    }
+    
+    // Ensure it's not empty after sanitization
+    if (!sanitized) {
+        sanitized = 'untitled.md';
+        console.warn(`Filename became empty after sanitization, using default: ${filename} → ${sanitized}`);
+    }
+    
+    // Log only if changes were made
     if (sanitized !== filename) {
         console.warn(`Sanitized filename: ${filename} → ${sanitized}`);
     }
+    
     return sanitized;
 }
 
 /**
- * Save multiple files with chronological timing
+ * Show bulk duplicate files confirmation dialog
+ * WHY: Provides clear information about duplicates and user choice for bulk operations
+ * 
+ * @param {Object} scanResults - Results from scanForExistingFiles
+ * @returns {Promise<string>} - User choice: 'skip', 'overwrite', or 'cancel'
+ */
+async function showBulkDuplicateDialog(scanResults) {
+    const { existingFiles, newFiles, totalFiles, duplicateCount, scanErrors } = scanResults;
+    
+    return new Promise((resolve) => {
+        // Create confirmation dialog
+        const dialog = document.createElement('div');
+        dialog.className = 'bulk-duplicate-dialog';
+        
+        // Show first few duplicate filenames as examples
+        const exampleFiles = existingFiles.slice(0, 3).map(f => f.safeFilename);
+        const moreCount = duplicateCount - exampleFiles.length;
+        
+        const filesList = exampleFiles.map(name => `• ${name}`).join('\n');
+        const moreText = moreCount > 0 ? `\n... and ${moreCount} more` : '';
+        
+        // Add scan errors warning if any
+        let scanErrorsHtml = '';
+        if (scanErrors && scanErrors.length > 0) {
+            const errorSample = scanErrors.slice(0, 2);
+            const errorList = errorSample.map(e => `• ${e.filename}: ${e.error}`).join('\n');
+            const moreErrors = scanErrors.length > 2 ? `\n... and ${scanErrors.length - 2} more errors` : '';
+            
+            scanErrorsHtml = `
+                <div class="scan-errors-warning">
+                    <h4>⚠️ Scan Issues Detected</h4>
+                    <div class="error-list">${errorList}${moreErrors}</div>
+                    <p><small>Files with errors are treated as existing for safety.</small></p>
+                </div>
+            `;
+        }
+        
+        dialog.innerHTML = `
+            <div class="dialog-overlay">
+                <div class="dialog-content">
+                    <h3>📋 Duplicate Files Detected</h3>
+                    <p><strong>${duplicateCount} of ${totalFiles} files</strong> already exist in this folder:</p>
+                    <div class="file-list">${filesList}${moreText}</div>
+                    ${scanErrorsHtml}
+                    <p>What would you like to do?</p>
+                    <div class="dialog-buttons">
+                        <button class="btn btn-secondary cancel-btn">Cancel</button>
+                        <button class="btn btn-info skip-btn">Skip Duplicates</button>
+                        <button class="btn btn-warning overwrite-btn">Overwrite All</button>
+                    </div>
+                    <div class="dialog-info">
+                        <small>• Skip: Only save ${newFiles.length} new files</small>
+                        <small>• Overwrite: Replace existing files with new content</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add dialog styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .bulk-duplicate-dialog .dialog-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(2px);
+            }
+            .bulk-duplicate-dialog .dialog-content {
+                background: #2a2a2a;
+                border: 1px solid #444;
+                border-radius: 12px;
+                padding: 32px;
+                max-width: 550px;
+                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+                position: relative;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            .bulk-duplicate-dialog h3 {
+                margin: 0 0 20px 0;
+                color: #ffffff;
+                font-size: 20px;
+                font-weight: 600;
+            }
+            .bulk-duplicate-dialog p {
+                margin: 0 0 16px 0;
+                color: #cccccc;
+                line-height: 1.6;
+                font-size: 15px;
+            }
+            .bulk-duplicate-dialog .file-list {
+                background: #1a1a1a;
+                border: 1px solid #444;
+                border-radius: 6px;
+                padding: 16px;
+                margin: 16px 0;
+                font-family: 'Monaco', 'Consolas', monospace;
+                font-size: 13px;
+                color: #e0e0e0;
+                white-space: pre-line;
+                max-height: 150px;
+                overflow-y: auto;
+            }
+            .bulk-duplicate-dialog .scan-errors-warning {
+                background: #3d2914;
+                border: 1px solid #b8860b;
+                border-radius: 6px;
+                padding: 16px;
+                margin: 16px 0;
+            }
+            .bulk-duplicate-dialog .scan-errors-warning h4 {
+                margin: 0 0 12px 0;
+                color: #ffd700;
+                font-size: 16px;
+            }
+            .bulk-duplicate-dialog .error-list {
+                background: #2a1f0d;
+                border: 1px solid #8b7355;
+                border-radius: 4px;
+                padding: 12px;
+                font-family: 'Monaco', 'Consolas', monospace;
+                font-size: 12px;
+                color: #ffcc99;
+                white-space: pre-line;
+                max-height: 100px;
+                overflow-y: auto;
+                margin-bottom: 8px;
+            }
+            .bulk-duplicate-dialog .dialog-buttons {
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+                margin: 24px 0 16px 0;
+            }
+            .bulk-duplicate-dialog .btn {
+                padding: 12px 18px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                min-width: 100px;
+            }
+            .bulk-duplicate-dialog .btn-secondary {
+                background: #404040;
+                color: #ffffff;
+                border: 1px solid #555;
+            }
+            .bulk-duplicate-dialog .btn-secondary:hover {
+                background: #4a4a4a;
+                border-color: #666;
+            }
+            .bulk-duplicate-dialog .btn-info {
+                background: #17a2b8;
+                color: #ffffff;
+            }
+            .bulk-duplicate-dialog .btn-info:hover {
+                background: #138496;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+            }
+            .bulk-duplicate-dialog .btn-warning {
+                background: #ffc107;
+                color: #212529;
+            }
+            .bulk-duplicate-dialog .btn-warning:hover {
+                background: #e0a800;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+            }
+            .bulk-duplicate-dialog .dialog-info {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                border-top: 1px solid #444;
+                padding-top: 16px;
+            }
+            .bulk-duplicate-dialog .dialog-info small {
+                color: #999;
+                font-size: 12px;
+            }
+        `;
+        
+        // Add to document
+        document.head.appendChild(style);
+        document.body.appendChild(dialog);
+        
+        // Get button references
+        const cancelBtn = dialog.querySelector('.cancel-btn');
+        const skipBtn = dialog.querySelector('.skip-btn');
+        const overwriteBtn = dialog.querySelector('.overwrite-btn');
+        
+        // Handle button clicks
+        const cleanup = () => {
+            document.body.removeChild(dialog);
+            document.head.removeChild(style);
+        };
+        
+        cancelBtn.addEventListener('click', () => {
+            cleanup();
+            resolve('cancel');
+        });
+        
+        skipBtn.addEventListener('click', () => {
+            cleanup();
+            resolve('skip');
+        });
+        
+        overwriteBtn.addEventListener('click', () => {
+            cleanup();
+            resolve('overwrite');
+        });
+        
+        // Handle escape key
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                document.removeEventListener('keydown', handleKeyDown);
+                cleanup();
+                resolve('cancel');
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        
+        // Focus the skip button (safest default)
+        setTimeout(() => skipBtn.focus(), 100);
+    });
+}
+
+/**
+ * Save multiple files with chronological timing and duplicate handling
  * WHY: Ensures files are created in chronological order for proper Obsidian sorting
  * 
  * @param {Array} files - Array of file objects to save
  * @param {FileSystemDirectoryHandle} directoryHandle - Target directory
  * @param {Function} progressCallback - Progress update callback
- * @returns {Promise<Object>} - Save results with success/error counts
+ * @returns {Promise<Object>} - Save results with success/error counts and details
  */
 export async function saveFilesChronologically(files, directoryHandle, progressCallback = null) {
+    console.log(`🔄 Starting chronological save process: ${files.length} files to ${directoryHandle.name}/`);
+    
+    // First, scan for existing files
+    if (progressCallback) {
+        progressCallback(5, 0, files.length, 'Scanning for existing files...');
+    }
+    
+    let scanResults;
+    try {
+        scanResults = await scanForExistingFiles(files, directoryHandle);
+    } catch (error) {
+        console.error('❌ Scan failed:', error);
+        return {
+            successCount: 0,
+            errorCount: files.length,
+            cancelledCount: 0,
+            results: files.map(f => ({
+                success: false,
+                cancelled: false,
+                message: `Scan failed: ${error.message}`,
+                filename: f.filename
+            })),
+            totalProcessed: 0,
+            scanFailed: true
+        };
+    }
+    
+    // Report scan errors to user if any
+    if (scanResults.scanErrors && scanResults.scanErrors.length > 0) {
+        console.warn(`⚠️ ${scanResults.scanErrors.length} files had scan errors - they will be treated as existing files for safety`);
+    }
+    
+    // If duplicates found, ask user what to do
+    let filesToSave = files;
+    let userChoice = 'proceed'; // Default for no duplicates
+    
+    if (scanResults.duplicateCount > 0) {
+        userChoice = await showBulkDuplicateDialog(scanResults);
+        
+        if (userChoice === 'cancel') {
+            return { 
+                successCount: 0, 
+                errorCount: 0, 
+                cancelledCount: files.length,
+                results: files.map(f => ({
+                    success: false,
+                    cancelled: true,
+                    message: 'Bulk operation cancelled by user',
+                    filename: f.filename
+                })),
+                totalProcessed: 0,
+                userCancelled: true
+            };
+        } else if (userChoice === 'skip') {
+            // Only save new files
+            filesToSave = scanResults.newFiles;
+            console.log(`📂 User chose to skip duplicates. Saving ${filesToSave.length} new files only.`);
+        } else if (userChoice === 'overwrite') {
+            // Save all files (overwrite existing)
+            filesToSave = files;
+            console.log(`⚠️ User chose to overwrite duplicates. Saving all ${filesToSave.length} files.`);
+        }
+    }
+    
+    // Check for stale scan results (if more than 30 seconds have passed)
+    const scanAge = Date.now() - scanResults.timestamp;
+    const maxScanAge = 30000; // 30 seconds
+    
+    if (scanAge > maxScanAge && scanResults.duplicateCount > 0) {
+        console.warn(`⚠️ Scan results are ${Math.round(scanAge/1000)}s old. Directory contents may have changed.`);
+        
+        // Quick re-validation for critical files if needed
+        if (userChoice === 'skip') {
+            if (progressCallback) {
+                progressCallback(8, 0, files.length, 'Re-validating scan results...');
+            }
+            
+            // Re-check a few files to ensure scan is still valid
+            const samplesToCheck = Math.min(5, scanResults.existingFiles.length);
+            let recheckFailed = false;
+            
+            for (let i = 0; i < samplesToCheck; i++) {
+                const file = scanResults.existingFiles[i];
+                try {
+                    await directoryHandle.getFileHandle(file.safeFilename);
+                } catch (error) {
+                    if (error.name === 'NotFoundError') {
+                        console.warn(`⚠️ File ${file.safeFilename} was deleted since scan. Results may be stale.`);
+                        recheckFailed = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (recheckFailed) {
+                console.warn('🔄 Detected stale scan results. Consider re-scanning for accurate results.');
+            }
+        }
+    }
+    
+    console.log(`📅 Files will be created oldest-first to maintain chronological order in Obsidian`);
+    
+    // Now save the selected files
     let successCount = 0;
     let errorCount = 0;
+    let cancelledCount = 0;
+    const results = [];
+    
+    // Track skipped files if user chose to skip duplicates
+    if (userChoice === 'skip') {
+        for (const skippedFile of scanResults.existingFiles) {
+            results.push({
+                success: false,
+                cancelled: true,
+                message: `File "${skippedFile.safeFilename}" already exists and was skipped.`,
+                filename: skippedFile.filename,
+                skipped: true
+            });
+            cancelledCount++;
+        }
+    }
 
-    console.log(`🔄 Starting chronological save process: ${files.length} files to ${directoryHandle.name}/`);
-    console.log(`📅 Files will be created oldest-first to maintain chronological order in Obsidian`);
-
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+    for (let i = 0; i < filesToSave.length; i++) {
+        const file = filesToSave[i];
         
         try {
-            const success = await saveFileToDirectory(file.filename, file.content, directoryHandle);
+            // For bulk operations, force overwrite when user chose overwrite, or don't ask when no duplicates
+            const forceOverwrite = userChoice === 'overwrite' || scanResults.duplicateCount === 0;
+            const result = await saveFileToDirectory(file.filename, file.content, directoryHandle, forceOverwrite);
             
-            if (success) {
+            results.push(result);
+            
+            if (result.success) {
                 successCount++;
-                console.log(`✅ Saved: ${file.filename}`);
+                console.log(`✅ Saved: ${result.filename}${result.wasOverwrite ? ' (overwritten)' : ''}`);
+            } else if (result.cancelled) {
+                cancelledCount++;
+                console.log(`⏭️ Skipped: ${result.filename} - ${result.message}`);
             } else {
                 errorCount++;
-                console.warn(`❌ Failed to save: ${file.filename}`);
+                console.warn(`❌ Failed to save: ${result.filename} - ${result.message}`);
             }
         } catch (error) {
             console.error(`❌ Error saving ${file.filename}:`, error);
             errorCount++;
+            results.push({
+                success: false,
+                cancelled: false,
+                message: `Unexpected error: ${error.message}`,
+                filename: file.filename
+            });
         }
         
         // Delay ensures chronological file timestamps
-        if (i < files.length - 1) {
+        if (i < filesToSave.length - 1) {
             await delay(PROCESSING_CONFIG.DELAY_BETWEEN_FILES_MS);
         }
         
         // Report progress
         if (progressCallback) {
-            const progress = Math.round(((i + 1) / files.length) * 100);
-            progressCallback(progress, successCount + errorCount, files.length);
+            const progress = Math.round((10 + ((i + 1) / filesToSave.length) * 90)); // 10% for scanning, 90% for saving
+            progressCallback(progress, successCount + errorCount + cancelledCount, files.length);
         }
     }
 
-    return { successCount, errorCount };
+    return { 
+        successCount, 
+        errorCount, 
+        cancelledCount, 
+        results,
+        totalProcessed: successCount + errorCount + cancelledCount,
+        userChoice,
+        duplicatesFound: scanResults.duplicateCount,
+        scanErrors: scanResults.scanErrors,
+        scanAge: Math.round(scanAge / 1000) // Include scan age in results
+    };
+}
+
+/**
+ * Scan directory for existing files
+ * WHY: Pre-scan allows users to make informed decisions about duplicates before bulk operations
+ * 
+ * @param {Array} files - Array of file objects to check
+ * @param {FileSystemDirectoryHandle} directoryHandle - Target directory
+ * @returns {Promise<Object>} - Scan results with existing and new files
+ */
+export async function scanForExistingFiles(files, directoryHandle) {
+    // Validate directory handle first
+    if (!directoryHandle) {
+        throw new Error('Directory handle is required for scanning');
+    }
+    
+    // Verify directory is still accessible
+    try {
+        const permission = await directoryHandle.requestPermission({ mode: 'readwrite' });
+        if (permission !== 'granted') {
+            throw new Error('Directory access permission denied');
+        }
+    } catch (error) {
+        throw new Error(`Cannot access directory: ${error.message}`);
+    }
+    
+    const existingFiles = [];
+    const newFiles = [];
+    const scanErrors = [];
+    
+    console.log(`🔍 Scanning directory for existing files...`);
+    
+    for (const file of files) {
+        const safeFilename = sanitizeFilename(file.filename);
+        
+        try {
+            const fileHandle = await directoryHandle.getFileHandle(safeFilename);
+            // File exists - verify it's actually accessible
+            try {
+                await fileHandle.requestPermission({ mode: 'readwrite' });
+                existingFiles.push({
+                    ...file,
+                    safeFilename
+                });
+            } catch (permError) {
+                // File exists but no write permission
+                scanErrors.push({
+                    filename: safeFilename,
+                    error: 'File exists but no write permission'
+                });
+                existingFiles.push({
+                    ...file,
+                    safeFilename,
+                    hasWriteAccess: false
+                });
+            }
+        } catch (error) {
+            // Check if this is actually a "file not found" error vs other issues
+            if (error.name === 'NotFoundError' || error.message.includes('not found')) {
+                // File doesn't exist
+                newFiles.push({
+                    ...file,
+                    safeFilename
+                });
+            } else {
+                // Other error - could be permission, corruption, etc.
+                console.warn(`⚠️ Scan error for ${safeFilename}:`, error);
+                scanErrors.push({
+                    filename: safeFilename,
+                    error: error.message
+                });
+                // Treat as existing to be safe (user can choose to overwrite)
+                existingFiles.push({
+                    ...file,
+                    safeFilename,
+                    hasError: true,
+                    errorMessage: error.message
+                });
+            }
+        }
+    }
+    
+    console.log(`📊 Scan results: ${existingFiles.length} existing, ${newFiles.length} new files${scanErrors.length > 0 ? `, ${scanErrors.length} errors` : ''}`);
+    
+    if (scanErrors.length > 0) {
+        console.warn('⚠️ Scan errors detected:', scanErrors);
+    }
+    
+    return {
+        existingFiles,
+        newFiles,
+        totalFiles: files.length,
+        duplicateCount: existingFiles.length,
+        scanErrors,
+        timestamp: Date.now() // Add timestamp for staleness detection
+    };
 }
 
 /**
