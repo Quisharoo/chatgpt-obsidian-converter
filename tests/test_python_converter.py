@@ -132,16 +132,53 @@ class TestChatGPTConverter(unittest.TestCase):
         self.assertEqual(messages, [])
 
     def test_extract_messages_malformed_mapping(self):
-        """Test message extraction handles malformed data"""
-        malformed_mapping = {
-            'msg_001': {
-                # Missing message field
+        """Test message extraction handles malformed data."""
+        # Test with missing keys
+        mapping = {
+            'msg_1': {
+                'message': {
+                    'author': {'role': 'user'},
+                    'content': {'parts': ['Valid message']}
+                }
+                # Missing 'children' and 'parent'
+            }
+        }
+        messages = extract_messages(mapping)
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]['content'], 'Valid message')
+
+    def test_extract_messages_with_citations(self):
+        """Test that citation objects are filtered out to prevent garbled text."""
+        mapping = {
+            'msg_1': {
+                'message': {
+                    'author': {'role': 'assistant'},
+                    'content': {
+                        'parts': [
+                            'This is text content',
+                            {'type': 'cite', 'turn': 0, 'search': 0},  # Citation object
+                            ' and this continues',
+                            {'type': 'search', 'turn': 0, 'search': 2},  # Search object
+                            ' with more text.'
+                        ]
+                    }
+                },
                 'children': [],
                 'parent': None
             }
         }
-        messages = extract_messages(malformed_mapping)
-        self.assertEqual(messages, [])
+        
+        messages = extract_messages(mapping)
+        self.assertEqual(len(messages), 1)
+        
+        # Should only contain the text parts, not the citation objects
+        expected_content = 'This is text content and this continues with more text.'
+        self.assertEqual(messages[0]['content'], expected_content)
+        
+        # Should not contain garbled citation text
+        self.assertNotIn('cite', messages[0]['content'])
+        self.assertNotIn('turn', messages[0]['content'])
+        self.assertNotIn('search', messages[0]['content'])
 
     def test_convert_conversation_to_markdown(self):
         """Test conversation to markdown conversion"""

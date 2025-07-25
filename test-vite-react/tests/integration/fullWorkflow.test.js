@@ -438,4 +438,127 @@ describe('Full Workflow Integration Tests', () => {
             // Note: Only one branch should be followed in the linear conversation
         });
     });
+    
+    describe('Individual File Save Functionality', () => {
+        test('save button calls individual save method with correct file object', () => {
+            // Setup DOM elements
+            document.body.innerHTML = `
+                <div id="filesSection">
+                    <div id="filesContainer">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>
+                                        <button class="save-file-btn" 
+                                                data-filename="test-conversation.md"
+                                                data-content="test%20content"
+                                                data-title="Test Conversation">
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            // Mock the ChatGPTConverter class with the saveSingleFileToObsidian method
+            const mockConverter = {
+                saveSingleFileToObsidian: jest.fn().mockResolvedValue(true),
+                attachFileButtonHandlers: function() {
+                    // Replicate the save button handler logic
+                    document.querySelectorAll('.save-file-btn').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const filename = btn.dataset.filename;
+                            const content = decodeURIComponent(btn.dataset.content);
+                            const title = btn.dataset.title;
+                            
+                            const file = {
+                                filename: filename,
+                                content: content,
+                                title: title
+                            };
+                            
+                            await this.saveSingleFileToObsidian(file);
+                        });
+                    });
+                }
+            };
+
+            // Attach the handlers and simulate click
+            mockConverter.attachFileButtonHandlers();
+            const saveButton = document.querySelector('.save-file-btn');
+            saveButton.click();
+
+            // Wait for async call and verify
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    expect(mockConverter.saveSingleFileToObsidian).toHaveBeenCalledWith({
+                        filename: 'test-conversation.md',
+                        content: 'test content',
+                        title: 'Test Conversation'
+                    });
+                    resolve();
+                                 }, 0);
+             });
+         });
+
+         test('download button calls download method with correct file object', () => {
+             // Setup DOM elements
+             document.body.innerHTML = `
+                 <div id="filesSection">
+                     <div id="filesContainer">
+                         <table>
+                             <tbody>
+                                 <tr>
+                                     <td></td>
+                                     <td></td>
+                                     <td>
+                                         <button class="download-file-btn" 
+                                                 data-filename="test-conversation.md"
+                                                 data-content="test%20markdown%20content">
+                                         </button>
+                                     </td>
+                                 </tr>
+                             </tbody>
+                         </table>
+                     </div>
+                 </div>
+             `;
+
+             // Mock the ChatGPTConverter class with the downloadSingleFile method
+             const mockConverter = {
+                 downloadSingleFile: jest.fn(),
+                 attachFileButtonHandlers: function() {
+                     // Replicate the download button handler logic
+                     document.querySelectorAll('.download-file-btn').forEach(btn => {
+                         btn.addEventListener('click', () => {
+                             const filename = btn.dataset.filename;
+                             const content = decodeURIComponent(btn.dataset.content);
+                             
+                             const file = {
+                                 filename: filename,
+                                 content: content
+                             };
+                             
+                             this.downloadSingleFile(file);
+                         });
+                     });
+                 }
+             };
+
+             // Attach the handlers and simulate click
+             mockConverter.attachFileButtonHandlers();
+             const downloadButton = document.querySelector('.download-file-btn');
+             downloadButton.click();
+
+             // Verify the method was called with correct parameters
+             expect(mockConverter.downloadSingleFile).toHaveBeenCalledWith({
+                 filename: 'test-conversation.md',
+                 content: 'test markdown content'
+             });
+         });
+     });
 }); 

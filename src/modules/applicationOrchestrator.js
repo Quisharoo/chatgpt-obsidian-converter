@@ -487,23 +487,22 @@ export class ChatGPTConverter {
         actionsContainer.style.justifyContent = 'flex-end';
         actionsContainer.style.flexWrap = 'nowrap'; // Prevent wrapping
         
-        // Always create Save button first (when available), then Download button
-        // This maintains consistent layout and prevents shifts when directory is selected
-        if (this.selectedDirectoryHandle) {
-            const saveBtn = document.createElement('button');
-            saveBtn.className = 'btn btn-primary save-file-btn';
-            saveBtn.style.padding = 'var(--space-2) var(--space-3)';
-            saveBtn.style.fontSize = 'var(--font-size-xs)';
-            saveBtn.style.flexShrink = '0'; // Prevent button shrinking
-            saveBtn.setAttribute('data-filename', file.filename);
-            saveBtn.setAttribute('data-content', encodeURIComponent(file.content));
-            saveBtn.innerHTML = `
-                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
-                    <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
-                </svg>
-            `;
-            actionsContainer.appendChild(saveBtn);
-        }
+        // Always create Save button first, then Download button
+        // This maintains consistent layout and allows individual file saving
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn btn-primary save-file-btn';
+        saveBtn.style.padding = 'var(--space-2) var(--space-3)';
+        saveBtn.style.fontSize = 'var(--font-size-xs)';
+        saveBtn.style.flexShrink = '0'; // Prevent button shrinking
+        saveBtn.setAttribute('data-filename', file.filename);
+        saveBtn.setAttribute('data-content', encodeURIComponent(file.content));
+        saveBtn.setAttribute('data-title', file.title);
+        saveBtn.innerHTML = `
+            <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
+            </svg>
+        `;
+        actionsContainer.appendChild(saveBtn);
         
         const downloadBtn = document.createElement('button');
         downloadBtn.className = 'btn btn-secondary download-file-btn';
@@ -818,24 +817,33 @@ export class ChatGPTConverter {
             btn.addEventListener('click', () => {
                 const filename = btn.dataset.filename;
                 const content = decodeURIComponent(btn.dataset.content);
-                downloadFile(filename, content);
+                
+                // Create file object and use the proper download method
+                const file = {
+                    filename: filename,
+                    content: content
+                };
+                
+                this.downloadSingleFile(file);
             });
         });
 
-        // Save buttons
+        // Save buttons - use individual file save method that lets user pick folder
         document.querySelectorAll('.save-file-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const filename = btn.dataset.filename;
                 const content = decodeURIComponent(btn.dataset.content);
-                if (this.selectedDirectoryHandle) {
-                    try {
-                        await saveFileToDirectory(filename, content, this.selectedDirectoryHandle);
-                        this.showSuccess(`File saved: ${filename}`);
-                    } catch (error) {
-                        console.error('Error saving file:', error);
-                        this.showError(`Failed to save ${filename}: ${error.message}`);
-                    }
-                }
+                const title = btn.dataset.title;
+                
+                // Create file object for the save method
+                const file = {
+                    filename: filename,
+                    content: content,
+                    title: title
+                };
+                
+                // Use the dedicated individual file save method
+                await this.saveSingleFileToObsidian(file);
             });
         });
     }

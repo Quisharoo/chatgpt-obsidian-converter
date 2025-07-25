@@ -74,7 +74,10 @@ def extract_messages(mapping: Dict) -> List[Dict[str, str]]:
             if isinstance(content, dict):
                 parts = content.get('parts', [])
                 if parts and isinstance(parts, list):
-                    text_content = ''.join(str(part) for part in parts if part)
+                    # Filter out non-string parts (citations, web search results, etc.)
+                    # to prevent garbled text like "citeturn0search2turn0search0"
+                    text_parts = [part for part in parts if isinstance(part, str)]
+                    text_content = ''.join(text_parts)
             elif isinstance(content, str):
                 text_content = content
             
