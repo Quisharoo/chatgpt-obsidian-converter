@@ -276,24 +276,26 @@ async function showFileExistsConfirmation(filename) {
         const cancelBtn = dialog.querySelector('.cancel-btn');
         
         // Handle button clicks
-        overwriteBtn.addEventListener('click', () => {
+        const cleanup = () => {
+            document.removeEventListener('keydown', handleKeyDown);
             document.body.removeChild(dialog);
             document.head.removeChild(style);
+        };
+        
+        overwriteBtn.addEventListener('click', () => {
+            cleanup();
             resolve(true);
         });
         
         cancelBtn.addEventListener('click', () => {
-            document.body.removeChild(dialog);
-            document.head.removeChild(style);
+            cleanup();
             resolve(false);
         });
         
         // Handle escape key
         const handleKeyDown = (event) => {
             if (event.key === 'Escape') {
-                document.removeEventListener('keydown', handleKeyDown);
-                document.body.removeChild(dialog);
-                document.head.removeChild(style);
+                cleanup();
                 resolve(false);
             }
         };
