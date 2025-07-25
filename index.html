@@ -557,14 +557,7 @@
                             <span class="sidebar-nav-text">Upload</span>
                         </a>
                     </li>
-                    <li class="sidebar-nav-item">
-                        <a href="#" class="sidebar-nav-link" data-view="process">
-                            <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24">
-                                <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
-                            </svg>
-                            <span class="sidebar-nav-text">Process</span>
-                        </a>
-                    </li>
+
                     <li class="sidebar-nav-item">
                         <a href="#" class="sidebar-nav-link" data-view="results">
                             <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24">
@@ -599,12 +592,7 @@
                     <p class="header-subtitle">Transform your conversations into organized Markdown files</p>
                 </div>
                 
-                <nav class="tab-navigation">
-                    <button class="tab-button active" data-view="upload">Upload</button>
-                    <button class="tab-button" data-view="process">Process</button>
-                    <button class="tab-button" data-view="results">Results</button>
-                    <button class="tab-button" data-view="files">Files</button>
-                </nav>
+
             </div>
         </header>
 
@@ -637,14 +625,8 @@
                     </div>
                 </div>
                 
-                <div id="file-requirements" class="sr-only">
-                    Please select a conversations.json file exported from ChatGPT. The file should contain an array of conversation objects.
-                </div>
-            </div>
-
-            <!-- Process View -->
-            <div class="view" id="processView">
-                <div class="card">
+                <!-- Progress Display embedded in Upload section -->
+                <div class="card" id="progressCard" style="display: none; margin-top: var(--space-6);">
                     <div class="card-header">
                         <h2 class="card-title">Processing Conversations</h2>
                         <p class="card-description">Converting your ChatGPT conversations to Markdown format</p>
@@ -655,7 +637,13 @@
                         </div>
                     </div>
                 </div>
+                
+                <div id="file-requirements" class="sr-only">
+                    Please select a conversations.json file exported from ChatGPT. The file should contain an array of conversation objects.
+                </div>
             </div>
+
+
 
             <!-- Results View -->
             <div class="view" id="resultsView">
@@ -713,10 +701,13 @@
                                 <table id="fileTable" style="width: 100%; border-collapse: collapse; background: var(--bg-card);">
                                     <thead style="background: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary);">
                                         <tr>
-                                            <th style="padding: var(--space-3) var(--space-4); text-align: left; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm);">Title</th>
-                                            <th style="padding: var(--space-3) var(--space-4); text-align: left; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm);">Filename</th>
-                                            <th style="padding: var(--space-3) var(--space-4); text-align: left; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm);">Date</th>
-                                            <th style="padding: var(--space-3) var(--space-4); text-align: right; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm);">Actions</th>
+                                            <th id="titleHeader" style="padding: var(--space-3) var(--space-4); text-align: left; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm); width: 65%; cursor: pointer; user-select: none; transition: background-color 0.2s ease;">
+                                                Title <span class="sort-indicator" style="margin-left: var(--space-2); color: #007bff;">▲</span>
+                                            </th>
+                                            <th id="dateHeader" style="padding: var(--space-3) var(--space-4); text-align: left; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm); width: 20%; cursor: pointer; user-select: none; transition: background-color 0.2s ease;">
+                                                Date <span class="sort-indicator" style="margin-left: var(--space-2); color: #ccc;">▲</span>
+                                            </th>
+                                            <th style="padding: var(--space-3) var(--space-4); text-align: right; font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm); width: 15%;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="fileTableBody">
@@ -740,9 +731,8 @@
     <script>
         // View Navigation Logic
         document.addEventListener('DOMContentLoaded', function() {
-            const views = ['upload', 'process', 'results', 'files'];
+            const views = ['upload', 'results', 'files'];
             const sidebarLinks = document.querySelectorAll('[data-view]');
-            const tabButtons = document.querySelectorAll('.tab-button');
             const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
             const appLayout = document.getElementById('appLayout');
             
@@ -770,17 +760,11 @@
                     }
                 });
                 
-                // Update tab navigation
-                tabButtons.forEach(button => {
-                    button.classList.remove('active');
-                    if (button.dataset.view === viewName) {
-                        button.classList.add('active');
-                    }
-                });
+
             }
             
-            // Add click listeners to sidebar and tab navigation
-            [...sidebarLinks, ...tabButtons].forEach(element => {
+            // Add click listeners to sidebar navigation
+            sidebarLinks.forEach(element => {
                 element.addEventListener('click', (e) => {
                     e.preventDefault();
                     switchView(element.dataset.view);

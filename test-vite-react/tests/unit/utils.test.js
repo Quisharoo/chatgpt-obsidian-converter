@@ -13,6 +13,7 @@ import {
     isValidJsonFile,
     sortConversationsChronologically 
 } from '../../../src/utils/helpers.js';
+import { ChatGPTConverter } from '../../../src/modules/applicationOrchestrator.js';
 
 describe('Utility Functions', () => {
     
@@ -203,6 +204,98 @@ describe('Utility Functions', () => {
         test('handles empty array', () => {
             const sorted = sortConversationsChronologically([]);
             expect(sorted).toEqual([]);
+        });
+    });
+
+    describe('File Sorting in UI', () => {
+        let converter;
+        
+        beforeEach(() => {
+            // Mock DOM elements that the converter expects
+            global.document = {
+                getElementById: jest.fn().mockReturnValue(null),
+                createElement: jest.fn().mockReturnValue({}),
+                addEventListener: jest.fn()
+            };
+            
+            converter = new ChatGPTConverter();
+            converter.currentSort = 'title';
+            converter.sortDirection = 'asc';
+        });
+
+        test('sorts files by title naturally with case insensitive ordering', () => {
+            const files = [
+                { title: 'ZZZ Chat', filename: 'zzz-chat.md', createTime: 1000 },
+                { title: 'AAA Chat', filename: 'aaa-chat.md', createTime: 2000 },
+                { title: 'Chat 10', filename: 'chat-10.md', createTime: 3000 },
+                { title: 'Chat 2', filename: 'chat-2.md', createTime: 4000 },
+                { title: 'bbb chat', filename: 'bbb-chat.md', createTime: 5000 }
+            ];
+
+            converter.currentSort = 'title';
+            converter.sortDirection = 'asc';
+            const sorted = converter.sortFiles(files);
+            
+            expect(sorted.map(f => f.title)).toEqual(['AAA Chat', 'bbb chat', 'Chat 2', 'Chat 10', 'ZZZ Chat']);
+        });
+
+        test('sorts files by title in descending order', () => {
+            const files = [
+                { title: 'AAA Chat', filename: 'aaa-chat.md', createTime: 1000 },
+                { title: 'BBB Chat', filename: 'bbb-chat.md', createTime: 2000 },
+                { title: 'CCC Chat', filename: 'ccc-chat.md', createTime: 3000 }
+            ];
+
+            converter.currentSort = 'title';
+            converter.sortDirection = 'desc';
+            const sorted = converter.sortFiles(files);
+            
+            expect(sorted.map(f => f.title)).toEqual(['CCC Chat', 'BBB Chat', 'AAA Chat']);
+        });
+
+        test('sorts files by date chronologically', () => {
+            const files = [
+                { title: 'Latest', filename: 'latest.md', createTime: 3000 },
+                { title: 'Oldest', filename: 'oldest.md', createTime: 1000 },
+                { title: 'Middle', filename: 'middle.md', createTime: 2000 }
+            ];
+
+            converter.currentSort = 'date';
+            converter.sortDirection = 'asc';
+            const sorted = converter.sortFiles(files);
+            
+            expect(sorted.map(f => f.title)).toEqual(['Oldest', 'Middle', 'Latest']);
+        });
+
+        test('sorts files by date in descending order', () => {
+            const files = [
+                { title: 'Oldest', filename: 'oldest.md', createTime: 1000 },
+                { title: 'Latest', filename: 'latest.md', createTime: 3000 },
+                { title: 'Middle', filename: 'middle.md', createTime: 2000 }
+            ];
+
+            converter.currentSort = 'date';
+            converter.sortDirection = 'desc';
+            const sorted = converter.sortFiles(files);
+            
+            expect(sorted.map(f => f.title)).toEqual(['Latest', 'Middle', 'Oldest']);
+        });
+
+        test('handles files with missing timestamps', () => {
+            const files = [
+                { title: 'With Time', filename: 'with-time.md', createTime: 2000 },
+                { title: 'No Time', filename: 'no-time.md' },
+                { title: 'Zero Time', filename: 'zero-time.md', createTime: 0 }
+            ];
+
+            converter.currentSort = 'date';
+            converter.sortDirection = 'asc';
+            const sorted = converter.sortFiles(files);
+            
+            // Files without createTime should default to 0 and appear first
+            expect(sorted[0].title).toBe('No Time');
+            expect(sorted[1].title).toBe('Zero Time');
+            expect(sorted[2].title).toBe('With Time');
         });
     });
 }); 
