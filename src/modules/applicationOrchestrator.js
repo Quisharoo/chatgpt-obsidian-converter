@@ -703,11 +703,11 @@ export class ChatGPTConverter {
             return;
         }
         
-        // Reset all indicators to inactive state
+        // Reset all indicators to inactive state (hide arrows)
         titleIndicator.style.color = '#ccc';
         dateIndicator.style.color = '#ccc';
-        titleIndicator.textContent = '▲';
-        dateIndicator.textContent = '▲';
+        titleIndicator.textContent = '';
+        dateIndicator.textContent = '';
         
         // Set active indicator with correct direction
         const activeIndicator = this.currentSort === 'title' ? titleIndicator : dateIndicator;
@@ -794,6 +794,12 @@ export class ChatGPTConverter {
             startPage = Math.max(1, endPage - maxButtons + 1);
         }
         
+        // First button (only show if not on first page and there are many pages)
+        if (this.currentPage > 1 && totalPages > 5) {
+            const firstBtn = this.createPaginationButton('«', 1);
+            paginationContainer.appendChild(firstBtn);
+        }
+        
         // Previous button
         if (this.currentPage > 1) {
             const prevBtn = this.createPaginationButton('‹', this.currentPage - 1);
@@ -810,6 +816,12 @@ export class ChatGPTConverter {
         if (this.currentPage < totalPages) {
             const nextBtn = this.createPaginationButton('›', this.currentPage + 1);
             paginationContainer.appendChild(nextBtn);
+        }
+        
+        // Last button (only show if not on last page and there are many pages)
+        if (this.currentPage < totalPages && totalPages > 5) {
+            const lastBtn = this.createPaginationButton('»', totalPages);
+            paginationContainer.appendChild(lastBtn);
         }
     }
 
