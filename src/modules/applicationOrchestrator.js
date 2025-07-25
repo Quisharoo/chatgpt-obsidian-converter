@@ -44,7 +44,8 @@ export class ChatGPTConverter {
         try {
             // Initialize components
             this.fileUploader = new FileUploader('uploadArea', 'fileInput');
-            this.progressDisplay = new ProgressDisplay('progressContainer');
+            this.progressDisplay = new ProgressDisplay('conversionProgressContainer');
+            this.saveProgressDisplay = new ProgressDisplay('progressContainer');
             
             // Set up file upload handling
             this.fileUploader.setFileSelectedCallback(this.handleFileUpload.bind(this));
@@ -68,37 +69,62 @@ export class ChatGPTConverter {
         logInfo(`🔄 Processing file: ${file.name} (${file.size} bytes)`);
         
         this.fileUploader.setProcessingState(true);
-        this.progressDisplay.show();
+        this.progressDisplay.show(false, false); // Don't switch to Files view for conversion
         
         try {
             // Read and parse file
             this.progressDisplay.updateProgress(0, STATUS_MESSAGES.READING_FILE);
             const fileContent = await this.readFileContent(file);
             
-            this.progressDisplay.updateProgress(25, STATUS_MESSAGES.PARSING_JSON);
+            // Add a small delay to make reading feel more substantial
+            await this.delay(300);
+            
+            this.progressDisplay.updateProgress(20, STATUS_MESSAGES.PARSING_JSON);
             const conversations = this.parseConversations(fileContent);
             
-            // Convert conversations
-            this.progressDisplay.updateProgress(50, STATUS_MESSAGES.CONVERTING);
+            // Add delay for parsing
+            await this.delay(400);
+            
+            // Convert conversations with more granular progress
+            this.progressDisplay.updateProgress(40, STATUS_MESSAGES.CONVERTING);
             const results = processConversations(conversations, this.processedIds);
+            
+            // Add delay for conversion processing
+            await this.delay(500);
+            
+            this.progressDisplay.updateProgress(80, STATUS_MESSAGES.FINALIZING);
+            await this.delay(300);
             
             this.progressDisplay.updateProgress(100, STATUS_MESSAGES.COMPLETE);
             this.convertedFiles = results.files;
             
+            // Add final delay before showing results
+            await this.delay(800);
+            
             // Display results with delay for smooth transition
             setTimeout(() => {
                 this.displayResults(results);
-                this.progressDisplay.hide();
                 
                 // Switch to results view and stay there
                 if (window.switchToView) {
                     window.switchToView('results');
                     
                     // Populate the Files view in the background but don't switch to it automatically
+                    // Ensure files are available before populating
                     setTimeout(() => {
-                        this.populateFilesView(results);
+                        if (results.files && results.files.length > 0) {
+                            this.populateFilesView(results);
+                            logInfo(`✅ Files view populated with ${results.files.length} files`);
+                        } else {
+                            logWarn('⚠️ No files available to populate Files view');
+                        }
                     }, 100);
                 }
+                
+                // Hide progress after switching to results view
+                setTimeout(() => {
+                    this.progressDisplay.hide();
+                }, 200);
             }, 500);
             
         } catch (error) {
@@ -204,9 +230,9 @@ export class ChatGPTConverter {
         // Set up cancellation flag
         let isCancelled = false;
         
-        // Show progress display with cancel button
-        this.progressDisplay.show(true);
-        this.progressDisplay.setCancelCallback(() => {
+        // Show progress display with cancel button and switch to Files view
+        this.saveProgressDisplay.show(true, true);
+        this.saveProgressDisplay.setCancelCallback(() => {
             isCancelled = true;
             logInfo('🛑 User requested cancellation of save operation');
         });
@@ -217,7 +243,7 @@ export class ChatGPTConverter {
             const progressCallback = (progress, completed, total, statusMessage) => {
                 const message = statusMessage || `💾 Saving files... ${progress}% (${completed}/${total})`;
                 logInfo(`📊 Progress update: ${progress}% - ${message}`);
-                this.progressDisplay.updateProgress(progress, message);
+                this.saveProgressDisplay.updateProgress(progress, message);
             };
 
             const cancellationCallback = () => isCancelled;
@@ -292,8 +318,8 @@ export class ChatGPTConverter {
             this.showError(`Save failed: ${error.message}`);
         } finally {
             // Clear the cancel callback
-            this.progressDisplay.setCancelCallback(null);
-            setTimeout(() => this.progressDisplay.hide(), 1000);
+            this.saveProgressDisplay.setCancelCallback(null);
+            setTimeout(() => this.saveProgressDisplay.hide(), 1000);
         }
     }
 
@@ -582,15 +608,32 @@ export class ChatGPTConverter {
     }
 
     /**
-     * Render files table with current sorting and pagination
-     * WHY: Displays files with proper sorting and pagination controls
+     * Render the files table with current page of files
+     * WHY: Displays paginated file list with sorting capabilities
      */
     renderFilesTable() {
         const fileTableBody = document.getElementById('fileTableBody');
         const resultsInfo = document.getElementById('resultsInfo');
         const paginationContainer = document.getElementById('paginationContainer');
         
-        if (!fileTableBody || !this.allFiles) return;
+        if (!fileTableBody) {
+            logWarn('⚠️ File table body not found');
+            return;
+        }
+        
+        if (!this.allFiles || this.allFiles.length === 0) {
+            logWarn('⚠️ No files available to render');
+            
+            // Clear table and show no files message
+            fileTableBody.innerHTML = '';
+            if (resultsInfo) {
+                resultsInfo.textContent = 'No files available';
+            }
+            if (paginationContainer) {
+                paginationContainer.innerHTML = '';
+            }
+            return;
+        }
         
         // Sort files
         const sortedFiles = this.sortFiles([...this.allFiles]);
@@ -633,6 +676,8 @@ export class ChatGPTConverter {
         
         // Render pagination
         this.renderPagination(totalPages);
+        
+        logInfo(`✅ Files table rendered: ${currentFiles.length} files on page ${this.currentPage} of ${totalPages}`);
     }
 
     /**
@@ -1266,6 +1311,17 @@ export class ChatGPTConverter {
             // Fallback: log to console
             logInfo(`${type.toUpperCase()}: ${message}`);
         }
+    }
+
+    /**
+     * Helper method to create delays for better UX
+     * WHY: Creates artificial delays to make processing feel more substantial
+     * 
+     * @param {number} ms - Milliseconds to delay
+     * @returns {Promise} - Promise that resolves after the delay
+     */
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**

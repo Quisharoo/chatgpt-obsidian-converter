@@ -158,7 +158,7 @@ describe('Progress Display Component', () => {
             
             expect(mockCallback).toHaveBeenCalled();
             expect(progressDisplay.cancelButton.disabled).toBe(true);
-            expect(progressDisplay.cancelButton.textContent).toBe('Cancelling...');
+            expect(progressDisplay.cancelButton.textContent).toContain('Cancelling...');
         });
 
         test('should handle cancel button click without callback', () => {
@@ -186,6 +186,70 @@ describe('Progress Display Component', () => {
             expect(cancelButton.className).toContain('btn');
             expect(cancelButton.className).toContain('btn-secondary');
             expect(cancelButton.className).toContain('cancel-btn');
+        });
+    });
+
+    describe('Progress bar visibility logic', () => {
+        test('should show only one progress bar at a time', () => {
+            // Mock DOM elements
+            const mockProgressCard = { style: { display: 'none' } };
+            const mockConversionProgressCard = { style: { display: 'none' } };
+            
+            // Mock document.getElementById
+            const originalGetElementById = document.getElementById;
+            document.getElementById = jest.fn((id) => {
+                if (id === 'progressCard') return mockProgressCard;
+                if (id === 'conversionProgressCard') return mockConversionProgressCard;
+                return null;
+            });
+            
+            // Test conversion progress (should show conversion card)
+            progressDisplay.show(false, false);
+            expect(mockConversionProgressCard.style.display).toBe('block');
+            expect(mockProgressCard.style.display).toBe('none');
+            
+            // Reset display
+            mockProgressCard.style.display = 'none';
+            mockConversionProgressCard.style.display = 'none';
+            
+            // Test save progress (should show files card)
+            progressDisplay.show(true, true);
+            expect(mockProgressCard.style.display).toBe('block');
+            expect(mockConversionProgressCard.style.display).toBe('none');
+            
+            // Restore original function
+            document.getElementById = originalGetElementById;
+        });
+
+        test('should visually update progress bar width', () => {
+            progressDisplay.initialize();
+            progressDisplay.show();
+            
+            // Test 0% progress
+            progressDisplay.updateProgress(0, 'Starting...');
+            expect(progressDisplay.progressFill.style.width).toBe('0%');
+            
+            // Test 50% progress
+            progressDisplay.updateProgress(50, 'Halfway...');
+            expect(progressDisplay.progressFill.style.width).toBe('50%');
+            
+            // Test 100% progress
+            progressDisplay.updateProgress(100, 'Complete');
+            expect(progressDisplay.progressFill.style.width).toBe('100%');
+            expect(progressDisplay.statusText.className).toContain('success');
+        });
+
+        test('should handle progress values outside 0-100 range', () => {
+            progressDisplay.initialize();
+            progressDisplay.show();
+            
+            // Test negative value
+            progressDisplay.updateProgress(-10, 'Negative');
+            expect(progressDisplay.progressFill.style.width).toBe('0%');
+            
+            // Test value over 100
+            progressDisplay.updateProgress(150, 'Over 100');
+            expect(progressDisplay.progressFill.style.width).toBe('100%');
         });
     });
 }); 

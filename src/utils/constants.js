@@ -63,6 +63,7 @@ export const STATUS_MESSAGES = {
     READING_FILE: 'Reading file...',
     PARSING_JSON: 'Parsing JSON...',
     CONVERTING: 'Converting conversations...',
+    FINALIZING: 'Finalizing conversion...',
     COMPLETE: 'Conversion complete!',
     SAVING: 'Saving files...',
     CANCELLED: 'Directory selection cancelled',
