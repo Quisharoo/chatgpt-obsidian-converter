@@ -98,7 +98,7 @@ function extractMessageContent(message) {
 
 /**
  * Format message content as blockquotes while preserving line breaks
- * WHY: Obsidian blockquotes provide better visual distinction for message content
+ * WHY: Blockquotes provide better visual distinction for message content
  * 
  * @param {string} content - Raw message content
  * @returns {string} - Content formatted as blockquotes
@@ -117,7 +117,7 @@ function formatAsBlockquote(content) {
 
 /**
  * Convert a single conversation to Markdown format
- * WHY: Obsidian uses Markdown, so we need consistent formatting
+ * WHY: Markdown requires consistent formatting for proper rendering
  * 
  * @param {Object} conversation - ChatGPT conversation object
  * @returns {string} - Formatted Markdown content
@@ -129,7 +129,7 @@ export function convertConversationToMarkdown(conversation) {
     
     const messages = extractMessagesFromMapping(mapping);
     
-    // Build Markdown with Obsidian-optimized structure
+            // Build Markdown with clean structure
     // Format timestamp as YYYY-MM-DD, HH:mm:ss for consistency
     const timestamp = new Date(createTime * 1000);
     const formattedTimestamp = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}, ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}:${String(timestamp.getSeconds()).padStart(2, '0')}`;
@@ -141,7 +141,7 @@ export function convertConversationToMarkdown(conversation) {
         ''
     ];
     
-    // Add formatted messages with clean Obsidian styling
+            // Add formatted messages with clean styling
     for (const message of messages) {
         const authorDisplay = message.author === 'user' 
             ? '**🧑‍💬 User**' 
@@ -178,7 +178,7 @@ export function processConversations(conversations, processedIds = new Set()) {
     // Sort chronologically for proper file creation order
     const sortedConversations = sortConversationsChronologically(conversations);
     console.log(`📅 Processing ${sortedConversations.length} conversations in chronological order (oldest first)`);
-    console.log(`🕐 This ensures newest conversations appear at top when sorted by creation date in Obsidian`);
+            console.log(`🕐 This ensures consistent chronological ordering of conversations`);
     
     const usedFilenames = [];
     

@@ -1,6 +1,6 @@
 /**
  * Main Application Entry Point
- * Initializes the ChatGPT to Obsidian converter with clean architecture
+ * Initializes the ChatGPT to Markdown converter with clean architecture
  * Following AGENTS.md principle: clean separation of concerns and initialization
  */
 

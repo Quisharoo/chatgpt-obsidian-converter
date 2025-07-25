@@ -1,6 +1,6 @@
-# ChatGPT to Obsidian Converter
+# ChatGPT to Markdown Converter
 
-Convert your ChatGPT conversation exports into Obsidian-friendly Markdown files with intelligent duplicate detection and clean formatting. Available as both a Python command-line tool and a modern web interface.
+Convert your ChatGPT conversation exports into clean Markdown files with intelligent duplicate detection and proper formatting. Available as both a Python command-line tool and a modern web interface.
 
 ## 🎯 Features
 
@@ -8,7 +8,7 @@ Convert your ChatGPT conversation exports into Obsidian-friendly Markdown files 
 - **🐍 Python CLI**: Command-line tool for batch processing and automation
 - **🧠 Smart Duplicate Detection**: Automatically skips conversations already imported based on conversation ID
 - **✨ Clean Markdown Formatting**: Properly formats conversations with clear author attribution
-- **📁 Obsidian-Friendly**: Generates files with metadata and structure optimized for Obsidian
+- **📁 Well-Structured**: Generates files with clean metadata and proper formatting
 - **🔒 Safe Filenames**: Automatically slugifies titles and handles special characters
 - **📅 Chronological Order**: Files are created oldest-first to match conversation timeline
 - **⚡ Vercel Deployment**: Deploy your own instance to Vercel with one click
@@ -33,7 +33,7 @@ Convert your ChatGPT conversation exports into Obsidian-friendly Markdown files 
 3. **Upload and Convert**:
    - Export your ChatGPT conversations (Settings → Data Controls → Export Data)
    - Drag and drop `conversations.json` into the web interface
-   - Choose your Obsidian vault folder
+   - Choose your destination folder
    - Files are saved directly to the folder you select (no subfolders created)
 
 ### Option 2: Python CLI
@@ -73,7 +73,7 @@ Files are saved directly to your selected folder:
 ```
 YourSelectedFolder/
 ├── Python Best Practices.md
-├── Obsidian Workflow.md
+├── Markdown Best Practices.md
 └── Machine Learning Intro.md
 ```
 
@@ -82,7 +82,7 @@ Creates organized output in ChatGPT directory:
 ```
 ChatGPT/
 ├── Python Best Practices.md
-├── Obsidian Workflow.md
+├── Markdown Best Practices.md
 └── Machine Learning Intro.md
 ```
 

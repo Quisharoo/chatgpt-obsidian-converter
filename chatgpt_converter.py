@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-ChatGPT to Obsidian Converter
+ChatGPT to Markdown Converter
 
-Converts ChatGPT conversation exports (conversations.json) into Obsidian-friendly
+Converts ChatGPT conversation exports (conversations.json) into clean
 Markdown files, with intelligent duplicate detection and clean formatting.
 """
 
@@ -126,7 +126,7 @@ def convert_conversation_to_markdown(conversation: Dict) -> str:
     # Extract and format messages
     messages = extract_messages(mapping)
     
-    # Build Markdown content with Obsidian-optimized structure
+            # Build Markdown content with clean structure
     # Format timestamp as YYYY-MM-DD, HH:mm:ss for consistency
     timestamp = datetime.fromtimestamp(create_time)
     formatted_timestamp = timestamp.strftime('%Y-%m-%d, %H:%M:%S')
@@ -142,7 +142,7 @@ def convert_conversation_to_markdown(conversation: Dict) -> str:
         author = message['author']
         text = message['content']
         
-        # Format author name with clean Obsidian styling
+                    # Format author name with clean styling
         author_display = "**🧑‍💬 User**" if author == "user" else "**🤖 Assistant**"
         
         content_lines.append(author_display)

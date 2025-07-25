@@ -89,7 +89,7 @@ describe('Full Workflow Integration Tests', () => {
             // Verify file generation
             const firstFile = results.files[0];
             expect(firstFile.filename).toBe('Test Integration Workflow.md');
-            // Title no longer included in content (shown by Obsidian filename)
+            // Title no longer included in content (shown by filename)
             expect(firstFile.content).not.toContain('# Test Integration Workflow');
             expect(firstFile.content).toContain('**🧑‍💬 User**');
             // Verify markdown content structure and formatting
@@ -464,9 +464,9 @@ describe('Full Workflow Integration Tests', () => {
                 </div>
             `;
 
-            // Mock the ChatGPTConverter class with the saveSingleFileToObsidian method
+            // Mock the ChatGPTConverter class with the saveSingleFileToMarkdown method
             const mockConverter = {
-                saveSingleFileToObsidian: jest.fn().mockResolvedValue(true),
+                saveSingleFileToMarkdown: jest.fn().mockResolvedValue(true),
                 attachFileButtonHandlers: function() {
                     // Replicate the save button handler logic
                     document.querySelectorAll('.save-file-btn').forEach(btn => {
@@ -481,7 +481,7 @@ describe('Full Workflow Integration Tests', () => {
                                 title: title
                             };
                             
-                            await this.saveSingleFileToObsidian(file);
+                            await this.saveSingleFileToMarkdown(file);
                         });
                     });
                 }
@@ -495,7 +495,7 @@ describe('Full Workflow Integration Tests', () => {
             // Wait for async call and verify
             return new Promise(resolve => {
                 setTimeout(() => {
-                    expect(mockConverter.saveSingleFileToObsidian).toHaveBeenCalledWith({
+                    expect(mockConverter.saveSingleFileToMarkdown).toHaveBeenCalledWith({
                         filename: 'test-conversation.md',
                         content: 'test content',
                         title: 'Test Conversation'

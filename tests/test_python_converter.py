@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Python tests for ChatGPT to Obsidian Converter
+Python tests for ChatGPT to Markdown Converter
 Following AGENTS.md testing guidelines
 """
 
@@ -29,7 +29,7 @@ except ImportError:
 
 
 class TestChatGPTConverter(unittest.TestCase):
-    """Test suite for ChatGPT to Obsidian converter Python implementation"""
+    """Test suite for ChatGPT to Markdown converter Python implementation"""
 
     def setUp(self):
         """Set up test fixtures"""
@@ -184,12 +184,12 @@ class TestChatGPTConverter(unittest.TestCase):
         """Test conversation to markdown conversion"""
         markdown = convert_conversation_to_markdown(self.sample_conversation)
         
-        # Check structure
-        self.assertIn('# Python Best Practices', markdown)
+        # Check structure (title no longer included in content, shown by filename)
+        self.assertNotIn('# Python Best Practices', markdown)
         self.assertIn('**Created:**', markdown)
         self.assertIn('---', markdown)
-        self.assertIn('**User:**', markdown)
-        self.assertIn('**Assistant:**', markdown)
+        self.assertIn('**🧑‍💬 User**', markdown)
+        self.assertIn('**🤖 Assistant**', markdown)
         self.assertIn('What are Python best practices?', markdown)
 
     def test_convert_conversation_missing_title(self):
@@ -198,7 +198,7 @@ class TestChatGPTConverter(unittest.TestCase):
         del conversation['title']
         
         markdown = convert_conversation_to_markdown(conversation)
-        self.assertIn('# Untitled Conversation', markdown)
+        self.assertNotIn('# Untitled Conversation', markdown)
 
     def test_process_conversations(self):
         """Test processing multiple conversations"""
@@ -317,8 +317,8 @@ class TestChatGPTConverter(unittest.TestCase):
             self.assertTrue(filename.endswith('.md'))
             # No longer using date prefix - now human readable
             
-            # Verify markdown structure
-            self.assertIn('# ', markdown)
+            # Verify markdown structure (title no longer included in content)
+            self.assertNotIn('# ', markdown)
             self.assertIn('**Created:**', markdown)
             self.assertIn('---', markdown)
 
