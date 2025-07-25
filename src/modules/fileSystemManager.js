@@ -624,9 +624,10 @@ async function showBulkDuplicateDialog(scanResults) {
  * @param {Array} files - Array of file objects to save
  * @param {FileSystemDirectoryHandle} directoryHandle - Target directory
  * @param {Function} progressCallback - Progress update callback
+ * @param {Function} cancellationCallback - Function that returns true if operation should be cancelled
  * @returns {Promise<Object>} - Save results with success/error counts and details
  */
-export async function saveFilesChronologically(files, directoryHandle, progressCallback = null) {
+export async function saveFilesChronologically(files, directoryHandle, progressCallback = null, cancellationCallback = null) {
     logInfo(`🔄 Starting chronological save process: ${files.length} files to ${directoryHandle.name}/`);
     
     // First, scan for existing files
@@ -755,6 +756,22 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
     }
 
     for (let i = 0; i < filesToSave.length; i++) {
+        // Check for cancellation before processing each file
+        if (cancellationCallback && cancellationCallback()) {
+            logInfo('🛑 Save operation cancelled by user');
+            // Mark remaining files as cancelled
+            for (let j = i; j < filesToSave.length; j++) {
+                results.push({
+                    success: false,
+                    cancelled: true,
+                    message: 'Save operation cancelled by user',
+                    filename: filesToSave[j].filename
+                });
+                cancelledCount++;
+            }
+            break;
+        }
+        
         const file = filesToSave[i];
         
         try {
@@ -806,7 +823,8 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         userChoice,
         duplicatesFound: scanResults.duplicateCount,
         scanErrors: scanResults.scanErrors,
-        scanAge: Math.round(scanAge / 1000) // Include scan age in results
+        scanAge: Math.round(scanAge / 1000), // Include scan age in results
+        userCancelled: cancellationCallback && cancellationCallback() // Check if cancelled at the end
     };
 }
 

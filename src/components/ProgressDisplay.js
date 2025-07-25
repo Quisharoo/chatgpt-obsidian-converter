@@ -15,8 +15,10 @@ export class ProgressDisplay {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.statusText = null;
+        this.cancelButton = null;
         this.isVisible = false;
         this.isInitialized = false;
+        this.onCancelCallback = null;
         
         if (!this.container) {
             logWarn(`Progress container '${containerId}' not found`);
@@ -34,19 +36,61 @@ export class ProgressDisplay {
             <div class="status info" id="statusText" aria-live="polite" aria-atomic="true" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                 ${STATUS_MESSAGES.PROCESSING}
             </div>
+            <button id="cancelButton" class="btn btn-secondary cancel-btn" style="display: none; margin-top: var(--space-3);">
+                <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: var(--space-2);">
+                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+                Cancel Save
+            </button>
         `;
 
         this.statusText = this.container.querySelector('#statusText');
+        this.cancelButton = this.container.querySelector('#cancelButton');
+        
+        // Set up cancel button event listener
+        if (this.cancelButton) {
+            this.cancelButton.addEventListener('click', () => {
+                this.handleCancel();
+            });
+        }
         
         this.isInitialized = true;
         logInfo('✅ Progress display initialized');
     }
 
     /**
-     * Show progress display
-     * WHY: Makes progress visible to user with proper styling
+     * Handle cancel button click
+     * WHY: Triggers cancellation callback when user wants to stop the operation
      */
-    show() {
+    handleCancel() {
+        logInfo('🛑 Cancel button clicked');
+        if (this.onCancelCallback) {
+            this.onCancelCallback();
+        }
+        // Disable the button to prevent multiple clicks
+        if (this.cancelButton) {
+            this.cancelButton.disabled = true;
+            this.cancelButton.textContent = 'Cancelling...';
+        }
+    }
+
+    /**
+     * Set cancel callback function
+     * WHY: Allows external components to handle cancellation
+     * 
+     * @param {Function} callback - Function to call when cancel is clicked
+     */
+    setCancelCallback(callback) {
+        this.onCancelCallback = callback;
+    }
+
+    /**
+     * Show progress display with optional cancel button
+     * WHY: Makes progress visible to user with proper styling
+     * 
+     * @param {boolean} showCancelButton - Whether to show the cancel button
+     */
+    show(showCancelButton = false) {
         if (!this.container) {
             logWarn('Progress container not found, cannot show progress');
             return;
@@ -59,6 +103,22 @@ export class ProgressDisplay {
         
         this.container.style.display = 'block';
         this.isVisible = true;
+        
+        // Show/hide cancel button based on parameter
+        if (this.cancelButton) {
+            if (showCancelButton) {
+                this.cancelButton.style.display = 'inline-flex';
+                this.cancelButton.disabled = false;
+                this.cancelButton.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: var(--space-2);">
+                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                    </svg>
+                    Cancel Save
+                `;
+            } else {
+                this.cancelButton.style.display = 'none';
+            }
+        }
         
         // Ensure the progress card is visible in the Files section
         const progressCard = document.getElementById('progressCard');

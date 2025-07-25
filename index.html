@@ -309,14 +309,7 @@
             padding: var(--space-6);
         }
 
-        .card-actions {
-            padding: var(--space-4) var(--space-6);
-            background: var(--bg-tertiary);
-            border-top: 1px solid var(--border-primary);
-            display: flex;
-            gap: var(--space-3);
-            justify-content: flex-end;
-        }
+
 
         /* Upload Area */
         .upload-area {
@@ -401,6 +394,24 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
+        }
+
+        /* Cancel Button */
+        .cancel-btn {
+            background: var(--error-bg);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .cancel-btn:hover {
+            background: var(--error);
+            color: white;
+        }
+
+        .cancel-btn:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border-color: var(--border-secondary);
         }
 
         /* Progress Components */
@@ -623,14 +634,7 @@
                         </div>
                         <input type="file" id="fileInput" class="file-input" accept=".json" aria-label="Select conversations.json file" />
                     </div>
-                    <div class="card-actions">
-                        <button class="btn btn-primary" id="chooseFileBtn">
-                            <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                            </svg>
-                            Choose File
-                        </button>
-                    </div>
+
                 </div>
                 
                 <div id="file-requirements" class="sr-only">

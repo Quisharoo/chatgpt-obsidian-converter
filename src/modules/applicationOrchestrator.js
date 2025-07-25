@@ -43,7 +43,7 @@ export class ChatGPTConverter {
     initializeComponents() {
         try {
             // Initialize components
-            this.fileUploader = new FileUploader('uploadArea', 'fileInput', 'chooseFileBtn');
+            this.fileUploader = new FileUploader('uploadArea', 'fileInput');
             this.progressDisplay = new ProgressDisplay('progressContainer');
             
             // Set up file upload handling
@@ -201,8 +201,16 @@ export class ChatGPTConverter {
             logInfo('✅ Switched to Files view for save operation');
         }
         
-        // Show progress display immediately
-        this.progressDisplay.show();
+        // Set up cancellation flag
+        let isCancelled = false;
+        
+        // Show progress display with cancel button
+        this.progressDisplay.show(true);
+        this.progressDisplay.setCancelCallback(() => {
+            isCancelled = true;
+            logInfo('🛑 User requested cancellation of save operation');
+        });
+        
         this.showInfo(`💾 Preparing to save ${this.convertedFiles.length} files to ${this.selectedDirectoryHandle.name} folder...`);
 
         try {
@@ -212,10 +220,13 @@ export class ChatGPTConverter {
                 this.progressDisplay.updateProgress(progress, message);
             };
 
+            const cancellationCallback = () => isCancelled;
+
             const results = await saveFilesChronologically(
                 this.convertedFiles, 
                 this.selectedDirectoryHandle, 
-                progressCallback
+                progressCallback,
+                cancellationCallback
             );
 
             logInfo(`✅ Save operation completed: ${results.successCount} saved, ${results.cancelledCount} cancelled, ${results.errorCount} errors`);
@@ -280,6 +291,8 @@ export class ChatGPTConverter {
             console.error('❌ Error during save:', error);
             this.showError(`Save failed: ${error.message}`);
         } finally {
+            // Clear the cancel callback
+            this.progressDisplay.setCancelCallback(null);
             setTimeout(() => this.progressDisplay.hide(), 1000);
         }
     }
