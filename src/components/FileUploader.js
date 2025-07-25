@@ -13,10 +13,9 @@ import { logError } from '../utils/logger.js';
  * WHY: Encapsulates file upload logic with full accessibility support
  */
 export class FileUploader {
-    constructor(uploadAreaId, fileInputId, chooseButtonId) {
+    constructor(uploadAreaId, fileInputId) {
         this.uploadArea = document.getElementById(uploadAreaId);
         this.fileInput = document.getElementById(fileInputId);
-        this.chooseButton = document.getElementById(chooseButtonId);
         this.onFileSelected = null;
         this.isProcessing = false;
         
@@ -35,9 +34,6 @@ export class FileUploader {
         }
         if (!this.fileInput) {
             throw new Error(`File input element with id 'fileInput' not found`);
-        }
-        if (!this.chooseButton) {
-            throw new Error(`Choose button element with id 'chooseFileBtn' not found`);
         }
     }
 
@@ -64,7 +60,6 @@ export class FileUploader {
     attachEventListeners() {
         // Click events
         this.uploadArea.addEventListener('click', this.handleUploadAreaClick.bind(this));
-        this.chooseButton.addEventListener('click', this.handleChooseButtonClick.bind(this));
         
         // File input change
         this.fileInput.addEventListener('change', this.handleFileInputChange.bind(this));
@@ -89,22 +84,6 @@ export class FileUploader {
     handleUploadAreaClick(event) {
         if (this.isProcessing) return;
         
-        // Don't trigger if clicking the button inside
-        if (event.target === this.chooseButton || this.chooseButton.contains(event.target)) {
-            return;
-        }
-        
-        this.fileInput.click();
-    }
-
-    /**
-     * Handle choose button click
-     * WHY: Explicit button for file selection
-     */
-    handleChooseButtonClick(event) {
-        if (this.isProcessing) return;
-        
-        event.stopPropagation();
         this.fileInput.click();
     }
 
@@ -231,7 +210,7 @@ export class FileUploader {
         this.isProcessing = isProcessing;
         
         // Update button state
-        this.chooseButton.disabled = isProcessing;
+        // Removed chooseButton.disabled = isProcessing;
         
         // Update upload area state
         if (isProcessing) {
