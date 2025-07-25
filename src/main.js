@@ -5,6 +5,8 @@
  */
 
 import { ChatGPTConverter } from './modules/applicationOrchestrator.js';
+import { logInfo, logError, configureLogger } from './utils/logger.js';
+import { LOGGING_CONFIG } from './utils/constants.js';
 
 /**
  * Global application instance
@@ -18,6 +20,9 @@ let converterApp = null;
  */
 function initializeApplication() {
     try {
+        // Configure logging
+        configureLogger({ level: LOGGING_CONFIG.DEFAULT_LEVEL });
+        
         // Create application instance
         converterApp = new ChatGPTConverter();
         
@@ -31,10 +36,10 @@ function initializeApplication() {
         // Add screen reader only styles if not present
         addAccessibilityStyles();
         
-        console.log('🚀 Application initialized successfully');
+        logInfo('🚀 Application initialized successfully');
         
     } catch (error) {
-        console.error('❌ Failed to initialize application:', error);
+        logError('❌ Failed to initialize application:', error);
         showFallbackError('Failed to initialize application. Please refresh the page.');
     }
 }
@@ -46,7 +51,7 @@ function initializeApplication() {
  * @param {ErrorEvent} event - Error event
  */
 function handleGlobalError(event) {
-    console.error('Global error:', event.error);
+    logError('Global error:', event.error);
     
     // Don't show user errors for known harmless issues
     if (event.error?.message?.includes('Non-Error promise rejection')) {
@@ -63,7 +68,7 @@ function handleGlobalError(event) {
  * @param {PromiseRejectionEvent} event - Rejection event
  */
 function handleUnhandledRejection(event) {
-    console.error('Unhandled promise rejection:', event.reason);
+    logError('Unhandled promise rejection:', event.reason);
     
     // Don't show user errors for known harmless issues
     if (event.reason?.name === 'AbortError') {

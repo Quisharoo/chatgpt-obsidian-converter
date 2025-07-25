@@ -5,6 +5,7 @@
  */
 
 import { generateUniqueFilename, formatTimestamp, sortConversationsChronologically } from '../utils/helpers.js';
+import { logInfo, logDebug } from '../utils/logger.js';
 
 /**
  * Extract and order messages from ChatGPT mapping structure
@@ -177,8 +178,8 @@ export function processConversations(conversations, processedIds = new Set()) {
     
     // Sort chronologically for proper file creation order
     const sortedConversations = sortConversationsChronologically(conversations);
-    console.log(`📅 Processing ${sortedConversations.length} conversations in chronological order (oldest first)`);
-            console.log(`🕐 This ensures consistent chronological ordering of conversations`);
+    logInfo(`📅 Processing ${sortedConversations.length} conversations in chronological order (oldest first)`);
+    logDebug(`🕐 This ensures consistent chronological ordering of conversations`);
     
     const usedFilenames = [];
     
@@ -220,7 +221,7 @@ function processSingleConversation(conversation, processedIds, usedFilenames) {
     
     // Skip duplicates
     if (processedIds.has(conversationId)) {
-        console.log(`Skipping: ${conversation.title || 'Untitled'} (already processed)`);
+        logDebug(`Skipping: ${conversation.title || 'Untitled'} (already processed)`);
         return { skipped: true };
     }
     

@@ -18,6 +18,7 @@ import {
     scanForExistingFiles
 } from './fileSystemManager.js';
 import { ERROR_MESSAGES, STATUS_MESSAGES } from '../utils/constants.js';
+import { logInfo, logDebug, logWarn, logError } from '../utils/logger.js';
 
 /**
  * ChatGPT to Markdown Application
@@ -48,11 +49,11 @@ export class ChatGPTConverter {
             // Set up file upload handling
             this.fileUploader.setFileSelectedCallback(this.handleFileUpload.bind(this));
             
-            console.log('✅ ChatGPT to Markdown Converter initialized');
-            console.log(`📁 File System Access API: ${isFileSystemAccessSupported() ? 'Available' : 'Not available'}`);
+            logInfo('✅ ChatGPT to Markdown Converter initialized');
+            logInfo(`📁 File System Access API: ${isFileSystemAccessSupported() ? 'Available' : 'Not available'}`);
             
         } catch (error) {
-            console.error('❌ Failed to initialize application:', error);
+            logError('❌ Failed to initialize application:', error);
             this.showError('Failed to initialize application. Please refresh the page.');
         }
     }
@@ -64,7 +65,7 @@ export class ChatGPTConverter {
      * @param {File} file - Uploaded file to process
      */
     async handleFileUpload(file) {
-        console.log(`🔄 Processing file: ${file.name} (${file.size} bytes)`);
+        logInfo(`🔄 Processing file: ${file.name} (${file.size} bytes)`);
         
         this.fileUploader.setProcessingState(true);
         this.progressDisplay.show();
@@ -101,7 +102,7 @@ export class ChatGPTConverter {
             }, 500);
             
         } catch (error) {
-            console.error('❌ Error processing file:', error);
+            logError('❌ Error processing file:', error);
             this.progressDisplay.showError(error.message);
             this.showError(error.message);
         } finally {
@@ -318,17 +319,17 @@ export class ChatGPTConverter {
             
             if (result.success) {
                 this.showSuccess(`✅ ${result.message}`);
-                console.log(`✅ Individual file saved: ${result.filename} → ${directoryHandle.name}/`);
+                logInfo(`✅ Individual file saved: ${result.filename} → ${directoryHandle.name}/`);
             } else if (result.cancelled) {
                 this.showInfo(`📂 ${result.message}`);
-                console.log(`📂 Save cancelled by user: ${result.filename}`);
+                logInfo(`📂 Save cancelled by user: ${result.filename}`);
             } else {
                 this.showError(`❌ ${result.message}`);
-                console.error(`❌ Save failed: ${result.filename} - ${result.message}`);
+                logError(`❌ Save failed: ${result.filename} - ${result.message}`);
             }
 
         } catch (error) {
-            console.error(`Error saving individual file ${file.filename}:`, error);
+            logError(`Error saving individual file ${file.filename}:`, error);
             
             // Provide specific error messages
             if (error.message.includes('cancelled')) {
@@ -351,7 +352,7 @@ export class ChatGPTConverter {
                 this.downloadSingleFile(file);
                 successCount++;
             } catch (error) {
-                console.error(`Error downloading ${file.filename}:`, error);
+                logError(`Error downloading ${file.filename}:`, error);
             }
         }
         
@@ -617,7 +618,7 @@ export class ChatGPTConverter {
         const titleHeader = document.getElementById('titleHeader');
         const dateHeader = document.getElementById('dateHeader');
         
-        console.log('🔧 Setting up column sorting...', { titleHeader: !!titleHeader, dateHeader: !!dateHeader });
+        logDebug('🔧 Setting up column sorting...', { titleHeader: !!titleHeader, dateHeader: !!dateHeader });
         
         if (titleHeader) {
             titleHeader.addEventListener('click', () => this.handleColumnSort('title'));
@@ -628,7 +629,7 @@ export class ChatGPTConverter {
             titleHeader.addEventListener('mouseleave', () => {
                 titleHeader.style.backgroundColor = '';
             });
-            console.log('✅ Title header click listener attached');
+            logDebug('✅ Title header click listener attached');
         }
         
         if (dateHeader) {
@@ -640,7 +641,7 @@ export class ChatGPTConverter {
             dateHeader.addEventListener('mouseleave', () => {
                 dateHeader.style.backgroundColor = '';
             });
-            console.log('✅ Date header click listener attached');
+            logDebug('✅ Date header click listener attached');
         }
         
         // Initial sort state - set title as default ascending (only if not already set)
@@ -658,19 +659,19 @@ export class ChatGPTConverter {
      * WHY: Provides natural table sorting interface
      */
     handleColumnSort(column) {
-        console.log(`🔄 Column sort clicked: ${column}, current: ${this.currentSort}, direction: ${this.sortDirection}`);
+        logDebug(`🔄 Column sort clicked: ${column}, current: ${this.currentSort}, direction: ${this.sortDirection}`);
         
         const previousColumn = this.currentSort;
         
         if (this.currentSort === column) {
             // Same column - toggle direction
             this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-            console.log(`↕️ Toggling sort direction for ${column}: ${this.sortDirection}`);
+            logDebug(`↕️ Toggling sort direction for ${column}: ${this.sortDirection}`);
         } else {
             // Different column - set new sort and default to ascending
             this.currentSort = column;
             this.sortDirection = 'asc';
-            console.log(`🔄 Switching to new column ${column}: ${this.sortDirection}`);
+            logDebug(`🔄 Switching to new column ${column}: ${this.sortDirection}`);
         }
         
         // Only reset to first page when changing columns, not when toggling direction
@@ -690,7 +691,7 @@ export class ChatGPTConverter {
         const titleIndicator = document.querySelector('#titleHeader .sort-indicator');
         const dateIndicator = document.querySelector('#dateHeader .sort-indicator');
         
-        console.log('🎨 Updating sort indicators...', { 
+        logDebug('🎨 Updating sort indicators...', { 
             currentSort: this.currentSort, 
             sortDirection: this.sortDirection,
             titleIndicator: !!titleIndicator,
@@ -698,7 +699,7 @@ export class ChatGPTConverter {
         });
         
         if (!titleIndicator || !dateIndicator) {
-            console.warn('⚠️ Sort indicators not found in DOM');
+            logWarn('⚠️ Sort indicators not found in DOM');
             return;
         }
         
@@ -713,7 +714,7 @@ export class ChatGPTConverter {
         activeIndicator.style.color = '#007bff';
         activeIndicator.textContent = this.sortDirection === 'asc' ? '▲' : '▼';
         
-        console.log(`✨ Active sort: ${this.currentSort} ${this.sortDirection === 'asc' ? '(ascending)' : '(descending)'}`);
+        logDebug(`✨ Active sort: ${this.currentSort} ${this.sortDirection === 'asc' ? '(ascending)' : '(descending)'}`);
     }
 
     /**
@@ -1172,7 +1173,7 @@ export class ChatGPTConverter {
             }
         } else {
             // Fallback: log to console
-            console.log(`${type.toUpperCase()}: ${message}`);
+            logInfo(`${type.toUpperCase()}: ${message}`);
         }
     }
 

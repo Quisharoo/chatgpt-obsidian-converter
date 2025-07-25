@@ -6,6 +6,7 @@
 
 import { isValidJsonFile } from '../utils/helpers.js';
 import { UI_CONFIG, ERROR_MESSAGES } from '../utils/constants.js';
+import { logError } from '../utils/logger.js';
 
 /**
  * File Uploader Component Class
@@ -204,7 +205,7 @@ export class FileUploader {
             }
             
         } catch (error) {
-            console.error('Error processing file:', error);
+            logError('Error processing file:', error);
             this.showFileError(ERROR_MESSAGES.FILE_PROCESSING_ERROR);
             this.setProcessingState(false);
         }

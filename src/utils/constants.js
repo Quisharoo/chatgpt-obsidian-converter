@@ -67,4 +67,11 @@ export const STATUS_MESSAGES = {
     SAVING: 'Saving files...',
     CANCELLED: 'Directory selection cancelled',
     FILE_EXISTS_CHECK: 'Checking for existing files...'
+};
+
+// Logging configuration
+export const LOGGING_CONFIG = {
+    DEFAULT_LEVEL: 'INFO',
+    DEBUG_MODE: false,
+    ENABLE_EXTERNAL_LOGGING: false
 }; 
