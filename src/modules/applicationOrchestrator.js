@@ -65,11 +65,6 @@ export class ChatGPTConverter {
     async handleFileUpload(file) {
         console.log(`🔄 Processing file: ${file.name} (${file.size} bytes)`);
         
-        // Switch to process view
-        if (window.switchToView) {
-            window.switchToView('process');
-        }
-        
         this.fileUploader.setProcessingState(true);
         this.progressDisplay.show();
         
@@ -422,8 +417,11 @@ export class ChatGPTConverter {
             }
         }
         
-        // Set up column header click handlers
-        this.setupColumnSorting();
+        // Set up column header click handlers (only if not already set up)
+        if (!this.columnSortingSetup) {
+            this.setupColumnSorting();
+            this.columnSortingSetup = true;
+        }
         
         // Initial render
         this.renderFilesTable();
@@ -593,6 +591,8 @@ export class ChatGPTConverter {
         const titleHeader = document.getElementById('titleHeader');
         const dateHeader = document.getElementById('dateHeader');
         
+        console.log('🔧 Setting up column sorting...', { titleHeader: !!titleHeader, dateHeader: !!dateHeader });
+        
         if (titleHeader) {
             titleHeader.addEventListener('click', () => this.handleColumnSort('title'));
             titleHeader.style.transition = 'background-color 0.2s ease';
@@ -602,6 +602,7 @@ export class ChatGPTConverter {
             titleHeader.addEventListener('mouseleave', () => {
                 titleHeader.style.backgroundColor = '';
             });
+            console.log('✅ Title header click listener attached');
         }
         
         if (dateHeader) {
@@ -613,11 +614,14 @@ export class ChatGPTConverter {
             dateHeader.addEventListener('mouseleave', () => {
                 dateHeader.style.backgroundColor = '';
             });
+            console.log('✅ Date header click listener attached');
         }
         
-        // Initial sort state - set title as default ascending
-        this.currentSort = 'title';
-        this.sortDirection = 'asc';
+        // Initial sort state - set title as default ascending (only if not already set)
+        if (!this.currentSort) {
+            this.currentSort = 'title';
+            this.sortDirection = 'asc';
+        }
         
         // Update sort indicators
         this.updateSortIndicators();
@@ -628,15 +632,19 @@ export class ChatGPTConverter {
      * WHY: Provides natural table sorting interface
      */
     handleColumnSort(column) {
+        console.log(`🔄 Column sort clicked: ${column}, current: ${this.currentSort}, direction: ${this.sortDirection}`);
+        
         const previousColumn = this.currentSort;
         
         if (this.currentSort === column) {
             // Same column - toggle direction
             this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            console.log(`↕️ Toggling sort direction for ${column}: ${this.sortDirection}`);
         } else {
             // Different column - set new sort and default to ascending
             this.currentSort = column;
             this.sortDirection = 'asc';
+            console.log(`🔄 Switching to new column ${column}: ${this.sortDirection}`);
         }
         
         // Only reset to first page when changing columns, not when toggling direction
@@ -656,7 +664,15 @@ export class ChatGPTConverter {
         const titleIndicator = document.querySelector('#titleHeader .sort-indicator');
         const dateIndicator = document.querySelector('#dateHeader .sort-indicator');
         
+        console.log('🎨 Updating sort indicators...', { 
+            currentSort: this.currentSort, 
+            sortDirection: this.sortDirection,
+            titleIndicator: !!titleIndicator,
+            dateIndicator: !!dateIndicator 
+        });
+        
         if (!titleIndicator || !dateIndicator) {
+            console.warn('⚠️ Sort indicators not found in DOM');
             return;
         }
         
@@ -670,6 +686,8 @@ export class ChatGPTConverter {
         const activeIndicator = this.currentSort === 'title' ? titleIndicator : dateIndicator;
         activeIndicator.style.color = '#007bff';
         activeIndicator.textContent = this.sortDirection === 'asc' ? '▲' : '▼';
+        
+        console.log(`✨ Active sort: ${this.currentSort} ${this.sortDirection === 'asc' ? '(ascending)' : '(descending)'}`);
     }
 
     /**
@@ -694,25 +712,36 @@ export class ChatGPTConverter {
 
     /**
      * Sort files based on current criteria
-     * WHY: Allows users to organize files by name or date
+     * WHY: Allows users to organize files by name or date with natural sorting
      */
     sortFiles(files) {
         return files.sort((a, b) => {
             let aValue, bValue;
             
             if (this.currentSort === 'title') {
-                aValue = (a.title || a.filename || '').toLowerCase();
-                bValue = (b.title || b.filename || '').toLowerCase();
+                // Natural string sorting - case insensitive
+                aValue = (a.title || a.filename || '').toLowerCase().trim();
+                bValue = (b.title || b.filename || '').toLowerCase().trim();
+                
+                // Handle natural sorting for numbers in titles
+                if (this.sortDirection === 'asc') {
+                    return aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
+                } else {
+                    return bValue.localeCompare(aValue, undefined, { numeric: true, sensitivity: 'base' });
+                }
             } else if (this.currentSort === 'date') {
+                // Sort by timestamp for accurate chronological ordering
                 aValue = a.createTime || a.create_time || 0;
                 bValue = b.createTime || b.create_time || 0;
+                
+                if (this.sortDirection === 'asc') {
+                    return aValue - bValue;
+                } else {
+                    return bValue - aValue;
+                }
             }
             
-            if (this.sortDirection === 'asc') {
-                return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-            } else {
-                return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-            }
+            return 0;
         });
     }
 
