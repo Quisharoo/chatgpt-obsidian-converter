@@ -10,6 +10,7 @@ import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globa
 document.body.innerHTML = `
     <div id="progressContainer"></div>
     <div id="progressCard" style="display: none;"></div>
+    <div id="uploadCard" style="display: block;"></div>
 `;
 
 // Mock the constants
@@ -34,6 +35,7 @@ describe('Progress Display Component', () => {
         // Reset DOM
         document.getElementById('progressContainer').innerHTML = '';
         document.getElementById('progressCard').style.display = 'none';
+        document.getElementById('uploadCard').style.display = 'block';
         
         // Reset mocks
         jest.clearAllMocks();
@@ -250,6 +252,38 @@ describe('Progress Display Component', () => {
             // Test value over 100
             progressDisplay.updateProgress(150, 'Over 100');
             expect(progressDisplay.progressFill.style.width).toBe('100%');
+        });
+
+        test('should hide upload card during conversion progress', () => {
+            const uploadCard = document.getElementById('uploadCard');
+            expect(uploadCard.style.display).toBe('block'); // Initially visible
+            
+            progressDisplay.initialize();
+            progressDisplay.show(false, false); // Conversion progress (not files view)
+            
+            expect(uploadCard.style.display).toBe('none'); // Should be hidden
+        });
+
+        test('should show upload card again when progress is hidden', () => {
+            const uploadCard = document.getElementById('uploadCard');
+            expect(uploadCard.style.display).toBe('block'); // Initially visible
+            
+            progressDisplay.initialize();
+            progressDisplay.show(false, false); // Conversion progress
+            expect(uploadCard.style.display).toBe('none'); // Hidden during progress
+            
+            progressDisplay.hide();
+            expect(uploadCard.style.display).toBe('block'); // Should be visible again
+        });
+
+        test('should not hide upload card during files view progress', () => {
+            const uploadCard = document.getElementById('uploadCard');
+            expect(uploadCard.style.display).toBe('block'); // Initially visible
+            
+            progressDisplay.initialize();
+            progressDisplay.show(true, true); // Files view progress
+            
+            expect(uploadCard.style.display).toBe('block'); // Should remain visible
         });
     });
 }); 

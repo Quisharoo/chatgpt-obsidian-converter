@@ -139,6 +139,15 @@ export class ProgressDisplay {
             }
         });
         
+        // Hide the upload card when showing progress (for conversion operations)
+        if (!switchToFilesView) {
+            const uploadCard = document.getElementById('uploadCard');
+            if (uploadCard) {
+                uploadCard.style.display = 'none';
+                logInfo('✅ Upload card hidden during conversion');
+            }
+        }
+        
         this.container.style.display = 'block';
         this.isVisible = true;
         
@@ -222,6 +231,13 @@ export class ProgressDisplay {
         if (conversionProgressCard) {
             conversionProgressCard.style.display = 'none';
             logInfo('✅ Conversion progress card hidden');
+        }
+        
+        // Show the upload card again when progress is hidden (for conversion operations)
+        const uploadCard = document.getElementById('uploadCard');
+        if (uploadCard) {
+            uploadCard.style.display = 'block';
+            logInfo('✅ Upload card shown again after conversion');
         }
     }
 
