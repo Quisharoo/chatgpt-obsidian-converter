@@ -297,5 +297,169 @@ describe('Utility Functions', () => {
             expect(sorted[1].title).toBe('Zero Time');
             expect(sorted[2].title).toBe('With Time');
         });
+
+        test('updateSortIndicators shows only active column arrow', () => {
+            // Mock DOM elements for sort indicators
+            const titleIndicator = {
+                style: { color: '' },
+                textContent: ''
+            };
+            const dateIndicator = {
+                style: { color: '' },
+                textContent: ''
+            };
+            
+            // Mock querySelector to return our indicators
+            global.document.querySelector = jest.fn((selector) => {
+                if (selector === '#titleHeader .sort-indicator') return titleIndicator;
+                if (selector === '#dateHeader .sort-indicator') return dateIndicator;
+                return null;
+            });
+            
+            // Test title column active (ascending)
+            converter.currentSort = 'title';
+            converter.sortDirection = 'asc';
+            converter.updateSortIndicators();
+            
+            expect(titleIndicator.style.color).toBe('#007bff');
+            expect(titleIndicator.textContent).toBe('▲');
+            expect(dateIndicator.style.color).toBe('#ccc');
+            expect(dateIndicator.textContent).toBe('');
+            
+            // Test date column active (descending)
+            converter.currentSort = 'date';
+            converter.sortDirection = 'desc';
+            converter.updateSortIndicators();
+            
+            expect(titleIndicator.style.color).toBe('#ccc');
+            expect(titleIndicator.textContent).toBe('');
+            expect(dateIndicator.style.color).toBe('#007bff');
+            expect(dateIndicator.textContent).toBe('▼');
+        });
+
+        test('renderPagination includes First and Last buttons for many pages', () => {
+            // Mock pagination container
+            const paginationContainer = {
+                innerHTML: '',
+                appendChild: jest.fn()
+            };
+            
+            // Mock getElementById to return our container
+            global.document.getElementById = jest.fn((id) => {
+                if (id === 'paginationContainer') return paginationContainer;
+                return null;
+            });
+            
+            // Mock createPaginationButton method
+            converter.createPaginationButton = jest.fn((text, page, isActive = false) => {
+                return { textContent: text, page: page, isActive: isActive };
+            });
+            
+            // Test with many pages (10 pages) and current page in middle
+            converter.currentPage = 5;
+            converter.renderPagination(10);
+            
+            // Should include First and Last buttons
+            expect(converter.createPaginationButton).toHaveBeenCalledWith('«', 1);
+            expect(converter.createPaginationButton).toHaveBeenCalledWith('»', 10);
+            
+            // Should also include Previous and Next
+            expect(converter.createPaginationButton).toHaveBeenCalledWith('‹', 4);
+            expect(converter.createPaginationButton).toHaveBeenCalledWith('›', 6);
+        });
+
+        test('renderPagination hides First and Last buttons for few pages', () => {
+            // Mock pagination container
+            const paginationContainer = {
+                innerHTML: '',
+                appendChild: jest.fn()
+            };
+            
+            // Mock getElementById to return our container
+            global.document.getElementById = jest.fn((id) => {
+                if (id === 'paginationContainer') return paginationContainer;
+                return null;
+            });
+            
+            // Mock createPaginationButton method
+            converter.createPaginationButton = jest.fn((text, page, isActive = false) => {
+                return { textContent: text, page: page, isActive: isActive };
+            });
+            
+            // Test with few pages (3 pages) and current page in middle
+            converter.currentPage = 2;
+            converter.renderPagination(3);
+            
+            // Should NOT include First and Last buttons for few pages
+            const calls = converter.createPaginationButton.mock.calls;
+            const buttonTexts = calls.map(call => call[0]);
+            
+            expect(buttonTexts).not.toContain('«');
+            expect(buttonTexts).not.toContain('»');
+            
+            // Should still include Previous and Next
+            expect(buttonTexts).toContain('‹');
+            expect(buttonTexts).toContain('›');
+        });
+
+        test('renderPagination hides First button on first page', () => {
+            // Mock pagination container
+            const paginationContainer = {
+                innerHTML: '',
+                appendChild: jest.fn()
+            };
+            
+            // Mock getElementById to return our container
+            global.document.getElementById = jest.fn((id) => {
+                if (id === 'paginationContainer') return paginationContainer;
+                return null;
+            });
+            
+            // Mock createPaginationButton method
+            converter.createPaginationButton = jest.fn((text, page, isActive = false) => {
+                return { textContent: text, page: page, isActive: isActive };
+            });
+            
+            // Test with many pages but on first page
+            converter.currentPage = 1;
+            converter.renderPagination(10);
+            
+            // Should NOT include First button when on first page
+            const calls = converter.createPaginationButton.mock.calls;
+            const buttonTexts = calls.map(call => call[0]);
+            
+            expect(buttonTexts).not.toContain('«');
+            expect(buttonTexts).toContain('»'); // Last button should still show
+        });
+
+        test('renderPagination hides Last button on last page', () => {
+            // Mock pagination container
+            const paginationContainer = {
+                innerHTML: '',
+                appendChild: jest.fn()
+            };
+            
+            // Mock getElementById to return our container
+            global.document.getElementById = jest.fn((id) => {
+                if (id === 'paginationContainer') return paginationContainer;
+                return null;
+            });
+            
+            // Mock createPaginationButton method
+            converter.createPaginationButton = jest.fn((text, page, isActive = false) => {
+                return { textContent: text, page: page, isActive: isActive };
+            });
+            
+            // Test with many pages but on last page
+            converter.currentPage = 10;
+            converter.renderPagination(10);
+            
+            // Should NOT include Last button when on last page
+            const calls = converter.createPaginationButton.mock.calls;
+            const buttonTexts = calls.map(call => call[0]);
+            
+            expect(buttonTexts).not.toContain('»');
+            expect(buttonTexts).toContain('«'); // First button should still show
+        });
     });
 }); 
