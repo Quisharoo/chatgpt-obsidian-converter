@@ -620,27 +620,46 @@ export class ChatGPTConverter {
         
         logDebug('🔧 Setting up column sorting...', { titleHeader: !!titleHeader, dateHeader: !!dateHeader });
         
+        // Remove existing listeners to prevent duplicates
         if (titleHeader) {
-            titleHeader.addEventListener('click', () => this.handleColumnSort('title'));
-            titleHeader.style.transition = 'background-color 0.2s ease';
-            titleHeader.addEventListener('mouseenter', () => {
+            titleHeader.removeEventListener('click', this._titleSortHandler);
+            titleHeader.removeEventListener('mouseenter', this._titleMouseEnterHandler);
+            titleHeader.removeEventListener('mouseleave', this._titleMouseLeaveHandler);
+            
+            // Create bound handlers to ensure proper removal
+            this._titleSortHandler = () => this.handleColumnSort('title');
+            this._titleMouseEnterHandler = () => {
                 titleHeader.style.backgroundColor = 'var(--bg-secondary)';
-            });
-            titleHeader.addEventListener('mouseleave', () => {
+            };
+            this._titleMouseLeaveHandler = () => {
                 titleHeader.style.backgroundColor = '';
-            });
+            };
+            
+            titleHeader.addEventListener('click', this._titleSortHandler);
+            titleHeader.style.transition = 'background-color 0.2s ease';
+            titleHeader.addEventListener('mouseenter', this._titleMouseEnterHandler);
+            titleHeader.addEventListener('mouseleave', this._titleMouseLeaveHandler);
             logDebug('✅ Title header click listener attached');
         }
         
         if (dateHeader) {
-            dateHeader.addEventListener('click', () => this.handleColumnSort('date'));
-            dateHeader.style.transition = 'background-color 0.2s ease';
-            dateHeader.addEventListener('mouseenter', () => {
+            dateHeader.removeEventListener('click', this._dateSortHandler);
+            dateHeader.removeEventListener('mouseenter', this._dateMouseEnterHandler);
+            dateHeader.removeEventListener('mouseleave', this._dateMouseLeaveHandler);
+            
+            // Create bound handlers to ensure proper removal
+            this._dateSortHandler = () => this.handleColumnSort('date');
+            this._dateMouseEnterHandler = () => {
                 dateHeader.style.backgroundColor = 'var(--bg-secondary)';
-            });
-            dateHeader.addEventListener('mouseleave', () => {
+            };
+            this._dateMouseLeaveHandler = () => {
                 dateHeader.style.backgroundColor = '';
-            });
+            };
+            
+            dateHeader.addEventListener('click', this._dateSortHandler);
+            dateHeader.style.transition = 'background-color 0.2s ease';
+            dateHeader.addEventListener('mouseenter', this._dateMouseEnterHandler);
+            dateHeader.addEventListener('mouseleave', this._dateMouseLeaveHandler);
             logDebug('✅ Date header click listener attached');
         }
         
@@ -718,19 +737,53 @@ export class ChatGPTConverter {
     }
 
     /**
+     * Get valid timestamp for sorting, treating invalid values as 0
+     * WHY: Ensures consistent sorting behavior for invalid date values
+     * 
+     * @param {*} timestamp - Raw timestamp value
+     * @returns {number} - Valid timestamp or 0 for invalid values
+     */
+    getValidTimestamp(timestamp) {
+        if (timestamp && !isNaN(timestamp) && timestamp > 0) {
+            try {
+                const date = new Date(timestamp * 1000);
+                // Check if date is valid
+                if (!isNaN(date.getTime())) {
+                    return timestamp;
+                }
+            } catch (error) {
+                logWarn('Error validating timestamp:', error);
+            }
+        }
+        return 0;
+    }
+
+    /**
      * Get properly formatted date from file object
      * WHY: Handles different date property names and formats consistently
      */
     getFileDate(file) {
+        if (!file || typeof file !== 'object') {
+            return 'Unknown';
+        }
+        
         // Try different possible date properties
         const createTime = file.createTime || file.create_time;
         
-        if (createTime) {
-            return new Date(createTime * 1000).toLocaleDateString();
+        if (createTime && !isNaN(createTime) && createTime > 0) {
+            try {
+                const date = new Date(createTime * 1000);
+                // Check if date is valid
+                if (!isNaN(date.getTime())) {
+                    return date.toLocaleDateString();
+                }
+            } catch (error) {
+                logWarn('Error formatting date:', error);
+            }
         }
         
         // Fallback to createdDate if available
-        if (file.createdDate && file.createdDate !== 'Unknown') {
+        if (file.createdDate && file.createdDate !== 'Unknown' && typeof file.createdDate === 'string') {
             return file.createdDate;
         }
         
@@ -758,8 +811,9 @@ export class ChatGPTConverter {
                 }
             } else if (this.currentSort === 'date') {
                 // Sort by timestamp for accurate chronological ordering
-                aValue = a.createTime || a.create_time || 0;
-                bValue = b.createTime || b.create_time || 0;
+                // Handle invalid dates by treating them as 0
+                aValue = this.getValidTimestamp(a.createTime || a.create_time);
+                bValue = this.getValidTimestamp(b.createTime || b.create_time);
                 
                 if (this.sortDirection === 'asc') {
                     return aValue - bValue;

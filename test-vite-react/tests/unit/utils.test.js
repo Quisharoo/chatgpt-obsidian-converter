@@ -298,6 +298,27 @@ describe('Utility Functions', () => {
             expect(sorted[2].title).toBe('With Time');
         });
 
+        test('handles invalid date values safely', () => {
+            const files = [
+                { title: 'Valid Time', filename: 'valid-time.md', createTime: 2000 },
+                { title: 'Invalid String', filename: 'invalid-string.md', createTime: 'invalid' },
+                { title: 'Negative Time', filename: 'negative-time.md', createTime: -1 },
+                { title: 'Null Time', filename: 'null-time.md', createTime: null },
+                { title: 'NaN Time', filename: 'nan-time.md', createTime: NaN }
+            ];
+
+            converter.currentSort = 'date';
+            converter.sortDirection = 'asc';
+            const sorted = converter.sortFiles(files);
+            
+            // Invalid dates should be treated as 0 and appear first
+            expect(sorted[0].title).toBe('Invalid String');
+            expect(sorted[1].title).toBe('Negative Time');
+            expect(sorted[2].title).toBe('Null Time');
+            expect(sorted[3].title).toBe('NaN Time');
+            expect(sorted[4].title).toBe('Valid Time');
+        });
+
         test('updateSortIndicators shows only active column arrow', () => {
             // Mock DOM elements for sort indicators
             const titleIndicator = {
