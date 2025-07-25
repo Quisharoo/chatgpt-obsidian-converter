@@ -14,8 +14,6 @@ import { logWarn, logInfo } from '../utils/logger.js';
 export class ProgressDisplay {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
-        this.progressBar = null;
-        this.progressFill = null;
         this.statusText = null;
         this.isVisible = false;
         this.isInitialized = false;
@@ -33,17 +31,11 @@ export class ProgressDisplay {
         if (!this.container || this.isInitialized) return;
 
         this.container.innerHTML = `
-            <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div style="margin-top: 12px;"></div>
-            <div class="status info" id="statusText" aria-live="polite" aria-atomic="true">
+            <div class="status info" id="statusText" aria-live="polite" aria-atomic="true" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                 ${STATUS_MESSAGES.PROCESSING}
             </div>
         `;
 
-        this.progressBar = this.container.querySelector('.progress-bar');
-        this.progressFill = this.container.querySelector('.progress-fill');
         this.statusText = this.container.querySelector('#statusText');
         
         this.isInitialized = true;
@@ -129,18 +121,17 @@ export class ProgressDisplay {
             this.initialize();
         }
         
-        if (!this.progressFill || !this.statusText) {
-            logWarn('⚠️ Progress elements not found, reinitializing...');
+        if (!this.statusText) {
+            logWarn('⚠️ Status text element not found, reinitializing...');
             this.initialize();
-            if (!this.progressFill || !this.statusText) {
-                logWarn('⚠️ Still cannot find progress elements');
+            if (!this.statusText) {
+                logWarn('⚠️ Still cannot find status text element');
                 return;
             }
         }
         
         // Update progress bar
-        this.progressFill.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
-        this.progressBar.setAttribute('aria-valuenow', percentage);
+        this.statusText.setAttribute('aria-valuenow', percentage);
         
         // Update status message with appropriate styling
         this.statusText.textContent = message;
