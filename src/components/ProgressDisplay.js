@@ -143,10 +143,14 @@ export class ProgressDisplay {
         this.statusText.style.backgroundSize = '100% 100%';
         this.statusText.style.transition = 'background 0.3s ease';
         
+        // Ensure text is always readable with white color
+        this.statusText.style.color = 'white';
+        
         // Add completion styling if at 100%
         if (percentage >= 100) {
             this.statusText.className = 'status success';
             this.statusText.style.background = 'var(--success-bg)';
+            this.statusText.style.color = 'var(--success)';
         }
         
         // Log progress for debugging
