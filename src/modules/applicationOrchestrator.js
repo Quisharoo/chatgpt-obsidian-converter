@@ -365,12 +365,13 @@ export class ChatGPTConverter {
     updateSaveButtonState() {
         if (this.saveLocalButton) {
             this.saveLocalButton.disabled = !this.selectedDirectoryHandle;
-            this.saveLocalButton.style.background = this.selectedDirectoryHandle ? '#28a745' : '#6c757d';
             
             if (this.selectedDirectoryHandle) {
+                this.saveLocalButton.className = 'btn btn-primary';
                 this.saveLocalButton.textContent = `💾 Save ${this.convertedFiles.length} files to selected folder`;
                 this.saveLocalButton.style.animation = 'pulse 2s infinite';
             } else {
+                this.saveLocalButton.className = 'btn';
                 this.saveLocalButton.textContent = '💾 Save to Local Folder (Select folder first)';
                 this.saveLocalButton.style.animation = 'none';
             }
@@ -955,7 +956,7 @@ export class ChatGPTConverter {
         const statItems = [
             { label: 'Files Created', value: results.files.length, icon: 'M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z' },
             { label: 'Conversations', value: results.processed, icon: 'M12,3C6.5,3 2,6.58 2,11A7.18,7.18 0 0,0 2.24,12.65C2.09,13.6 2,14.62 2,15.68C2,17.68 2.5,19.5 3.5,21L12,12.5C12,12.33 12,12.17 12,12A1,1 0 0,1 13,11A1,1 0 0,1 14,12C14,12.17 14,12.33 14,12.5L22.5,21C23.5,19.5 24,17.68 24,15.68C24,14.62 23.91,13.6 23.76,12.65A7.18,7.18 0 0,0 24,11C24,6.58 19.5,3 14,3H12Z' },
-            { label: 'Duplicates Skipped', value: results.duplicates, icon: 'M19,7H22V9H19V12H17V9H14V7H17V4H19V7M17,19H2V17S2,10 9,10C13.5,10 16.24,11.69 17,15.5V19Z' }
+            { label: 'Duplicates Skipped', value: results.duplicatesFound || 0, icon: 'M19,7H22V9H19V12H17V9H14V7H17V4H19V7M17,19H2V17S2,10 9,10C13.5,10 16.24,11.69 17,15.5V19Z' }
         ];
         
         if (results.errors > 0) {
@@ -1022,12 +1023,15 @@ export class ChatGPTConverter {
             // Directory selection buttons
             const buttonGroup = document.createElement('div');
             buttonGroup.style.display = 'flex';
+            buttonGroup.style.flexDirection = 'column';
             buttonGroup.style.gap = 'var(--space-3)';
             buttonGroup.style.marginBottom = 'var(--space-4)';
             
             const selectBtn = this.createDirectoryButton();
+            const saveBtn = this.createSaveButton(results);
             
             buttonGroup.appendChild(selectBtn);
+            buttonGroup.appendChild(saveBtn);
             content.appendChild(buttonGroup);
             
             // Instructions
@@ -1039,19 +1043,8 @@ export class ChatGPTConverter {
             content.appendChild(warning);
         }
         
-        const actions = document.createElement('div');
-        actions.className = 'card-actions';
-        
-        if (isFileSystemAccessSupported()) {
-            const saveBtn = this.createSaveButton(results);
-            actions.appendChild(saveBtn);
-        }
-        
         card.appendChild(header);
         card.appendChild(content);
-        if (actions.children.length > 0) {
-            card.appendChild(actions);
-        }
         
         return card;
     }
@@ -1086,10 +1079,6 @@ export class ChatGPTConverter {
     createSaveButton(results) {
         const btn = document.createElement('button');
         btn.className = 'btn';
-        btn.style.background = this.selectedDirectoryHandle ? '#28a745' : '#6c757d';
-        btn.style.fontSize = '1.1rem';
-        btn.style.padding = '12px 24px';
-        btn.style.fontWeight = 'bold';
         btn.textContent = this.selectedDirectoryHandle ? 
             `💾 Save ${results.files.length} files to selected folder` : 
             '💾 Save to Local Folder (Select folder first)';
