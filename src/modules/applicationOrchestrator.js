@@ -14,7 +14,8 @@ import {
     downloadFile,
     createDownloadBlob,
     isFileSystemAccessSupported,
-    saveFileToDirectory
+    saveFileToDirectory,
+    scanForExistingFiles
 } from './fileSystemManager.js';
 import { ERROR_MESSAGES, STATUS_MESSAGES } from '../utils/constants.js';
 
@@ -213,14 +214,12 @@ export class ChatGPTConverter {
         }
 
         this.progressDisplay.show();
-        this.showInfo(`💾 Saving ${this.convertedFiles.length} files to ${this.selectedDirectoryHandle.name} folder...`);
+        this.showInfo(`💾 Preparing to save ${this.convertedFiles.length} files to ${this.selectedDirectoryHandle.name} folder...`);
 
         try {
-            const progressCallback = (progress, completed, total) => {
-                this.progressDisplay.updateProgress(
-                    progress, 
-                    `💾 Saving files... ${progress}% (${completed}/${total})`
-                );
+            const progressCallback = (progress, completed, total, statusMessage) => {
+                const message = statusMessage || `💾 Saving files... ${progress}% (${completed}/${total})`;
+                this.progressDisplay.updateProgress(progress, message);
             };
 
             const results = await saveFilesChronologically(
@@ -229,16 +228,60 @@ export class ChatGPTConverter {
                 progressCallback
             );
 
-            // Show results
+            // Handle different outcomes based on user choice and results
+            if (results.userCancelled) {
+                this.showInfo('📂 Save operation cancelled');
+                return;
+            }
+
+            // Build detailed success message
+            let message = '';
+            const parts = [];
+            
             if (results.successCount > 0) {
-                const message = `✅ Saved ${results.successCount} files to ${this.selectedDirectoryHandle.name}${results.errorCount > 0 ? ` (${results.errorCount} errors)` : ''}`;
-                this.showSuccess(message);
+                parts.push(`✅ Saved ${results.successCount} files`);
+            }
+            
+            if (results.cancelledCount > 0) {
+                if (results.userChoice === 'skip') {
+                    parts.push(`📂 Skipped ${results.cancelledCount} existing files`);
+                } else {
+                    parts.push(`📂 ${results.cancelledCount} cancelled`);
+                }
+            }
+            
+            if (results.errorCount > 0) {
+                parts.push(`❌ ${results.errorCount} errors`);
+            }
+            
+            message = parts.join(', ');
+            
+            // Show appropriate message based on results
+            if (results.successCount > 0) {
+                this.showSuccess(`${message} in ${this.selectedDirectoryHandle.name}`);
                 
-                setTimeout(() => {
-                    this.showSuccess(`✅ SUCCESS! Check your ${this.selectedDirectoryHandle.name} folder for the files`);
-                }, 1000);
+                // Show additional context about user choice
+                if (results.duplicatesFound > 0) {
+                    setTimeout(() => {
+                        if (results.userChoice === 'skip') {
+                            this.showSuccess(`✅ SUCCESS! ${results.successCount} new files saved. ${results.duplicatesFound} existing files left unchanged.`);
+                        } else if (results.userChoice === 'overwrite') {
+                            this.showSuccess(`✅ SUCCESS! All ${results.successCount} files saved. ${results.duplicatesFound} files were overwritten.`);
+                        }
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        this.showSuccess(`✅ SUCCESS! Check your ${this.selectedDirectoryHandle.name} folder for the files`);
+                    }, 1000);
+                }
+            } else if (results.cancelledCount > 0 && results.errorCount === 0) {
+                if (results.userChoice === 'skip') {
+                    this.showInfo(`📂 All files already existed and were skipped. No new files to save.`);
+                } else {
+                    this.showInfo(`📂 All ${results.cancelledCount} file saves were cancelled`);
+                }
             } else {
-                this.showError('❌ Failed to save any files. Check permissions or try downloading instead.');
+                this.showError(`❌ Failed to save any files. ${results.errorCount} errors occurred. Check permissions or try downloading instead.`);
             }
 
         } catch (error) {
@@ -291,14 +334,18 @@ export class ChatGPTConverter {
 
             this.showInfo(`💾 Saving "${file.filename}" to ${directoryHandle.name}...`);
 
-            // Use the same save logic as bulk save
-            const success = await saveFileToDirectory(file.filename, file.content, directoryHandle);
+            // Use the updated save logic with detailed response
+            const result = await saveFileToDirectory(file.filename, file.content, directoryHandle);
             
-            if (success) {
-                this.showSuccess(`✅ Saved "${file.filename}" to ${directoryHandle.name}/ folder!`);
-                console.log(`✅ Individual file saved: ${file.filename} → ${directoryHandle.name}/`);
+            if (result.success) {
+                this.showSuccess(`✅ ${result.message}`);
+                console.log(`✅ Individual file saved: ${result.filename} → ${directoryHandle.name}/`);
+            } else if (result.cancelled) {
+                this.showInfo(`📂 ${result.message}`);
+                console.log(`📂 Save cancelled by user: ${result.filename}`);
             } else {
-                this.showError(`❌ Failed to save "${file.filename}". Check permissions or try download instead.`);
+                this.showError(`❌ ${result.message}`);
+                console.error(`❌ Save failed: ${result.filename} - ${result.message}`);
             }
 
         } catch (error) {
