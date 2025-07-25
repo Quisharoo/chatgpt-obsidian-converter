@@ -6,6 +6,7 @@
 
 import { API_SUPPORT, ERROR_MESSAGES, PROCESSING_CONFIG } from '../utils/constants.js';
 import { delay } from '../utils/helpers.js';
+import { logInfo, logDebug, logWarn, logError } from '../utils/logger.js';
 
 /**
  * Check if File System Access API is available
@@ -25,7 +26,7 @@ export function isFileSystemAccessSupported() {
     const isSupported = hasShowDirectoryPicker && isFunction && isSecureContext && isValidProtocol;
     
     // Debug logging to help troubleshoot
-    console.log('📁 File System Access API Detection:', {
+    logDebug('📁 File System Access API Detection:', {
         hasShowDirectoryPicker,
         isFunction,
         isSecureContext,
@@ -57,7 +58,7 @@ export async function selectDirectory(options = {}) {
         };
         
         const directoryHandle = await window.showDirectoryPicker(pickerOptions);
-        console.log(`✅ Directory selected: ${directoryHandle.name}`);
+        logInfo(`✅ Directory selected: ${directoryHandle.name}`);
         
         return directoryHandle;
     } catch (error) {
@@ -134,7 +135,7 @@ export async function saveFileToDirectory(filename, content, directoryHandle, fo
         // Verify write permissions
         const permission = await fileHandle.requestPermission({ mode: 'readwrite' });
         if (permission !== 'granted') {
-            console.error(`Permission denied for file: ${safeFilename}`);
+            logError(`Permission denied for file: ${safeFilename}`);
             return { 
                 success: false, 
                 cancelled: false, 
@@ -156,7 +157,7 @@ export async function saveFileToDirectory(filename, content, directoryHandle, fo
             wasOverwrite: fileExists 
         };
     } catch (error) {
-        console.error(`Error saving file ${filename}:`, error);
+        logError(`Error saving file ${filename}:`, error);
         return { 
             success: false, 
             cancelled: false, 
@@ -312,7 +313,7 @@ async function showFileExistsConfirmation(filename) {
  */
 function sanitizeFilename(filename) {
     if (!filename || typeof filename !== 'string') {
-        console.warn('Invalid filename provided for sanitization:', filename);
+        logWarn('Invalid filename provided for sanitization:', filename);
         return 'untitled.md';
     }
     
@@ -328,18 +329,18 @@ function sanitizeFilename(filename) {
         const ext = sanitized.slice(sanitized.lastIndexOf('.'));
         const nameWithoutExt = sanitized.slice(0, sanitized.lastIndexOf('.'));
         sanitized = nameWithoutExt.slice(0, 200 - ext.length) + ext;
-        console.warn(`Filename truncated due to length: ${filename} → ${sanitized}`);
+        logWarn(`Filename truncated due to length: ${filename} → ${sanitized}`);
     }
     
     // Ensure it's not empty after sanitization
     if (!sanitized) {
         sanitized = 'untitled.md';
-        console.warn(`Filename became empty after sanitization, using default: ${filename} → ${sanitized}`);
+        logWarn(`Filename became empty after sanitization, using default: ${filename} → ${sanitized}`);
     }
     
     // Log only if changes were made
     if (sanitized !== filename) {
-        console.warn(`Sanitized filename: ${filename} → ${sanitized}`);
+        logDebug(`Sanitized filename: ${filename} → ${sanitized}`);
     }
     
     return sanitized;
@@ -593,7 +594,7 @@ async function showBulkDuplicateDialog(scanResults) {
  * @returns {Promise<Object>} - Save results with success/error counts and details
  */
 export async function saveFilesChronologically(files, directoryHandle, progressCallback = null) {
-    console.log(`🔄 Starting chronological save process: ${files.length} files to ${directoryHandle.name}/`);
+    logInfo(`🔄 Starting chronological save process: ${files.length} files to ${directoryHandle.name}/`);
     
     // First, scan for existing files
     if (progressCallback) {
@@ -604,7 +605,7 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
     try {
         scanResults = await scanForExistingFiles(files, directoryHandle);
     } catch (error) {
-        console.error('❌ Scan failed:', error);
+        logError('❌ Scan failed:', error);
         return {
             successCount: 0,
             errorCount: files.length,
@@ -622,7 +623,7 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
     
     // Report scan errors to user if any
     if (scanResults.scanErrors && scanResults.scanErrors.length > 0) {
-        console.warn(`⚠️ ${scanResults.scanErrors.length} files had scan errors - they will be treated as existing files for safety`);
+        logWarn(`⚠️ ${scanResults.scanErrors.length} files had scan errors - they will be treated as existing files for safety`);
     }
     
     // If duplicates found, ask user what to do
@@ -649,11 +650,11 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         } else if (userChoice === 'skip') {
             // Only save new files
             filesToSave = scanResults.newFiles;
-            console.log(`📂 User chose to skip duplicates. Saving ${filesToSave.length} new files only.`);
+            logInfo(`📂 User chose to skip duplicates. Saving ${filesToSave.length} new files only.`);
         } else if (userChoice === 'overwrite') {
             // Save all files (overwrite existing)
             filesToSave = files;
-            console.log(`⚠️ User chose to overwrite duplicates. Saving all ${filesToSave.length} files.`);
+            logInfo(`⚠️ User chose to overwrite duplicates. Saving all ${filesToSave.length} files.`);
         }
     }
     
@@ -662,7 +663,7 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
     const maxScanAge = 30000; // 30 seconds
     
     if (scanAge > maxScanAge && scanResults.duplicateCount > 0) {
-        console.warn(`⚠️ Scan results are ${Math.round(scanAge/1000)}s old. Directory contents may have changed.`);
+        logWarn(`⚠️ Scan results are ${Math.round(scanAge/1000)}s old. Directory contents may have changed.`);
         
         // Quick re-validation for critical files if needed
         if (userChoice === 'skip') {
@@ -680,7 +681,7 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
                     await directoryHandle.getFileHandle(file.safeFilename);
                 } catch (error) {
                     if (error.name === 'NotFoundError') {
-                        console.warn(`⚠️ File ${file.safeFilename} was deleted since scan. Results may be stale.`);
+                        logWarn(`⚠️ File ${file.safeFilename} was deleted since scan. Results may be stale.`);
                         recheckFailed = true;
                         break;
                     }
@@ -688,12 +689,12 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
             }
             
             if (recheckFailed) {
-                console.warn('🔄 Detected stale scan results. Consider re-scanning for accurate results.');
+                logWarn('🔄 Detected stale scan results. Consider re-scanning for accurate results.');
             }
         }
     }
     
-            console.log(`📅 Files will be created oldest-first to maintain chronological order`);
+            logDebug(`📅 Files will be created oldest-first to maintain chronological order`);
     
     // Now save the selected files
     let successCount = 0;
@@ -727,16 +728,16 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
             
             if (result.success) {
                 successCount++;
-                console.log(`✅ Saved: ${result.filename}${result.wasOverwrite ? ' (overwritten)' : ''}`);
+                logInfo(`✅ Saved: ${result.filename}${result.wasOverwrite ? ' (overwritten)' : ''}`);
             } else if (result.cancelled) {
                 cancelledCount++;
-                console.log(`⏭️ Skipped: ${result.filename} - ${result.message}`);
+                logInfo(`⏭️ Skipped: ${result.filename} - ${result.message}`);
             } else {
                 errorCount++;
-                console.warn(`❌ Failed to save: ${result.filename} - ${result.message}`);
+                logWarn(`❌ Failed to save: ${result.filename} - ${result.message}`);
             }
         } catch (error) {
-            console.error(`❌ Error saving ${file.filename}:`, error);
+            logError(`❌ Error saving ${file.filename}:`, error);
             errorCount++;
             results.push({
                 success: false,
@@ -799,7 +800,7 @@ export async function scanForExistingFiles(files, directoryHandle) {
     const newFiles = [];
     const scanErrors = [];
     
-    console.log(`🔍 Scanning directory for existing files...`);
+    logInfo(`🔍 Scanning directory for existing files...`);
     
     for (const file of files) {
         const safeFilename = sanitizeFilename(file.filename);
@@ -835,7 +836,7 @@ export async function scanForExistingFiles(files, directoryHandle) {
                 });
             } else {
                 // Other error - could be permission, corruption, etc.
-                console.warn(`⚠️ Scan error for ${safeFilename}:`, error);
+                logWarn(`⚠️ Scan error for ${safeFilename}:`, error);
                 scanErrors.push({
                     filename: safeFilename,
                     error: error.message
@@ -851,10 +852,10 @@ export async function scanForExistingFiles(files, directoryHandle) {
         }
     }
     
-    console.log(`📊 Scan results: ${existingFiles.length} existing, ${newFiles.length} new files${scanErrors.length > 0 ? `, ${scanErrors.length} errors` : ''}`);
+    logInfo(`📊 Scan results: ${existingFiles.length} existing, ${newFiles.length} new files${scanErrors.length > 0 ? `, ${scanErrors.length} errors` : ''}`);
     
     if (scanErrors.length > 0) {
-        console.warn('⚠️ Scan errors detected:', scanErrors);
+        logWarn('⚠️ Scan errors detected:', scanErrors);
     }
     
     return {

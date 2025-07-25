@@ -5,6 +5,7 @@
  */
 
 import { STATUS_MESSAGES } from '../utils/constants.js';
+import { logWarn } from '../utils/logger.js';
 
 /**
  * Progress Display Component Class
@@ -18,7 +19,7 @@ export class ProgressDisplay {
         this.isVisible = false;
         
         if (!this.container) {
-            console.warn(`Progress container '${containerId}' not found`);
+            logWarn(`Progress container '${containerId}' not found`);
         }
     }
 
