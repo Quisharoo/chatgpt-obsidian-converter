@@ -196,11 +196,10 @@ describe('File System Manager', () => {
             fileSystemManager.saveFilesChronologically.mockResolvedValue({
                 successCount: 0,
                 errorCount: 0,
-                cancelledCount: 3,
+                cancelledCount: 2,
                 results: [
                     { success: false, cancelled: true, message: 'Bulk operation cancelled by user', filename: 'test1.md' },
-                    { success: false, cancelled: true, message: 'Bulk operation cancelled by user', filename: 'test2.md' },
-                    { success: false, cancelled: true, message: 'Bulk operation cancelled by user', filename: 'test3.md' }
+                    { success: false, cancelled: true, message: 'Bulk operation cancelled by user', filename: 'test2.md' }
                 ],
                 totalProcessed: 0,
                 userCancelled: true
@@ -214,7 +213,47 @@ describe('File System Manager', () => {
             );
 
             expect(results.userCancelled).toBe(true);
-            expect(results.cancelledCount).toBe(3);
+            expect(results.successCount).toBe(0);
+            expect(results.cancelledCount).toBe(2);
+        });
+
+        test('should update progress bar with correct total when skipping duplicates', async () => {
+            // Mock the return value for saveFilesChronologically with skip duplicates
+            fileSystemManager.saveFilesChronologically.mockResolvedValue({
+                successCount: 2,
+                errorCount: 0,
+                cancelledCount: 2,
+                results: [
+                    { success: false, cancelled: true, message: 'File "existing1.md" already exists and was skipped.', filename: 'existing1.md', skipped: true },
+                    { success: false, cancelled: true, message: 'File "existing2.md" already exists and was skipped.', filename: 'existing2.md', skipped: true },
+                    { success: true, filename: 'new1.md' },
+                    { success: true, filename: 'new2.md' }
+                ],
+                totalProcessed: 4,
+                userChoice: 'skip',
+                duplicatesFound: 2,
+                scanErrors: [],
+                scanAge: 0
+            });
+
+            const progressCallback = jest.fn();
+            const results = await fileSystemManager.saveFilesChronologically(
+                mockFiles, 
+                mockDirectoryHandle, 
+                progressCallback
+            );
+
+            expect(results.successCount).toBe(2);
+            expect(results.cancelledCount).toBe(2);
+            expect(results.userChoice).toBe('skip');
+            expect(results.duplicatesFound).toBe(2);
+
+            // Verify that the function was called with the progress callback
+            expect(fileSystemManager.saveFilesChronologically).toHaveBeenCalledWith(
+                mockFiles,
+                mockDirectoryHandle,
+                progressCallback
+            );
         });
 
         test('should accept cancellation callback parameter', async () => {
