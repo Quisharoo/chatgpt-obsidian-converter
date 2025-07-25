@@ -193,12 +193,22 @@ export class ChatGPTConverter {
             return;
         }
 
+        logInfo(`💾 Starting save operation for ${this.convertedFiles.length} files to ${this.selectedDirectoryHandle.name}`);
+        
+        // Switch to Files view first, then show progress
+        if (window.switchToView) {
+            window.switchToView('files');
+            logInfo('✅ Switched to Files view for save operation');
+        }
+        
+        // Show progress display immediately
         this.progressDisplay.show();
         this.showInfo(`💾 Preparing to save ${this.convertedFiles.length} files to ${this.selectedDirectoryHandle.name} folder...`);
 
         try {
             const progressCallback = (progress, completed, total, statusMessage) => {
                 const message = statusMessage || `💾 Saving files... ${progress}% (${completed}/${total})`;
+                logInfo(`📊 Progress update: ${progress}% - ${message}`);
                 this.progressDisplay.updateProgress(progress, message);
             };
 
@@ -207,6 +217,8 @@ export class ChatGPTConverter {
                 this.selectedDirectoryHandle, 
                 progressCallback
             );
+
+            logInfo(`✅ Save operation completed: ${results.successCount} saved, ${results.cancelledCount} cancelled, ${results.errorCount} errors`);
 
             // Handle different outcomes based on user choice and results
             if (results.userCancelled) {

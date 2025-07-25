@@ -5,7 +5,7 @@
  */
 
 import { STATUS_MESSAGES } from '../utils/constants.js';
-import { logWarn } from '../utils/logger.js';
+import { logWarn, logInfo } from '../utils/logger.js';
 
 /**
  * Progress Display Component Class
@@ -34,6 +34,7 @@ export class ProgressDisplay {
             <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
+            <div style="margin-top: 12px;"></div>
             <div class="status info" id="statusText" aria-live="polite" aria-atomic="true">
                 ${STATUS_MESSAGES.PROCESSING}
             </div>
@@ -49,17 +50,43 @@ export class ProgressDisplay {
      * WHY: Makes progress visible to user with proper styling
      */
     show() {
-        if (!this.container) return;
+        if (!this.container) {
+            logWarn('Progress container not found, cannot show progress');
+            return;
+        }
         
         this.initialize();
         this.container.style.display = 'block';
         this.isVisible = true;
         
-        // Ensure the progress card is visible in the upload section
+        // Ensure the progress card is visible in the Files section
         const progressCard = document.getElementById('progressCard');
         if (progressCard) {
             progressCard.style.display = 'block';
+            logInfo('✅ Progress card made visible in Files view');
+        } else {
+            logWarn('⚠️ Progress card element not found');
         }
+        
+        // Also ensure the container itself is visible
+        this.container.style.display = 'block';
+        logInfo('✅ Progress display shown');
+        
+        // Ensure we're on the Files view when showing progress
+        if (window.switchToView) {
+            window.switchToView('files');
+            logInfo('✅ Switched to Files view for progress display');
+        }
+        
+        // Force a small delay to ensure DOM updates are complete
+        setTimeout(() => {
+            if (this.container) {
+                this.container.style.display = 'block';
+            }
+            if (progressCard) {
+                progressCard.style.display = 'block';
+            }
+        }, 50);
     }
 
     /**
@@ -76,6 +103,7 @@ export class ProgressDisplay {
         const progressCard = document.getElementById('progressCard');
         if (progressCard) {
             progressCard.style.display = 'none';
+            logInfo('✅ Progress card hidden');
         }
     }
 
@@ -87,7 +115,14 @@ export class ProgressDisplay {
      * @param {string} message - Status message to display
      */
     updateProgress(percentage, message) {
-        if (!this.progressFill || !this.statusText) return;
+        if (!this.progressFill || !this.statusText) {
+            logWarn('⚠️ Progress elements not initialized, reinitializing...');
+            this.initialize();
+            if (!this.progressFill || !this.statusText) {
+                logWarn('⚠️ Still cannot find progress elements');
+                return;
+            }
+        }
         
         // Update progress bar
         this.progressFill.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
@@ -101,6 +136,9 @@ export class ProgressDisplay {
         if (percentage >= 100) {
             this.statusText.className = 'status success';
         }
+        
+        // Log progress for debugging
+        logInfo(`📊 Progress: ${percentage}% - ${message}`);
     }
 
     /**
@@ -110,10 +148,15 @@ export class ProgressDisplay {
      * @param {string} errorMessage - Error message to display
      */
     showError(errorMessage) {
-        if (!this.statusText) return;
+        if (!this.statusText) {
+            logWarn('⚠️ Status text element not found, cannot show error');
+            return;
+        }
         
         this.statusText.textContent = errorMessage;
         this.statusText.className = 'status error';
         this.statusText.setAttribute('role', 'alert');
+        
+        logInfo(`❌ Error displayed: ${errorMessage}`);
     }
 } 
