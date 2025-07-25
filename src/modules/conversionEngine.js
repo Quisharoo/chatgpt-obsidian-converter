@@ -82,7 +82,10 @@ function extractMessageContent(message) {
     
     let textContent = '';
     if (typeof content === 'object' && content.parts) {
-        textContent = content.parts.join('');
+        // Filter out non-string parts (citations, web search results, etc.)
+        // to prevent garbled text like "citeturn0search2turn0search0"
+        const textParts = content.parts.filter(part => typeof part === 'string');
+        textContent = textParts.join('');
     } else if (typeof content === 'string') {
         textContent = content;
     }

@@ -54,13 +54,10 @@ export class ProgressDisplay {
         this.container.style.display = 'block';
         this.isVisible = true;
         
-        // Ensure the process view card is visible
-        const processView = document.getElementById('processView');
-        if (processView) {
-            const card = processView.querySelector('.card');
-            if (card) {
-                card.style.display = 'block';
-            }
+        // Ensure the progress card is visible in the upload section
+        const progressCard = document.getElementById('progressCard');
+        if (progressCard) {
+            progressCard.style.display = 'block';
         }
     }
 
@@ -73,6 +70,12 @@ export class ProgressDisplay {
         
         this.container.style.display = 'none';
         this.isVisible = false;
+        
+        // Hide the progress card in the upload section
+        const progressCard = document.getElementById('progressCard');
+        if (progressCard) {
+            progressCard.style.display = 'none';
+        }
     }
 
     /**

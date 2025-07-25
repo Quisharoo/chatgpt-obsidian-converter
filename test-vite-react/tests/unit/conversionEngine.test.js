@@ -138,6 +138,38 @@ describe('Conversion Engine', () => {
             expect(result).toContain('Direct string content');
         });
 
+        test('filters out non-string parts to prevent citation rendering bugs', () => {
+            const conversation = {
+                title: 'Citation Content',
+                create_time: 1703522622,
+                mapping: {
+                    'msg_1': {
+                        message: {
+                            author: { role: 'assistant' },
+                            content: { 
+                                parts: [
+                                    'This is text content',
+                                    { type: 'cite', turn: 0, search: 2 }, // Non-string citation object
+                                    ' and this continues the text',
+                                    { type: 'search', turn: 0, search: 0 }, // Non-string search object
+                                    ' with more text.'
+                                ]
+                            }
+                        },
+                        children: [],
+                        parent: null
+                    }
+                }
+            };
+
+            const result = convertConversationToMarkdown(conversation);
+            // Should only contain the text parts, not the garbled object strings
+            expect(result).toContain('This is text content and this continues the text with more text.');
+            // Should not contain the garbled citation text
+            expect(result).not.toContain('citeturn');
+            expect(result).not.toContain('[object Object]');
+        });
+
         test('filters out empty messages', () => {
             const conversation = {
                 title: 'With Empty Messages',
