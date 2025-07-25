@@ -358,10 +358,13 @@ function sanitizeFilename(filename) {
 async function showBulkDuplicateDialog(scanResults) {
     const { existingFiles, newFiles, totalFiles, duplicateCount, scanErrors } = scanResults;
     
+    logInfo(`📋 Showing duplicate dialog: ${duplicateCount} duplicates found out of ${totalFiles} files`);
+    
     return new Promise((resolve) => {
         // Create confirmation dialog
         const dialog = document.createElement('div');
         dialog.className = 'bulk-duplicate-dialog';
+        dialog.id = 'bulkDuplicateDialog'; // Add ID for debugging
         
         // Show first few duplicate filenames as examples
         const exampleFiles = existingFiles.slice(0, 3).map(f => f.safeFilename);
@@ -407,8 +410,9 @@ async function showBulkDuplicateDialog(scanResults) {
             </div>
         `;
         
-        // Add dialog styles
+        // Add dialog styles with higher z-index to ensure visibility
         const style = document.createElement('style');
+        style.id = 'bulkDuplicateDialogStyles';
         style.textContent = `
             .bulk-duplicate-dialog .dialog-overlay {
                 position: fixed;
@@ -416,12 +420,12 @@ async function showBulkDuplicateDialog(scanResults) {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.7);
+                background: rgba(0, 0, 0, 0.8);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                z-index: 10000;
-                backdrop-filter: blur(2px);
+                z-index: 99999;
+                backdrop-filter: blur(3px);
             }
             .bulk-duplicate-dialog .dialog-content {
                 background: #2a2a2a;
@@ -430,10 +434,15 @@ async function showBulkDuplicateDialog(scanResults) {
                 padding: 32px;
                 max-width: 550px;
                 width: 90%;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
                 position: relative;
                 max-height: 80vh;
                 overflow-y: auto;
+                animation: dialogFadeIn 0.3s ease-out;
+            }
+            @keyframes dialogFadeIn {
+                from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+                to { opacity: 1; transform: scale(1) translateY(0); }
             }
             .bulk-duplicate-dialog h3 {
                 margin: 0 0 20px 0;
@@ -545,6 +554,8 @@ async function showBulkDuplicateDialog(scanResults) {
         document.head.appendChild(style);
         document.body.appendChild(dialog);
         
+        logInfo('✅ Duplicate dialog added to DOM');
+        
         // Get button references
         const cancelBtn = dialog.querySelector('.cancel-btn');
         const skipBtn = dialog.querySelector('.skip-btn');
@@ -552,21 +563,33 @@ async function showBulkDuplicateDialog(scanResults) {
         
         // Handle button clicks
         const cleanup = () => {
-            document.body.removeChild(dialog);
-            document.head.removeChild(style);
+            try {
+                if (dialog.parentNode) {
+                    document.body.removeChild(dialog);
+                }
+                if (style.parentNode) {
+                    document.head.removeChild(style);
+                }
+                logInfo('✅ Duplicate dialog cleaned up');
+            } catch (error) {
+                logWarn('⚠️ Error cleaning up dialog:', error);
+            }
         };
         
         cancelBtn.addEventListener('click', () => {
+            logInfo('📋 User chose to cancel duplicate operation');
             cleanup();
             resolve('cancel');
         });
         
         skipBtn.addEventListener('click', () => {
+            logInfo('📋 User chose to skip duplicates');
             cleanup();
             resolve('skip');
         });
         
         overwriteBtn.addEventListener('click', () => {
+            logInfo('📋 User chose to overwrite duplicates');
             cleanup();
             resolve('overwrite');
         });
@@ -575,6 +598,7 @@ async function showBulkDuplicateDialog(scanResults) {
         const handleKeyDown = (event) => {
             if (event.key === 'Escape') {
                 document.removeEventListener('keydown', handleKeyDown);
+                logInfo('📋 User cancelled with Escape key');
                 cleanup();
                 resolve('cancel');
             }
@@ -582,7 +606,14 @@ async function showBulkDuplicateDialog(scanResults) {
         document.addEventListener('keydown', handleKeyDown);
         
         // Focus the skip button (safest default)
-        setTimeout(() => skipBtn.focus(), 100);
+        setTimeout(() => {
+            try {
+                skipBtn.focus();
+                logInfo('✅ Duplicate dialog focused and ready');
+            } catch (error) {
+                logWarn('⚠️ Could not focus dialog button:', error);
+            }
+        }, 100);
     });
 }
 
@@ -633,9 +664,12 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
     let userChoice = 'proceed'; // Default for no duplicates
     
     if (scanResults.duplicateCount > 0) {
+        logInfo(`📋 Found ${scanResults.duplicateCount} duplicate files, showing dialog...`);
         userChoice = await showBulkDuplicateDialog(scanResults);
+        logInfo(`📋 User choice: ${userChoice}`);
         
         if (userChoice === 'cancel') {
+            logInfo('📋 User cancelled the operation');
             return { 
                 successCount: 0, 
                 errorCount: 0, 
@@ -658,6 +692,8 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
             filesToSave = files;
             logInfo(`⚠️ User chose to overwrite duplicates. Saving all ${filesToSave.length} files.`);
         }
+    } else {
+        logInfo('✅ No duplicate files found, proceeding with all files');
     }
     
     // Check for stale scan results (if more than 30 seconds have passed)

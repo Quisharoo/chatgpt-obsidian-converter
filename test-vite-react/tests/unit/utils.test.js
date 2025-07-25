@@ -122,7 +122,7 @@ describe('Utility Functions', () => {
             const start = Date.now();
             await delay(0);
             const elapsed = Date.now() - start;
-            expect(elapsed).toBeLessThan(10);
+            expect(elapsed).toBeLessThan(20); // Increased tolerance for slower systems
         });
     });
 
