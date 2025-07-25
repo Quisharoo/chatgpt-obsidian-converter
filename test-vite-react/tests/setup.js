@@ -153,7 +153,7 @@ global.testMocks = {
 export const testMocks = global.testMocks;
 
 console.log('🧪 Test environment setup complete');
-console.log('📊 Running ChatGPT to Obsidian Converter tests...');
+    console.log('📊 Running ChatGPT to Markdown Converter tests...');
 
 // Global test configuration
 global.testConfig = {

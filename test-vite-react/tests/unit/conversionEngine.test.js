@@ -36,7 +36,7 @@ describe('Conversion Engine', () => {
 
             const result = convertConversationToMarkdown(conversation);
             
-            // Title no longer included in content (shown by Obsidian filename)
+            // Title no longer included in content (shown by filename)
             expect(result).not.toContain('# Test Conversation');
             expect(result).toContain('**🧑‍💬 User**');
             expect(result).toContain('Hello, how are you?');

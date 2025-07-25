@@ -82,7 +82,7 @@ export function isValidJsonFile(file) {
 
 /**
  * Sort conversations chronologically for proper file creation order
- * WHY: Oldest-first creation ensures newest appear at top in Obsidian date sort
+ * WHY: Oldest-first creation ensures consistent chronological ordering
  * 
  * @param {Array} conversations - Array of conversation objects
  * @returns {Array} - Sorted conversations (oldest first)

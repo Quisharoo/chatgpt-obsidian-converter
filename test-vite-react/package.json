@@ -1,7 +1,7 @@
 {
   "name": "chatgpt-converter-tests",
   "version": "1.0.0",
-  "description": "Test suite for ChatGPT to Obsidian Converter",
+  "description": "Test suite for ChatGPT to Markdown Converter",
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",

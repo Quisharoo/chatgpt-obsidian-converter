@@ -1,7 +1,7 @@
 {
   "name": "chatgpt-cursor-import",
   "version": "1.0.0",
-  "description": "Convert ChatGPT conversation exports to Obsidian-friendly Markdown files",
+  "description": "Convert ChatGPT conversation exports to clean Markdown files",
   "main": "index.html",
   "scripts": {
     "start": "kill-port 5173 && vite",
@@ -17,7 +17,6 @@
   },
   "keywords": [
     "chatgpt",
-    "obsidian",
     "markdown",
     "converter",
     "export",

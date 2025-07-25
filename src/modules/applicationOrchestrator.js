@@ -1,6 +1,6 @@
 /**
  * Application Orchestrator
- * Main coordinator for the ChatGPT to Obsidian converter application
+ * Main coordinator for the ChatGPT to Markdown converter application
  * Following AGENTS.md principle: clean architecture with separated concerns
  */
 
@@ -20,7 +20,7 @@ import {
 import { ERROR_MESSAGES, STATUS_MESSAGES } from '../utils/constants.js';
 
 /**
- * ChatGPT to Obsidian Application
+ * ChatGPT to Markdown Application
  * WHY: Orchestrates the entire conversion workflow with proper error handling
  */
 export class ChatGPTConverter {
@@ -48,7 +48,7 @@ export class ChatGPTConverter {
             // Set up file upload handling
             this.fileUploader.setFileSelectedCallback(this.handleFileUpload.bind(this));
             
-            console.log('✅ ChatGPT to Obsidian Converter initialized');
+            console.log('✅ ChatGPT to Markdown Converter initialized');
             console.log(`📁 File System Access API: ${isFileSystemAccessSupported() ? 'Available' : 'Not available'}`);
             
         } catch (error) {
@@ -171,28 +171,7 @@ export class ChatGPTConverter {
         }
     }
 
-    /**
-     * Handle simplified directory selection
-     * WHY: Provides fallback option when main picker fails
-     */
-    async handleSimpleDirectorySelection() {
-        try {
-            const directoryHandle = await selectDirectory({});
-            this.selectedDirectoryHandle = directoryHandle;
-            
-            this.showSuccess(`✅ Selected directory: ${directoryHandle.name}. Ready to save files!`);
-            this.updateSaveButtonState();
-            
-            // Re-render the files table to show Save buttons
-            if (this.allFiles && this.allFiles.length > 0) {
-                this.renderFilesTable();
-            }
-            
-        } catch (error) {
-            console.error('Simple directory selection error:', error);
-            this.showError(error.message);
-        }
-    }
+
 
     /**
      * Save files to local directory
@@ -309,12 +288,12 @@ export class ChatGPTConverter {
     }
 
     /**
-     * Save individual file to Obsidian directory
+     * Save individual file to chosen directory
      * WHY: Reuses the same File System Access API logic as bulk save for consistency
      * 
      * @param {Object} file - File object to save
      */
-    async saveSingleFileToObsidian(file) {
+    async saveSingleFileToMarkdown(file) {
         try {
             // Check if File System Access API is supported
             if (!isFileSystemAccessSupported()) {
@@ -890,7 +869,7 @@ export class ChatGPTConverter {
                 };
                 
                 // Use the dedicated individual file save method
-                await this.saveSingleFileToObsidian(file);
+                await this.saveSingleFileToMarkdown(file);
             });
         });
     }
@@ -1047,10 +1026,8 @@ export class ChatGPTConverter {
             buttonGroup.style.marginBottom = 'var(--space-4)';
             
             const selectBtn = this.createDirectoryButton();
-            const simpleBtn = this.createSimpleDirectoryButton();
             
             buttonGroup.appendChild(selectBtn);
-            buttonGroup.appendChild(simpleBtn);
             content.appendChild(buttonGroup);
             
             // Instructions
@@ -1094,26 +1071,13 @@ export class ChatGPTConverter {
         btn.className = 'btn';
         btn.textContent = this.selectedDirectoryHandle ? 
             `📂 Change Directory (Current: ${this.selectedDirectoryHandle.name})` : 
-            '📂 Choose Obsidian Folder';
+            '📂 Choose Folder';
         btn.onclick = () => this.handleDirectorySelection();
         btn.style.marginRight = '10px';
         return btn;
     }
 
-    /**
-     * Create simple directory selection button
-     * WHY: Fallback for when main picker fails
-     */
-    createSimpleDirectoryButton() {
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.textContent = '📁 Simple Folder Picker';
-        btn.onclick = () => this.handleSimpleDirectorySelection();
-        btn.style.marginRight = '10px';
-        btn.style.background = '#6c757d';
-        btn.title = 'Try this if the main folder picker doesn\'t work';
-        return btn;
-    }
+
 
     /**
      * Create save to local folder button
@@ -1157,7 +1121,7 @@ export class ChatGPTConverter {
             `;
         } else {
             instructions.innerHTML = `
-                <strong>Select your Obsidian vault folder</strong><br>
+                <strong>Select your destination folder</strong><br>
                 Choose where you want to save your converted Markdown files.
             `;
         }

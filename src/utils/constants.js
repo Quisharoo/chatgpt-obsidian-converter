@@ -1,6 +1,6 @@
 /**
  * Application Constants
- * Centralized configuration values for the ChatGPT to Obsidian converter
+ * Centralized configuration values for the ChatGPT to Markdown converter
  */
 
 // File processing constants

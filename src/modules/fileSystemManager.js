@@ -585,7 +585,7 @@ async function showBulkDuplicateDialog(scanResults) {
 
 /**
  * Save multiple files with chronological timing and duplicate handling
- * WHY: Ensures files are created in chronological order for proper Obsidian sorting
+ * WHY: Ensures files are created in chronological order for proper organization
  * 
  * @param {Array} files - Array of file objects to save
  * @param {FileSystemDirectoryHandle} directoryHandle - Target directory
@@ -693,7 +693,7 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         }
     }
     
-    console.log(`📅 Files will be created oldest-first to maintain chronological order in Obsidian`);
+            console.log(`📅 Files will be created oldest-first to maintain chronological order`);
     
     // Now save the selected files
     let successCount = 0;
