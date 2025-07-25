@@ -15,8 +15,10 @@ export class ProgressDisplay {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.progressBar = null;
+        this.progressFill = null;
         this.statusText = null;
         this.isVisible = false;
+        this.isInitialized = false;
         
         if (!this.container) {
             logWarn(`Progress container '${containerId}' not found`);
@@ -24,11 +26,11 @@ export class ProgressDisplay {
     }
 
     /**
-     * Initialize progress display elements
+     * Initialize progress display elements (only once)
      * WHY: Sets up accessible DOM structure with ARIA attributes for dark theme
      */
     initialize() {
-        if (!this.container) return;
+        if (!this.container || this.isInitialized) return;
 
         this.container.innerHTML = `
             <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
@@ -43,6 +45,9 @@ export class ProgressDisplay {
         this.progressBar = this.container.querySelector('.progress-bar');
         this.progressFill = this.container.querySelector('.progress-fill');
         this.statusText = this.container.querySelector('#statusText');
+        
+        this.isInitialized = true;
+        logInfo('✅ Progress display initialized');
     }
 
     /**
@@ -55,7 +60,11 @@ export class ProgressDisplay {
             return;
         }
         
-        this.initialize();
+        // Initialize only if not already done
+        if (!this.isInitialized) {
+            this.initialize();
+        }
+        
         this.container.style.display = 'block';
         this.isVisible = true;
         
@@ -115,8 +124,13 @@ export class ProgressDisplay {
      * @param {string} message - Status message to display
      */
     updateProgress(percentage, message) {
+        // Ensure initialization if not done yet
+        if (!this.isInitialized) {
+            this.initialize();
+        }
+        
         if (!this.progressFill || !this.statusText) {
-            logWarn('⚠️ Progress elements not initialized, reinitializing...');
+            logWarn('⚠️ Progress elements not found, reinitializing...');
             this.initialize();
             if (!this.progressFill || !this.statusText) {
                 logWarn('⚠️ Still cannot find progress elements');
@@ -148,6 +162,11 @@ export class ProgressDisplay {
      * @param {string} errorMessage - Error message to display
      */
     showError(errorMessage) {
+        // Ensure initialization if not done yet
+        if (!this.isInitialized) {
+            this.initialize();
+        }
+        
         if (!this.statusText) {
             logWarn('⚠️ Status text element not found, cannot show error');
             return;
