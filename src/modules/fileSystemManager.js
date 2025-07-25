@@ -15,28 +15,22 @@ import { logInfo, logDebug, logWarn, logError } from '../utils/logger.js';
  * @returns {boolean} - Whether File System Access API is supported
  */
 export function isFileSystemAccessSupported() {
-    const hasShowDirectoryPicker = 'showDirectoryPicker' in window;
-    const isFunction = typeof window.showDirectoryPicker === 'function';
-    const isSecureContext = window.isSecureContext;
-    const isValidProtocol = location.protocol === 'https:' || 
-                           location.hostname === 'localhost' || 
-                           location.hostname === '127.0.0.1' ||
-                           location.protocol === 'file:';
-    
-    const isSupported = hasShowDirectoryPicker && isFunction && isSecureContext && isValidProtocol;
+    const apiSupport = API_SUPPORT.FILE_SYSTEM_ACCESS;
     
     // Debug logging to help troubleshoot
-    logDebug('📁 File System Access API Detection:', {
-        hasShowDirectoryPicker,
-        isFunction,
-        isSecureContext,
-        protocol: location.protocol,
-        hostname: location.hostname,
-        isValidProtocol,
-        isSupported
-    });
+    logDebug('📁 File System Access API Detection:', apiSupport);
     
-    return isSupported;
+    return apiSupport.supported;
+}
+
+/**
+ * Get detailed API support information
+ * WHY: Provides detailed information for better user feedback
+ * 
+ * @returns {Object} - Detailed API support information
+ */
+export function getFileSystemAccessInfo() {
+    return API_SUPPORT.FILE_SYSTEM_ACCESS;
 }
 
 /**

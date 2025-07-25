@@ -547,6 +547,54 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+
+            /* Mobile-specific improvements */
+            .btn {
+                min-height: 44px; /* iOS minimum touch target size */
+                padding: var(--space-3) var(--space-4);
+                font-size: var(--font-size-base);
+            }
+
+            .card {
+                margin-bottom: var(--space-4);
+            }
+
+            .card-content {
+                padding: var(--space-4);
+            }
+
+            /* Improve table responsiveness on mobile */
+            .file-table {
+                font-size: var(--font-size-sm);
+                overflow-x: auto;
+                display: block;
+                white-space: nowrap;
+            }
+
+            .file-table table {
+                min-width: 600px; /* Ensure table doesn't get too cramped */
+            }
+
+            .file-table th,
+            .file-table td {
+                padding: var(--space-2) var(--space-3);
+            }
+
+            /* Make action buttons more touch-friendly */
+            .save-file-btn,
+            .download-file-btn {
+                min-width: 44px;
+                min-height: 44px;
+                padding: var(--space-2);
+            }
+
+            /* Improve warning/error message readability */
+            .warning,
+            .error {
+                font-size: var(--font-size-base);
+                line-height: 1.6;
+                padding: var(--space-4);
+            }
         }
 
         /* SVG Icons */
@@ -773,6 +821,8 @@
         </main>
     </div>
 
+    <!-- JSZip library for ZIP file creation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script type="module" src="src/main.js"></script>
     <script>
         // View Navigation Logic

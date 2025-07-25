@@ -15,7 +15,8 @@ import {
     createDownloadBlob,
     isFileSystemAccessSupported,
     saveFileToDirectory,
-    scanForExistingFiles
+    scanForExistingFiles,
+    getFileSystemAccessInfo
 } from './fileSystemManager.js';
 import { ERROR_MESSAGES, STATUS_MESSAGES } from '../utils/constants.js';
 import { logInfo, logDebug, logWarn, logError } from '../utils/logger.js';
@@ -408,6 +409,52 @@ export class ChatGPTConverter {
         }
         
         this.showSuccess(`📥 Downloaded ${successCount} files`);
+    }
+
+    /**
+     * Download all files as a ZIP archive
+     * WHY: Provides a single download option for mobile users
+     */
+    async downloadAllAsZip() {
+        try {
+            // Check if JSZip is available
+            if (typeof JSZip === 'undefined') {
+                // Fallback to individual downloads
+                this.showInfo('📦 ZIP download not available. Downloading files individually...');
+                this.downloadAllFiles();
+                return;
+            }
+
+            this.showInfo('📦 Creating ZIP archive...');
+            
+            const zip = new JSZip();
+            
+            // Add all files to the ZIP
+            for (const file of this.convertedFiles) {
+                zip.file(file.filename, file.content);
+            }
+            
+            // Generate the ZIP file
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            
+            // Download the ZIP file
+            const url = URL.createObjectURL(zipBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `chatgpt-conversations-${new Date().toISOString().split('T')[0]}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            this.showSuccess(`📦 Downloaded ${this.convertedFiles.length} files as ZIP archive`);
+            
+        } catch (error) {
+            logError('Error creating ZIP archive:', error);
+            this.showError('Failed to create ZIP archive. Trying individual downloads...');
+            // Fallback to individual downloads
+            this.downloadAllFiles();
+        }
     }
 
     /**
@@ -1176,8 +1223,52 @@ export class ChatGPTConverter {
             content.appendChild(instructions);
             
         } else {
+            const apiInfo = getFileSystemAccessInfo();
             const warning = this.createUnsupportedWarning();
             content.appendChild(warning);
+            
+            // Add prominent download button for mobile users
+            if (apiInfo.mobile) {
+                const downloadSection = document.createElement('div');
+                downloadSection.style.marginTop = 'var(--space-4)';
+                
+                const downloadTitle = document.createElement('h4');
+                downloadTitle.style.marginBottom = 'var(--space-3)';
+                downloadTitle.style.color = 'var(--text-primary)';
+                downloadTitle.innerHTML = `
+                    <svg class="icon" style="margin-right: var(--space-2);" viewBox="0 0 24 24">
+                        <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+                    </svg>
+                    Download Options
+                `;
+                
+                const downloadButton = document.createElement('button');
+                downloadButton.className = 'btn btn-primary';
+                downloadButton.style.width = '100%';
+                downloadButton.style.padding = 'var(--space-4)';
+                downloadButton.style.fontSize = 'var(--font-size-lg)';
+                downloadButton.style.fontWeight = 'var(--font-weight-semibold)';
+                downloadButton.style.marginBottom = 'var(--space-3)';
+                downloadButton.innerHTML = `
+                    <svg class="icon" style="margin-right: var(--space-2);" viewBox="0 0 24 24">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    </svg>
+                    Download All as ZIP
+                `;
+                downloadButton.onclick = () => this.downloadAllAsZip();
+                
+                const downloadInfo = document.createElement('p');
+                downloadInfo.style.fontSize = 'var(--font-size-sm)';
+                downloadInfo.style.color = 'var(--text-secondary)';
+                downloadInfo.style.marginBottom = 'var(--space-3)';
+                downloadInfo.textContent = 'Download all converted files as a single ZIP archive for easy file management.';
+                
+                downloadSection.appendChild(downloadTitle);
+                downloadSection.appendChild(downloadInfo);
+                downloadSection.appendChild(downloadButton);
+                
+                content.appendChild(downloadSection);
+            }
         }
         
         card.appendChild(header);
@@ -1260,13 +1351,45 @@ export class ChatGPTConverter {
      * WHY: Informs users when File System Access API is unavailable
      */
     createUnsupportedWarning() {
-        const warning = document.createElement('p');
+        const apiInfo = getFileSystemAccessInfo();
+        const warning = document.createElement('div');
         warning.style.color = '#856404';
         warning.style.background = '#fff3cd';
-        warning.style.padding = '10px';
-        warning.style.borderRadius = '5px';
+        warning.style.padding = 'var(--space-4)';
+        warning.style.borderRadius = 'var(--radius-md)';
         warning.style.border = '1px solid #ffeaa7';
-        warning.textContent = '⚠️ Your browser doesn\'t support direct folder saving. Use download options below.';
+        warning.style.marginBottom = 'var(--space-4)';
+        
+        let message = '⚠️ Your browser doesn\'t support direct folder saving. ';
+        
+        if (apiInfo.mobile) {
+            if (apiInfo.ios) {
+                message += 'On iOS devices, use the download options below to save your files. You can then move them to your preferred folder using the Files app.';
+            } else {
+                message += 'On mobile devices, use the download options below to save your files.';
+            }
+        } else {
+            message += 'Use the download options below to save your files.';
+        }
+        
+        warning.innerHTML = `
+            <div style="display: flex; align-items: flex-start; gap: var(--space-3);">
+                <svg class="icon" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" viewBox="0 0 24 24">
+                    <path d="M12,2L13.09,8.26L22,9L13.09,9.74L12,16L10.91,9.74L2,9L10.91,8.26L12,2Z"/>
+                </svg>
+                <div>
+                    <strong style="display: block; margin-bottom: var(--space-2);">Mobile Browser Detected</strong>
+                    <p style="margin: 0; line-height: 1.5;">${message}</p>
+                    ${apiInfo.mobile ? `
+                        <div style="margin-top: var(--space-3); padding: var(--space-3); background: rgba(59, 130, 246, 0.1); border-radius: var(--radius-sm); border: 1px solid rgba(59, 130, 246, 0.2);">
+                            <strong style="color: var(--accent-primary); display: block; margin-bottom: var(--space-1);">💡 Mobile Tip:</strong>
+                            <p style="margin: 0; font-size: var(--font-size-sm);">Download all files as a ZIP archive for easier file management on your device.</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
         return warning;
     }
 

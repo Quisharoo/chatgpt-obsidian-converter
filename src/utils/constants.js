@@ -35,13 +35,37 @@ export const UI_CONFIG = {
 // API capabilities - using function for dynamic checking
 export const API_SUPPORT = {
     get FILE_SYSTEM_ACCESS() {
-        // More robust File System Access API detection
-        return (
-            'showDirectoryPicker' in window &&
-            typeof window.showDirectoryPicker === 'function' &&
-            window.isSecureContext && // Must be in secure context (HTTPS or localhost)
-            (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-        );
+        // More robust File System Access API detection with mobile awareness
+        const hasShowDirectoryPicker = 'showDirectoryPicker' in window;
+        const isFunction = typeof window.showDirectoryPicker === 'function';
+        const isSecureContext = window.isSecureContext;
+        const isValidProtocol = location.protocol === 'https:' || 
+                               location.hostname === 'localhost' || 
+                               location.hostname === '127.0.0.1' ||
+                               location.protocol === 'file:';
+        
+        // Mobile browser detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        
+        const isSupported = hasShowDirectoryPicker && isFunction && isSecureContext && isValidProtocol;
+        
+        return {
+            supported: isSupported,
+            mobile: isMobile,
+            ios: isIOS,
+            safari: isSafari,
+            details: {
+                hasShowDirectoryPicker,
+                isFunction,
+                isSecureContext,
+                protocol: location.protocol,
+                hostname: location.hostname,
+                isValidProtocol,
+                userAgent: navigator.userAgent
+            }
+        };
     }
 };
 
