@@ -1,0 +1,39 @@
+# Test files and directories
+tests/
+test-vite-react/
+*.test.js
+*.test.jsx
+*.spec.js
+*.spec.jsx
+
+# Development files
+.cursorrules
+.cursor.json
+LOGGING.md
+AGENTS.md
+
+# Python files (not needed for static deployment)
+*.py
+__pycache__/
+*.pyc
+
+# Development dependencies
+node_modules/
+
+# Build artifacts
+dist/
+build/
+
+# Logs and temporary files
+*.log
+temp-*/
+*.tmp
+*.temp
+
+# Git and IDE files
+.git/
+.vscode/
+.idea/
+
+# Environment files
+.env* 

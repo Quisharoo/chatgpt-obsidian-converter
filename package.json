@@ -6,7 +6,7 @@
   "scripts": {
     "start": "kill-port 5173 && vite",
     "dev": "kill-port 5173 && vite",
-    "build": "echo 'No build step required for static site'",
+    "build": "echo 'Static site - no build required' && exit 0",
     "deploy": "vercel --prod",
     "test": "cd test-vite-react && npm test",
     "test:install": "cd test-vite-react && npm install",
