@@ -153,7 +153,29 @@ def convert_conversation_to_markdown(conversation: Dict) -> str:
         content_lines.append(blockquoted_content)
         content_lines.append("")
     
-    return '\n'.join(content_lines)
+    content = '\n'.join(content_lines)
+    # Clean broken citation artifacts using multi-pass approach for comprehensive coverage
+    cleaned_content = clean_citation_artifacts(content)
+    return cleaned_content
+
+
+def clean_citation_artifacts(content: str) -> str:
+    """Clean citation artifacts using multi-pass approach for comprehensive coverage."""
+    cleaned = content
+    
+    # Pattern 1: Remove complex citation patterns with Unicode characters
+    cleaned = re.sub(r'[\ue000-\uf8ff]*(?:cite|navlist)[\ue000-\uf8ff]*.*?turn\d+(?:search|news)\d+[\ue000-\uf8ff]*\.?', '', cleaned)
+    
+    # Pattern 2: Remove simple turn patterns with Unicode
+    cleaned = re.sub(r'turn\d+(?:search|news)\d+[\ue000-\uf8ff]*\.?', '', cleaned)
+    
+    # Pattern 3: Remove any remaining turn patterns without Unicode
+    cleaned = re.sub(r'turn\d+(?:search|news)\d+\.?', '', cleaned)
+    
+    # Pattern 4: Remove any remaining Unicode citation artifacts
+    cleaned = re.sub(r'[\ue000-\uf8ff]+', '', cleaned)
+    
+    return cleaned
 
 
 def get_existing_conversation_ids(output_dir: Path) -> set:

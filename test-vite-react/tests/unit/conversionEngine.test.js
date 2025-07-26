@@ -170,6 +170,108 @@ describe('Conversion Engine', () => {
             expect(result).not.toContain('[object Object]');
         });
 
+        test('removes broken citation artifacts from output', () => {
+            const conversation = {
+                title: 'Broken Citation',
+                create_time: 1703522622,
+                mapping: {
+                    'msg_1': {
+                        message: {
+                            author: { role: 'assistant' },
+                            content: { parts: [
+                                'This is text ',
+                                '\uE200cite\uE202turn0search12\uE201.',
+                                ' More text.'
+                            ] }
+                        },
+                        children: [],
+                        parent: null
+                    }
+                }
+            };
+            const result = convertConversationToMarkdown(conversation);
+            expect(result).toContain('This is text  More text.');
+            expect(result).not.toMatch(/turn\d+(?:search|news)\d+/);
+        });
+
+        test('removes news citation artifacts from output', () => {
+            const conversation = {
+                title: 'News Citation',
+                create_time: 1703522622,
+                mapping: {
+                    'msg_1': {
+                        message: {
+                            author: { role: 'assistant' },
+                            content: { parts: [
+                                'This is text ',
+                                '\uE200cite\uE202turn0news20\uE201.',
+                                ' More text.'
+                            ] }
+                        },
+                        children: [],
+                        parent: null
+                    }
+                }
+            };
+            const result = convertConversationToMarkdown(conversation);
+            expect(result).toContain('This is text  More text.');
+            expect(result).not.toMatch(/turn\d+(?:search|news)\d+/);
+        });
+
+        test('removes navlist citation artifacts from output', () => {
+            const conversation = {
+                title: 'Navlist Citation',
+                create_time: 1703522622,
+                mapping: {
+                    'msg_1': {
+                        message: {
+                            author: { role: 'assistant' },
+                            content: { parts: [
+                                'This is text ',
+                                '\uE200navlist\uE202Relevant news on Alex Jones & Israel stance\uE202turn0news20\uE201.',
+                                ' More text.'
+                            ] }
+                        },
+                        children: [],
+                        parent: null
+                    }
+                }
+            };
+            const result = convertConversationToMarkdown(conversation);
+            expect(result).toContain('This is text  More text.');
+            expect(result).not.toMatch(/turn\d+(?:search|news)\d+/);
+        });
+
+        test('removes complex nested citation artifacts from output', () => {
+            const conversation = {
+                title: 'Complex Citations',
+                create_time: 1703522622,
+                mapping: {
+                    'msg_1': {
+                        message: {
+                            author: { role: 'assistant' },
+                            content: { parts: [
+                                'This is text ',
+                                'turn0search3.',
+                                ' More text ',
+                                'turn0news33turn0search38.',
+                                ' And more ',
+                                'turn0search6turn0search15',
+                                ' and finally ',
+                                'turn0search38turn0news21turn0news26.',
+                                ' End.'
+                            ] }
+                        },
+                        children: [],
+                        parent: null
+                    }
+                }
+            };
+            const result = convertConversationToMarkdown(conversation);
+            expect(result).toContain('This is text  More text  And more  and finally  End.');
+            expect(result).not.toMatch(/turn\d+(?:search|news)\d+/);
+        });
+
         test('filters out empty messages', () => {
             const conversation = {
                 title: 'With Empty Messages',
