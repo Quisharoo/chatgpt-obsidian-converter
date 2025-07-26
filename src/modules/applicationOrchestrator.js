@@ -77,30 +77,21 @@ export class ChatGPTConverter {
             this.progressDisplay.updateProgress(0, STATUS_MESSAGES.READING_FILE);
             const fileContent = await this.readFileContent(file);
             
-            // Add a small delay to make reading feel more substantial
-            await this.delay(300);
             
             this.progressDisplay.updateProgress(20, STATUS_MESSAGES.PARSING_JSON);
             const conversations = this.parseConversations(fileContent);
             
-            // Add delay for parsing
-            await this.delay(400);
             
             // Convert conversations with more granular progress
             this.progressDisplay.updateProgress(40, STATUS_MESSAGES.CONVERTING);
             const results = processConversations(conversations, this.processedIds);
             
-            // Add delay for conversion processing
-            await this.delay(500);
             
             this.progressDisplay.updateProgress(80, STATUS_MESSAGES.FINALIZING);
-            await this.delay(300);
             
             this.progressDisplay.updateProgress(100, STATUS_MESSAGES.COMPLETE);
             this.convertedFiles = results.files;
             
-            // Add final delay before showing results
-            await this.delay(800);
             
             // Display results with delay for smooth transition
             setTimeout(() => {
@@ -1615,4 +1606,4 @@ export class ChatGPTConverter {
             resultsDiv.style.display = 'none';
         }
     }
-} 
+}    
