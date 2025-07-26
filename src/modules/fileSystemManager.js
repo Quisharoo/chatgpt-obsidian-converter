@@ -803,8 +803,10 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         
         // Report progress
         if (progressCallback) {
+            // Calculate progress based on files being saved (this represents actual save operation progress)
             const progress = Math.round((10 + ((i + 1) / filesToSave.length) * 90)); // 10% for scanning, 90% for saving
-            // Use filesToSave.length as total when user chose to skip duplicates, otherwise use original files.length
+            // Use filesToSave.length for the total display when duplicates are skipped
+            // This ensures the progress shows the actual files being processed
             const totalForProgress = userChoice === 'skip' ? filesToSave.length : files.length;
             // The current file number should always be (i + 1) for the files being saved
             progressCallback(progress, i + 1, totalForProgress);
