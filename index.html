@@ -665,6 +665,7 @@
                             <span class="sidebar-nav-text">Files</span>
                         </a>
                     </li>
+
                 </ul>
             </nav>
             
@@ -837,32 +838,32 @@
             const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
             const appLayout = document.getElementById('appLayout');
             
-            // View switching function
-            function switchView(viewName) {
-                // Hide all views
-                views.forEach(view => {
-                    const viewElement = document.getElementById(view + 'View');
-                    if (viewElement) {
-                        viewElement.classList.remove('active');
-                    }
-                });
-                
-                // Show selected view
-                const selectedView = document.getElementById(viewName + 'View');
-                if (selectedView) {
-                    selectedView.classList.add('active');
+                    // View switching function
+        function switchView(viewName) {
+            // Hide all views
+            views.forEach(view => {
+                const viewElement = document.getElementById(view + 'View');
+                if (viewElement) {
+                    viewElement.classList.remove('active');
                 }
-                
-                // Update sidebar navigation
-                sidebarLinks.forEach(link => {
-                    link.classList.remove('active');
-                    if (link.dataset.view === viewName) {
-                        link.classList.add('active');
-                    }
-                });
-                
-
+            });
+            
+            // Show selected view
+            const selectedView = document.getElementById(viewName + 'View');
+            if (selectedView) {
+                selectedView.classList.add('active');
             }
+            
+            // Update sidebar navigation
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.view === viewName) {
+                    link.classList.add('active');
+                }
+            });
+            
+
+        }
             
             // Add click listeners to sidebar navigation
             sidebarLinks.forEach(element => {
