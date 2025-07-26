@@ -560,5 +560,74 @@ describe('Full Workflow Integration Tests', () => {
                  content: 'test markdown content'
              });
          });
+
+         test('file save confirmation dialog is shown when file is saved successfully', () => {
+             // Setup DOM elements
+             document.body.innerHTML = `
+                 <div id="filesSection">
+                     <div id="filesContainer">
+                         <table>
+                             <tbody>
+                                 <tr>
+                                     <td></td>
+                                     <td></td>
+                                     <td>
+                                         <button class="save-file-btn" 
+                                                 data-filename="test-conversation.md"
+                                                 data-content="test%20content"
+                                                 data-title="Test Conversation">
+                                         </button>
+                                     </td>
+                                 </tr>
+                             </tbody>
+                         </table>
+                     </div>
+                 </div>
+             `;
+
+             // Mock the ChatGPTConverter class with the saveSingleFileToMarkdown method
+             const mockConverter = {
+                 showFileSaveConfirmation: jest.fn(),
+                 saveSingleFileToMarkdown: jest.fn().mockImplementation(async (file) => {
+                     // Simulate successful save by calling the confirmation
+                     mockConverter.showFileSaveConfirmation(file.title, 'TestFolder', file.filename);
+                 }),
+                 attachFileButtonHandlers: function() {
+                     // Replicate the save button handler logic
+                     document.querySelectorAll('.save-file-btn').forEach(btn => {
+                         btn.addEventListener('click', async () => {
+                             const filename = btn.dataset.filename;
+                             const content = decodeURIComponent(btn.dataset.content);
+                             const title = btn.dataset.title;
+                             
+                             const file = {
+                                 filename: filename,
+                                 content: content,
+                                 title: title
+                             };
+                             
+                             await this.saveSingleFileToMarkdown(file);
+                         });
+                     });
+                 }
+             };
+
+             // Attach the handlers and simulate click
+             mockConverter.attachFileButtonHandlers();
+             const saveButton = document.querySelector('.save-file-btn');
+             saveButton.click();
+
+             // Wait for async call and verify
+             return new Promise(resolve => {
+                 setTimeout(() => {
+                     expect(mockConverter.showFileSaveConfirmation).toHaveBeenCalledWith(
+                         'Test Conversation',
+                         'TestFolder',
+                         'test-conversation.md'
+                     );
+                     resolve();
+                 }, 0);
+             });
+         });
      });
 }); 

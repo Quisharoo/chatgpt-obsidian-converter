@@ -370,7 +370,8 @@ export class ChatGPTConverter {
             const result = await saveFileToDirectory(file.filename, file.content, directoryHandle);
             
             if (result.success) {
-                this.showSuccess(`✅ ${result.message}`);
+                // Show prominent success confirmation
+                this.showFileSaveConfirmation(file.title || file.filename, directoryHandle.name, result.filename);
                 logInfo(`✅ Individual file saved: ${result.filename} → ${directoryHandle.name}/`);
             } else if (result.cancelled) {
                 this.showInfo(`📂 ${result.message}`);
@@ -529,8 +530,8 @@ export class ChatGPTConverter {
         
         // Initialize sort state if not already set
         if (!this.currentSort) {
-            this.currentSort = 'title';
-            this.sortDirection = 'asc';
+            this.currentSort = 'date';
+            this.sortDirection = 'desc';
         }
         
         // Hide sort dropdown and set up column click handlers
@@ -575,18 +576,9 @@ export class ChatGPTConverter {
         const titleContainer = document.createElement('div');
         const titleSpan = document.createElement('div');
         titleSpan.textContent = file.title;
-        titleSpan.style.marginBottom = '2px';
         titleSpan.style.wordBreak = 'break-word'; // Prevent overflow
         
-        const filenameSpan = document.createElement('div');
-        filenameSpan.textContent = file.filename;
-        filenameSpan.style.fontSize = '0.8rem';
-        filenameSpan.style.color = 'var(--text-secondary)';
-        filenameSpan.style.fontFamily = 'monospace';
-        filenameSpan.style.wordBreak = 'break-all'; // Prevent overflow
-        
         titleContainer.appendChild(titleSpan);
-        titleContainer.appendChild(filenameSpan);
         titleCell.appendChild(titleContainer);
         
         // Date column - FIXED WIDTH to prevent layout shifts
@@ -780,10 +772,10 @@ export class ChatGPTConverter {
             logDebug('✅ Date header click listener attached');
         }
         
-        // Initial sort state - set title as default ascending (only if not already set)
+        // Initial sort state - set date as default descending (only if not already set)
         if (!this.currentSort) {
-            this.currentSort = 'title';
-            this.sortDirection = 'asc';
+            this.currentSort = 'date';
+            this.sortDirection = 'desc';
         }
         
         // Update sort indicators
@@ -1092,8 +1084,7 @@ export class ChatGPTConverter {
         const summary = document.createElement('div');
         summary.innerHTML = `
             <h4>📊 Conversion Summary</h4>
-            <p>✅ Processed: ${results.processed} conversations</p>
-            <p>⏭️ Skipped: ${results.skipped} conversations</p>
+            <p>✅ Converted: ${results.processed} conversations</p>
             ${results.errors > 0 ? `<p>❌ Errors: ${results.errors} conversations</p>` : ''}
         `;
         summary.style.marginBottom = '20px';
@@ -1132,34 +1123,34 @@ export class ChatGPTConverter {
         content.className = 'card-content';
         
         const stats = document.createElement('div');
-        stats.style.display = 'grid';
-        stats.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))';
+        stats.style.display = 'flex';
+        stats.style.justifyContent = 'center';
         stats.style.gap = 'var(--space-4)';
         
-        // Create stat items
+        // Create stat items - simplified to show only the main conversion result
         const statItems = [
-            { label: 'Files Created', value: results.files.length, icon: 'M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z' },
-            { label: 'Conversations', value: results.processed, icon: 'M12,3C6.5,3 2,6.58 2,11A7.18,7.18 0 0,0 2.24,12.65C2.09,13.6 2,14.62 2,15.68C2,17.68 2.5,19.5 3.5,21L12,12.5C12,12.33 12,12.17 12,12A1,1 0 0,1 13,11A1,1 0 0,1 14,12C14,12.17 14,12.33 14,12.5L22.5,21C23.5,19.5 24,17.68 24,15.68C24,14.62 23.91,13.6 23.76,12.65A7.18,7.18 0 0,0 24,11C24,6.58 19.5,3 14,3H12Z' },
-            { label: 'Duplicates Skipped', value: results.duplicatesFound || 0, icon: 'M19,7H22V9H19V12H17V9H14V7H17V4H19V7M17,19H2V17S2,10 9,10C13.5,10 16.24,11.69 17,15.5V19Z' }
+            { label: 'Conversations Converted', value: results.processed, icon: 'M12,3C6.5,3 2,6.58 2,11A7.18,7.18 0 0,0 2.24,12.65C2.09,13.6 2,14.62 2,15.68C2,17.68 2.5,19.5 3.5,21L12,12.5C12,12.33 12,12.17 12,12A1,1 0 0,1 13,11A1,1 0 0,1 14,12C14,12.17 14,12.33 14,12.5L22.5,21C23.5,19.5 24,17.68 24,15.68C24,14.62 23.91,13.6 23.76,12.65A7.18,7.18 0 0,0 24,11C24,6.58 19.5,3 14,3H12Z' }
         ];
         
+        // Only show errors if there were any
         if (results.errors > 0) {
             statItems.push({ label: 'Errors', value: results.errors, icon: 'M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z' });
         }
         
         statItems.forEach(item => {
             const statCard = document.createElement('div');
-            statCard.style.padding = 'var(--space-4)';
+            statCard.style.padding = 'var(--space-6)';
             statCard.style.backgroundColor = 'var(--bg-tertiary)';
-            statCard.style.borderRadius = 'var(--radius-md)';
+            statCard.style.borderRadius = 'var(--radius-lg)';
             statCard.style.textAlign = 'center';
+            statCard.style.minWidth = '200px';
             
             statCard.innerHTML = `
-                <svg class="icon" style="color: var(--accent-primary); margin-bottom: var(--space-2);" viewBox="0 0 24 24">
+                <svg class="icon" style="color: var(--accent-primary); margin-bottom: var(--space-3); width: 32px; height: 32px;" viewBox="0 0 24 24">
                     <path d="${item.icon}"/>
                 </svg>
-                <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text-primary); margin-bottom: var(--space-1);">${item.value}</div>
-                <div style="font-size: var(--font-size-sm); color: var(--text-secondary);">${item.label}</div>
+                <div style="font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--text-primary); margin-bottom: var(--space-2);">${item.value}</div>
+                <div style="font-size: var(--font-size-base); color: var(--text-secondary);">${item.label}</div>
             `;
             
             stats.appendChild(statCard);
@@ -1415,6 +1406,167 @@ export class ChatGPTConverter {
      */
     showError(message) {
         this.showStatusMessage(message, 'error');
+    }
+
+    /**
+     * Show file save confirmation dialog
+     * WHY: Provides clear visual confirmation when individual files are saved
+     */
+    showFileSaveConfirmation(fileTitle, folderName, filename) {
+        // Create confirmation dialog
+        const dialog = document.createElement('div');
+        dialog.className = 'file-save-confirmation-dialog';
+        dialog.innerHTML = `
+            <div class="dialog-overlay">
+                <div class="dialog-content">
+                    <div class="success-icon">✅</div>
+                    <h3>File Saved Successfully!</h3>
+                    <p><strong>${fileTitle}</strong> has been saved to the <strong>${folderName}</strong> folder.</p>
+                    <p class="filename">Filename: <code>${filename}</code></p>
+                    <div class="dialog-buttons">
+                        <button class="btn btn-primary ok-btn">OK</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add dialog styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .file-save-confirmation-dialog .dialog-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(2px);
+            }
+            .file-save-confirmation-dialog .dialog-content {
+                background: #2a2a2a;
+                border: 1px solid #444;
+                border-radius: 12px;
+                padding: 32px;
+                max-width: 450px;
+                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+                position: relative;
+                text-align: center;
+            }
+            .file-save-confirmation-dialog .success-icon {
+                font-size: 48px;
+                margin-bottom: 16px;
+                animation: bounce 0.6s ease-in-out;
+            }
+            .file-save-confirmation-dialog h3 {
+                margin: 0 0 20px 0;
+                color: #ffffff;
+                font-size: 20px;
+                font-weight: 600;
+            }
+            .file-save-confirmation-dialog p {
+                margin: 0 0 16px 0;
+                color: #cccccc;
+                line-height: 1.6;
+                font-size: 15px;
+            }
+            .file-save-confirmation-dialog .filename {
+                background: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 6px;
+                padding: 12px;
+                margin: 16px 0;
+                font-family: monospace;
+                font-size: 13px;
+            }
+            .file-save-confirmation-dialog .filename code {
+                color: #4CAF50;
+                background: #1a1a1a;
+                padding: 2px 6px;
+                border-radius: 3px;
+            }
+            .file-save-confirmation-dialog .dialog-buttons {
+                display: flex;
+                justify-content: center;
+                margin-top: 24px;
+            }
+            .file-save-confirmation-dialog .btn {
+                padding: 12px 24px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                min-width: 80px;
+            }
+            .file-save-confirmation-dialog .btn-primary {
+                background: #007acc;
+                color: #ffffff;
+            }
+            .file-save-confirmation-dialog .btn-primary:hover {
+                background: #0066aa;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+            }
+            @keyframes bounce {
+                0%, 20%, 50%, 80%, 100% {
+                    transform: translateY(0);
+                }
+                40% {
+                    transform: translateY(-10px);
+                }
+                60% {
+                    transform: translateY(-5px);
+                }
+            }
+        `;
+        
+        // Add to document
+        document.head.appendChild(style);
+        document.body.appendChild(dialog);
+        
+        // Get button reference
+        const okBtn = dialog.querySelector('.ok-btn');
+        
+        // Handle button click and cleanup
+        const cleanup = () => {
+            try {
+                if (dialog.parentNode) {
+                    document.body.removeChild(dialog);
+                }
+                if (style.parentNode) {
+                    document.head.removeChild(style);
+                }
+            } catch (error) {
+                logWarn('⚠️ Error cleaning up confirmation dialog:', error);
+            }
+        };
+        
+        okBtn.addEventListener('click', cleanup);
+        
+        // Handle escape key
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape' || event.key === 'Enter') {
+                document.removeEventListener('keydown', handleKeyDown);
+                cleanup();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        
+        // Focus the OK button
+        setTimeout(() => okBtn.focus(), 100);
+        
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+            if (dialog.parentNode) {
+                cleanup();
+            }
+        }, 5000);
     }
 
     /**

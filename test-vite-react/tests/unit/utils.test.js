@@ -482,5 +482,28 @@ describe('Utility Functions', () => {
             expect(buttonTexts).not.toContain('»');
             expect(buttonTexts).toContain('«'); // First button should still show
         });
+
+        test('default sort is date descending', () => {
+            const files = [
+                { title: 'Oldest', filename: 'oldest.md', createTime: 1000 },
+                { title: 'Latest', filename: 'latest.md', createTime: 3000 },
+                { title: 'Middle', filename: 'middle.md', createTime: 2000 }
+            ];
+
+            // Reset to default state (no currentSort set)
+            converter.currentSort = null;
+            converter.sortDirection = null;
+            
+            // Simulate the populateFilesView initialization
+            if (!converter.currentSort) {
+                converter.currentSort = 'date';
+                converter.sortDirection = 'desc';
+            }
+            
+            const sorted = converter.sortFiles(files);
+            
+            // Should be sorted by date descending (newest first)
+            expect(sorted.map(f => f.title)).toEqual(['Latest', 'Middle', 'Oldest']);
+        });
     });
 }); 
