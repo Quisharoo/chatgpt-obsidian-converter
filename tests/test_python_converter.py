@@ -409,6 +409,116 @@ class TestChatGPTConverter(unittest.TestCase):
         
         print(f"Performance test: Processed {results['processed']} conversations in {processing_time:.2f}s")
 
+    def test_removes_complex_nested_citation_artifacts(self):
+        """Test that complex nested citation artifacts are removed from Markdown output."""
+        conversation = {
+            'id': 'complex_citations',
+            'title': 'Complex Citations',
+            'create_time': 1703522622,
+            'mapping': {
+                'msg_1': {
+                    'message': {
+                        'author': {'role': 'assistant'},
+                        'content': {'parts': [
+                            'This is text ',
+                            'turn0search3.',
+                            ' More text ',
+                            'turn0news33turn0search38.',
+                            ' And more ',
+                            'turn0search6turn0search15',
+                            ' and finally ',
+                            'turn0search38turn0news21turn0news26.',
+                            ' End.'
+                        ]}
+                    },
+                    'children': [],
+                    'parent': None
+                }
+            }
+        }
+        markdown = convert_conversation_to_markdown(conversation)
+        self.assertIn('This is text  More text  And more  and finally  End.', markdown)
+        import re
+        self.assertIsNone(re.search(r'turn\d+(?:search|news)\d+', markdown))
+
+    def test_removes_navlist_citation_artifacts(self):
+        """Test that navlist citation artifacts are removed from Markdown output."""
+        conversation = {
+            'id': 'navlist_citation',
+            'title': 'Navlist Citation',
+            'create_time': 1703522622,
+            'mapping': {
+                'msg_1': {
+                    'message': {
+                        'author': {'role': 'assistant'},
+                        'content': {'parts': [
+                            'This is text ',
+                            '\ue200navlist\ue202Relevant news on Alex Jones & Israel stance\ue202turn0news20\ue201.',
+                            ' More text.'
+                        ]}
+                    },
+                    'children': [],
+                    'parent': None
+                }
+            }
+        }
+        markdown = convert_conversation_to_markdown(conversation)
+        self.assertIn('This is text  More text.', markdown)
+        import re
+        self.assertIsNone(re.search(r'turn\d+(?:search|news)\d+', markdown))
+
+    def test_removes_broken_citation_artifacts(self):
+        """Test that broken citation artifacts are removed from Markdown output."""
+        conversation = {
+            'id': 'broken_citation',
+            'title': 'Broken Citation',
+            'create_time': 1703522622,
+            'mapping': {
+                'msg_1': {
+                    'message': {
+                        'author': {'role': 'assistant'},
+                        'content': {'parts': [
+                            'This is text ',
+                            '\ue200cite\ue202turn0search12\ue201.',
+                            ' More text.'
+                        ]}
+                    },
+                    'children': [],
+                    'parent': None
+                }
+            }
+        }
+        markdown = convert_conversation_to_markdown(conversation)
+        self.assertIn('This is text  More text.', markdown)
+        import re
+        self.assertIsNone(re.search(r'turn\d+(?:search|news)\d+', markdown))
+
+    def test_removes_news_citation_artifacts(self):
+        """Test that news citation artifacts are removed from Markdown output."""
+        conversation = {
+            'id': 'news_citation',
+            'title': 'News Citation',
+            'create_time': 1703522622,
+            'mapping': {
+                'msg_1': {
+                    'message': {
+                        'author': {'role': 'assistant'},
+                        'content': {'parts': [
+                            'This is text ',
+                            '\ue200cite\ue202turn0news20\ue201.',
+                            ' More text.'
+                        ]}
+                    },
+                    'children': [],
+                    'parent': None
+                }
+            }
+        }
+        markdown = convert_conversation_to_markdown(conversation)
+        self.assertIn('This is text  More text.', markdown)
+        import re
+        self.assertIsNone(re.search(r'turn\d+(?:search|news)\d+', markdown))
+
 
 class TestConsistencyWithJavaScript(unittest.TestCase):
     """Test consistency between Python and JavaScript implementations"""

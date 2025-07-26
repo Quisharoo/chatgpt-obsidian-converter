@@ -157,7 +157,36 @@ export function convertConversationToMarkdown(conversation) {
         contentLines.push('');
     }
     
-    return contentLines.join('\n');
+    const content = contentLines.join('\n');
+    // Clean broken citation artifacts (e.g., citeturn0search12.)
+    // Unicode range \uE000-\uF8FF is Private Use Area, covers these weird chars
+    const cleanedContent = cleanCitationArtifacts(content);
+    return cleanedContent;
+}
+
+/**
+ * Clean citation artifacts using multi-pass approach
+ * WHY: Different citation patterns require different regex strategies for complete removal
+ * 
+ * @param {string} content - Raw content that may contain citation artifacts
+ * @returns {string} - Content with all citation artifacts removed
+ */
+function cleanCitationArtifacts(content) {
+    let cleaned = content;
+    
+    // Pattern 1: Remove complex citation patterns with Unicode characters
+    cleaned = cleaned.replace(/[\uE000-\uF8FF]*(?:cite|navlist)[\uE000-\uF8FF]*.*?turn\d+(?:search|news)\d+[\uE000-\uF8FF]*\.?/g, '');
+    
+    // Pattern 2: Remove simple turn patterns with Unicode
+    cleaned = cleaned.replace(/turn\d+(?:search|news)\d+[\uE000-\uF8FF]*\.?/g, '');
+    
+    // Pattern 3: Remove any remaining turn patterns without Unicode
+    cleaned = cleaned.replace(/turn\d+(?:search|news)\d+\.?/g, '');
+    
+    // Pattern 4: Remove any remaining Unicode citation artifacts
+    cleaned = cleaned.replace(/[\uE000-\uF8FF]+/g, '');
+    
+    return cleaned;
 }
 
 /**
