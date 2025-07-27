@@ -428,6 +428,15 @@
         window.showProgressCard = function() {
             document.getElementById('progressCard').classList.remove('hidden');
         };
+
+        window.switchToView = function(viewName) {
+            if (viewName === 'files') {
+                const filesContainer = document.getElementById('filesContainer');
+                if (filesContainer) {
+                    filesContainer.classList.remove('hidden');
+                }
+            }
+        };
     </script>
 
     <footer>
@@ -437,4 +446,4 @@
         </p>
     </footer>
 </body>
-</html> 
+</html>  
