@@ -14,7 +14,8 @@ import { logError } from '../utils/logger.js';
  */
 export class FileUploader {
     constructor(uploadAreaId, fileInputId) {
-        this.uploadArea = document.getElementById(uploadAreaId);
+        // Support both old and new dropzone IDs
+        this.uploadArea = document.getElementById('dropzone') || document.getElementById(uploadAreaId);
         this.fileInput = document.getElementById(fileInputId);
         this.onFileSelected = null;
         this.isProcessing = false;
@@ -108,7 +109,8 @@ export class FileUploader {
         
         if (this.isProcessing) return;
         
-        this.uploadArea.classList.add('dragover');
+        // Use new Tailwind active class instead of dragover
+        this.uploadArea.classList.add('active');
         event.dataTransfer.dropEffect = 'copy';
     }
 
@@ -120,9 +122,9 @@ export class FileUploader {
         event.preventDefault();
         event.stopPropagation();
         
-        // Only remove dragover if actually leaving the upload area
+        // Only remove active class if actually leaving the upload area
         if (!this.uploadArea.contains(event.relatedTarget)) {
-            this.uploadArea.classList.remove('dragover');
+            this.uploadArea.classList.remove('active');
         }
     }
 
@@ -134,7 +136,7 @@ export class FileUploader {
         event.preventDefault();
         event.stopPropagation();
         
-        this.uploadArea.classList.remove('dragover');
+        this.uploadArea.classList.remove('active');
         
         if (this.isProcessing) return;
         
@@ -232,8 +234,9 @@ export class FileUploader {
      * @param {boolean} isProcessing - Current processing state
      */
     updateUploadAreaText(isProcessing) {
-        const uploadText = this.uploadArea.querySelector('.upload-text');
-        const uploadSubtext = this.uploadArea.querySelector('.upload-subtext');
+        // Find text elements using the new structure
+        const uploadText = this.uploadArea.querySelector('p.text-lg');
+        const uploadSubtext = this.uploadArea.querySelector('p.text-gray-500');
         
         if (uploadText && uploadSubtext) {
             if (isProcessing) {
@@ -241,7 +244,7 @@ export class FileUploader {
                 uploadSubtext.textContent = 'Please wait while we convert your conversations';
             } else {
                 uploadText.textContent = 'Drop your conversations.json file here';
-                uploadSubtext.textContent = 'or click to browse files';
+                uploadSubtext.textContent = 'or';
             }
         }
     }
@@ -256,19 +259,30 @@ export class FileUploader {
         // Remove any existing error
         this.clearFileError();
         
-        // Create error element
+        // Create error element with Tailwind styling
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'status error';
+        errorDiv.className = 'bg-red-50 border-l-4 border-red-500 p-4 mt-4';
         errorDiv.id = 'uploadError';
         errorDiv.setAttribute('role', 'alert');
-        errorDiv.textContent = message;
         
-        // Insert after upload area
-        const uploadCard = this.uploadArea.closest('.card');
-        if (uploadCard) {
-            const cardContent = uploadCard.querySelector('.card-content');
-            if (cardContent) {
-                cardContent.appendChild(errorDiv);
+        errorDiv.innerHTML = `
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-500"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-red-700">${message}</p>
+                </div>
+            </div>
+        `;
+        
+        // Insert after upload area in the upload section
+        const uploadSection = document.getElementById('upload-section');
+        if (uploadSection) {
+            // Find the dropzone and insert the error after it
+            const dropzone = uploadSection.querySelector('#dropzone');
+            if (dropzone && dropzone.parentNode) {
+                dropzone.parentNode.insertBefore(errorDiv, dropzone.nextSibling);
             }
         }
         

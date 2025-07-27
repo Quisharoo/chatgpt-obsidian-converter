@@ -35,18 +35,16 @@ export class ProgressDisplay {
         if (!this.container || this.isInitialized) return;
 
         this.container.innerHTML = `
-            <div class="progress-section">
-                <div class="progress-text" id="statusText" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-live="polite" aria-atomic="true">
+            <div class="mb-3">
+                <div id="statusText" class="text-sm text-blue-700 mb-2 font-medium" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-live="polite" aria-atomic="true">
                     ${STATUS_MESSAGES.PROCESSING}
                 </div>
-                <div class="progress-bar" id="progressBar">
-                    <div class="progress-fill" id="progressFill"></div>
+                <div id="progressBar" class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
                 </div>
             </div>
-            <button id="cancelButton" class="btn btn-secondary cancel-btn" style="display: none; margin-top: var(--space-3);">
-                <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: var(--space-2);">
-                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-                </svg>
+            <button id="cancelButton" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm hidden mt-3 flex items-center transition-colors">
+                <i class="fas fa-times mr-2"></i>
                 Cancel Save
             </button>
         `;
@@ -75,9 +73,7 @@ export class ProgressDisplay {
         if (this.cancelButton) {
             this.cancelButton.disabled = true;
             this.cancelButton.innerHTML = `
-                <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: var(--space-2);">
-                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-                </svg>
+                <i class="fas fa-spinner fa-spin mr-2"></i>
                 Cancelling...
             `;
         }
@@ -154,16 +150,14 @@ export class ProgressDisplay {
         // Show/hide cancel button based on parameter
         if (this.cancelButton) {
             if (showCancelButton) {
-                this.cancelButton.style.display = 'inline-flex';
+                this.cancelButton.classList.remove('hidden');
                 this.cancelButton.disabled = false;
                 this.cancelButton.innerHTML = `
-                    <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: var(--space-2);">
-                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-                    </svg>
+                    <i class="fas fa-times mr-2"></i>
                     Cancel Save
                 `;
             } else {
-                this.cancelButton.style.display = 'none';
+                this.cancelButton.classList.add('hidden');
             }
         }
         
@@ -173,7 +167,7 @@ export class ProgressDisplay {
             // For file saving operations, show the Files view progress card
             progressCard = document.getElementById('progressCard');
             if (progressCard) {
-                progressCard.style.display = 'block';
+                progressCard.classList.remove('hidden');
                 logInfo('✅ Progress card made visible in Files view');
             } else {
                 logWarn('⚠️ Progress card element not found');
@@ -188,7 +182,7 @@ export class ProgressDisplay {
             // For conversion operations, show the Upload view progress card
             const conversionProgressCard = document.getElementById('conversionProgressCard');
             if (conversionProgressCard) {
-                conversionProgressCard.style.display = 'block';
+                conversionProgressCard.classList.remove('hidden');
                 logInfo('✅ Conversion progress card made visible in Upload view');
             } else {
                 logWarn('⚠️ Conversion progress card element not found');
@@ -223,21 +217,14 @@ export class ProgressDisplay {
         // Hide both progress cards
         const progressCard = document.getElementById('progressCard');
         if (progressCard) {
-            progressCard.style.display = 'none';
+            progressCard.classList.add('hidden');
             logInfo('✅ Progress card hidden');
         }
         
         const conversionProgressCard = document.getElementById('conversionProgressCard');
         if (conversionProgressCard) {
-            conversionProgressCard.style.display = 'none';
+            conversionProgressCard.classList.add('hidden');
             logInfo('✅ Conversion progress card hidden');
-        }
-        
-        // Show the upload card again when progress is hidden (for conversion operations)
-        const uploadCard = document.getElementById('uploadCard');
-        if (uploadCard) {
-            uploadCard.style.display = 'block';
-            logInfo('✅ Upload card shown again after conversion');
         }
     }
 
