@@ -6,6 +6,7 @@
 
 import { FileUploader } from '../components/FileUploader.js';
 import { ProgressDisplay } from '../components/ProgressDisplay.js';
+import UIBuilder from '../components/UIBuilder.js';
 import { processConversations } from './conversionEngine.js';
 import { 
     selectDirectory, 
@@ -20,6 +21,18 @@ import {
 } from './fileSystemManager.js';
 import { ERROR_MESSAGES, STATUS_MESSAGES } from '../utils/constants.js';
 import { logInfo, logDebug, logWarn, logError } from '../utils/logger.js';
+import { telemetry } from '../utils/telemetry.js';
+import { 
+    getString, 
+    status, 
+    error, 
+    success, 
+    info, 
+    ui, 
+    message, 
+    formatFileSize 
+} from '../utils/strings.js';
+import accessibilityManager from '../utils/accessibility.js';
 
 /**
  * ChatGPT to Markdown Application
@@ -33,6 +46,7 @@ export class ChatGPTConverter {
         this.convertedFiles = [];
         this.processedIds = new Set();
         this.saveLocalButton = null;
+        this.uiBuilder = new UIBuilder();
         
         this.initializeComponents();
     }
@@ -43,20 +57,33 @@ export class ChatGPTConverter {
      */
     initializeComponents() {
         try {
-            // Initialize components
-            this.fileUploader = new FileUploader('uploadArea', 'fileInput');
+            // Initialize components with new structure
+            this.fileUploader = new FileUploader('dropzone', 'fileInput');
             this.progressDisplay = new ProgressDisplay('conversionProgressContainer');
             this.saveProgressDisplay = new ProgressDisplay('progressContainer');
             
             // Set up file upload handling
             this.fileUploader.setFileSelectedCallback(this.handleFileUpload.bind(this));
             
-            logInfo('✅ ChatGPT to Markdown Converter initialized');
-            logInfo(`📁 File System Access API: ${isFileSystemAccessSupported() ? 'Available' : 'Not available'}`);
+            // Initialize accessibility features
+            accessibilityManager.initialize();
+            
+            const initMessage = message('INITIALIZING_CONVERTER');
+            const apiMessage = isFileSystemAccessSupported() 
+                ? message('FILE_SYSTEM_API_AVAILABLE')
+                : message('FILE_SYSTEM_API_NOT_AVAILABLE');
+                
+            logInfo(`✅ ${initMessage}`);
+            logInfo(`📁 ${apiMessage}`);
+            
+            // Announce initialization to screen readers
+            accessibilityManager.announceStatus(initMessage, 'success');
             
         } catch (error) {
             logError('❌ Failed to initialize application:', error);
-            this.showError('Failed to initialize application. Please refresh the page.');
+            const errorMessage = error('FAILED_TO_INITIALIZE');
+            this.showError(errorMessage);
+            accessibilityManager.announceStatus(errorMessage, 'error');
         }
     }
 
@@ -67,37 +94,60 @@ export class ChatGPTConverter {
      * @param {File} file - Uploaded file to process
      */
     async handleFileUpload(file) {
-        logInfo(`🔄 Processing file: ${file.name} (${file.size} bytes)`);
+        const startTime = Date.now();
+        logInfo(message('PROCESSING_FILE', { fileName: file.name, fileSize: formatFileSize(file.size) }));
+        
+        // Track conversion start
+        telemetry.trackConversionStarted(file.size, file.name);
         
         this.fileUploader.setProcessingState(true);
         this.progressDisplay.show(false, false); // Don't switch to Files view for conversion
         
         try {
             // Read and parse file
-            this.progressDisplay.updateProgress(0, STATUS_MESSAGES.READING_FILE);
+            const readingMessage = status('READING_FILE');
+            this.progressDisplay.updateProgress(0, readingMessage);
+            accessibilityManager.announceProgress(readingMessage, 0);
             const fileContent = await this.readFileContent(file);
             
             // Add a small delay to make reading feel more substantial
             await this.delay(300);
             
-            this.progressDisplay.updateProgress(20, STATUS_MESSAGES.PARSING_JSON);
+            const parsingMessage = status('PARSING_JSON');
+            this.progressDisplay.updateProgress(20, parsingMessage);
+            accessibilityManager.announceProgress(parsingMessage, 20);
             const conversations = this.parseConversations(fileContent);
             
             // Add delay for parsing
             await this.delay(400);
             
             // Convert conversations with more granular progress
-            this.progressDisplay.updateProgress(40, STATUS_MESSAGES.CONVERTING);
+            const convertingMessage = status('CONVERTING');
+            this.progressDisplay.updateProgress(40, convertingMessage);
+            accessibilityManager.announceProgress(convertingMessage, 40);
             const results = processConversations(conversations, this.processedIds);
             
             // Add delay for conversion processing
             await this.delay(500);
             
-            this.progressDisplay.updateProgress(80, STATUS_MESSAGES.FINALIZING);
+            const finalizingMessage = status('FINALIZING');
+            this.progressDisplay.updateProgress(80, finalizingMessage);
+            accessibilityManager.announceProgress(finalizingMessage, 80);
             await this.delay(300);
             
-            this.progressDisplay.updateProgress(100, STATUS_MESSAGES.COMPLETE);
+            const completeMessage = status('COMPLETE');
+            this.progressDisplay.updateProgress(100, completeMessage);
+            accessibilityManager.announceProgress(completeMessage, 100);
             this.convertedFiles = results.files;
+            
+            // Track successful conversion
+            const processingTime = Date.now() - startTime;
+            telemetry.trackConversionCompleted(
+                conversations.length, 
+                results.files.length, 
+                processingTime, 
+                results.errors
+            );
             
             // Add final delay before showing results
             await this.delay(800);
@@ -106,15 +156,16 @@ export class ChatGPTConverter {
             setTimeout(() => {
                 this.displayResults(results);
                 
-                // Switch to results view and stay there
-                if (window.switchToView) {
-                    window.switchToView('results');
+                // Switch to complete section and show results
+                if (window.switchToComplete) {
+                    window.switchToComplete();
+                    window.showResults();
                     
-                    // Populate the Files view in the background but don't switch to it automatically
-                    // Ensure files are available before populating
+                    // Populate the Files view in the background
                     setTimeout(() => {
                         if (results.files && results.files.length > 0) {
                             this.populateFilesView(results);
+                            window.showFiles();
                             logInfo(`✅ Files view populated with ${results.files.length} files`);
                         } else {
                             logWarn('⚠️ No files available to populate Files view');
@@ -130,8 +181,15 @@ export class ChatGPTConverter {
             
         } catch (error) {
             logError('❌ Error processing file:', error);
+            
+            // Track conversion failure with context
+            const stage = error.message.includes('JSON') ? 'parsing' : 
+                         error.message.includes('structure') ? 'parsing' : 'processing';
+            telemetry.trackConversionFailed(error, stage);
+            
             this.progressDisplay.showError(error.message);
             this.showError(error.message);
+            accessibilityManager.announceStatus(`Conversion failed: ${error.message}`, 'error');
         } finally {
             this.fileUploader.setProcessingState(false);
         }
@@ -165,12 +223,12 @@ export class ChatGPTConverter {
         
         try {
             conversations = JSON.parse(fileContent);
-        } catch (error) {
-            throw new Error(ERROR_MESSAGES.INVALID_JSON);
+        } catch (parseError) {
+            throw new Error(error('INVALID_JSON'));
         }
         
         if (!Array.isArray(conversations)) {
-            throw new Error(ERROR_MESSAGES.INVALID_STRUCTURE);
+            throw new Error(error('INVALID_STRUCTURE'));
         }
         
         return conversations;
@@ -184,8 +242,15 @@ export class ChatGPTConverter {
         try {
             const directoryHandle = await selectDirectory();
             this.selectedDirectoryHandle = directoryHandle;
+            this.uiBuilder.setDirectoryHandle(directoryHandle);
             
-            this.showSuccess(`✅ Selected directory: ${directoryHandle.name}. Now click "Save to Local Folder" to save your files!`);
+            // Track directory selection
+            telemetry.trackDirectorySelected();
+            
+            const successMessage = `✅ ${success('DIRECTORY_SELECTED')}: ${directoryHandle.name}. ${success('READY_TO_SAVE')}`;
+            this.showSuccess(successMessage);
+            accessibilityManager.announceStatus(`Directory selected: ${directoryHandle.name}`, 'success');
+            
             this.updateSaveButtonState();
             
             // Re-render the files table to show Save buttons
@@ -196,6 +261,7 @@ export class ChatGPTConverter {
         } catch (error) {
             console.error('Directory selection error:', error);
             this.showError(error.message);
+            accessibilityManager.announceStatus(`Directory selection failed: ${error.message}`, 'error');
         }
     }
 
@@ -206,16 +272,23 @@ export class ChatGPTConverter {
      * WHY: Orchestrates the file saving process with progress feedback
      */
     async handleLocalSave() {
+        const saveStartTime = Date.now();
+        
         if (!this.selectedDirectoryHandle) {
-            this.showError(ERROR_MESSAGES.NO_DIRECTORY);
+            const errorMessage = error('NO_DIRECTORY');
+            this.showError(errorMessage);
+            accessibilityManager.announceStatus(errorMessage, 'error');
             return;
         }
 
         // Validate directory is still accessible
         const isValid = await validateDirectoryAccess(this.selectedDirectoryHandle);
         if (!isValid) {
-            this.showError('❌ Directory access lost. Please select folder again.');
+            const errorMessage = error('DIRECTORY_ACCESS_LOST');
+            this.showError(`❌ ${errorMessage}`);
+            accessibilityManager.announceStatus(errorMessage, 'error');
             this.selectedDirectoryHandle = null;
+            this.uiBuilder.setDirectoryHandle(null);
             this.updateSaveButtonState();
             return;
         }
@@ -238,13 +311,19 @@ export class ChatGPTConverter {
             logInfo('🛑 User requested cancellation of save operation');
         });
         
-        this.showInfo(`💾 Preparing to save ${this.convertedFiles.length} files to ${this.selectedDirectoryHandle.name} folder...`);
+        const preparingMessage = info('PREPARING_FILES', { 
+            count: this.convertedFiles.length, 
+            folderName: this.selectedDirectoryHandle.name 
+        });
+        this.showInfo(`💾 ${preparingMessage}`);
+        accessibilityManager.announceStatus(preparingMessage);
 
         try {
             const progressCallback = (progress, completed, total, statusMessage) => {
-                const message = statusMessage || `💾 Saving files... ${progress}% (${completed}/${total})`;
+                const message = statusMessage || `💾 ${status('SAVING_FILES')} ${progress}% (${completed}/${total})`;
                 logInfo(`📊 Progress update: ${progress}% - ${message}`);
                 this.saveProgressDisplay.updateProgress(progress, message);
+                accessibilityManager.announceProgress(message, progress);
             };
 
             const cancellationCallback = () => isCancelled;
@@ -255,6 +334,10 @@ export class ChatGPTConverter {
                 progressCallback,
                 cancellationCallback
             );
+
+            // Track save operation results
+            const saveTime = Date.now() - saveStartTime;
+            telemetry.trackFilesSaved('local', this.convertedFiles.length, results.successCount, saveTime);
 
             logInfo(`✅ Save operation completed: ${results.successCount} saved, ${results.cancelledCount} cancelled, ${results.errorCount} errors`);
 
@@ -316,7 +399,14 @@ export class ChatGPTConverter {
 
         } catch (error) {
             console.error('❌ Error during save:', error);
-            this.showError(`Save failed: ${error.message}`);
+            telemetry.trackError('save', error, { 
+                fileCount: this.convertedFiles.length,
+                directoryName: this.selectedDirectoryHandle?.name 
+            });
+            
+            const errorMessage = `${error('SAVE_FAILED')}: ${error.message}`;
+            this.showError(errorMessage);
+            accessibilityManager.announceStatus(errorMessage, 'error');
         } finally {
             // Clear the cancel callback
             this.saveProgressDisplay.setCancelCallback(null);
@@ -334,9 +424,17 @@ export class ChatGPTConverter {
         try {
             const blob = createDownloadBlob(file.content);
             downloadFile(blob, file.filename);
+            
+            // Track individual file download
+            telemetry.trackIndividualFileAction('download', true);
+            accessibilityManager.announceFileOperation('download', true, file.filename);
         } catch (error) {
             console.error(`Error downloading ${file.filename}:`, error);
-            this.showError(`Failed to download ${file.filename}`);
+            telemetry.trackIndividualFileAction('download', false, error);
+            
+            const errorMessage = `${error('DOWNLOAD_FAILED')} ${file.filename}`;
+            this.showError(errorMessage);
+            accessibilityManager.announceFileOperation('download', false, file.filename);
         }
     }
 
@@ -350,17 +448,22 @@ export class ChatGPTConverter {
         try {
             // Check if File System Access API is supported
             if (!isFileSystemAccessSupported()) {
-                this.showError('Your browser doesn\'t support direct file saving. Use download instead.');
+                const errorMessage = error('BROWSER_NOT_SUPPORTED');
+                this.showError(errorMessage);
+                accessibilityManager.announceStatus(errorMessage, 'error');
                 return;
             }
 
-            this.showInfo(`📁 Choose where to save "${file.title || file.filename}"`);
+            const chooseMessage = info('CHOOSE_SAVE_LOCATION', { filename: file.title || file.filename });
+            this.showInfo(`📁 ${chooseMessage}`);
             
             // Let user select directory for this specific file
             const directoryHandle = await selectDirectory();
             
             if (!directoryHandle) {
-                this.showInfo('📂 File save cancelled');
+                const cancelMessage = info('SAVE_CANCELLED');
+                this.showInfo(`📂 ${cancelMessage}`);
+                accessibilityManager.announceStatus(cancelMessage);
                 return;
             }
 
@@ -370,25 +473,37 @@ export class ChatGPTConverter {
             const result = await saveFileToDirectory(file.filename, file.content, directoryHandle);
             
             if (result.success) {
+                // Track successful individual file save
+                telemetry.trackIndividualFileAction('save', true);
+                
                 // Show prominent success confirmation
                 this.showFileSaveConfirmation(file.title || file.filename, directoryHandle.name, result.filename);
                 logInfo(`✅ Individual file saved: ${result.filename} → ${directoryHandle.name}/`);
+                accessibilityManager.announceFileOperation('save', true, file.filename);
             } else if (result.cancelled) {
                 this.showInfo(`📂 ${result.message}`);
                 logInfo(`📂 Save cancelled by user: ${result.filename}`);
+                accessibilityManager.announceStatus(result.message);
             } else {
+                telemetry.trackIndividualFileAction('save', false, new Error(result.message));
                 this.showError(`❌ ${result.message}`);
                 logError(`❌ Save failed: ${result.filename} - ${result.message}`);
+                accessibilityManager.announceFileOperation('save', false, file.filename);
             }
 
-        } catch (error) {
-            logError(`Error saving individual file ${file.filename}:`, error);
+        } catch (saveError) {
+            logError(`Error saving individual file ${file.filename}:`, saveError);
+            telemetry.trackError('save', saveError, { type: 'individual_file', filename: file.filename });
             
             // Provide specific error messages
-            if (error.message.includes('cancelled')) {
-                this.showInfo('📂 File save cancelled');
+            if (saveError.message.includes('cancelled')) {
+                const cancelMessage = info('SAVE_CANCELLED');
+                this.showInfo(`📂 ${cancelMessage}`);
+                accessibilityManager.announceStatus(cancelMessage);
             } else {
-                this.showError(`Failed to save "${file.filename}": ${error.message}`);
+                const errorMessage = `${error('SAVE_FAILED')} "${file.filename}": ${saveError.message}`;
+                this.showError(errorMessage);
+                accessibilityManager.announceStatus(errorMessage, 'error');
             }
         }
     }
@@ -417,16 +532,22 @@ export class ChatGPTConverter {
      * WHY: Provides a single download option for mobile users
      */
     async downloadAllAsZip() {
+        const zipStartTime = Date.now();
+        
         try {
             // Check if JSZip is available
             if (typeof JSZip === 'undefined') {
                 // Fallback to individual downloads
-                this.showInfo('📦 ZIP download not available. Downloading files individually...');
+                const fallbackMessage = info('ZIP_NOT_AVAILABLE');
+                this.showInfo(`📦 ${fallbackMessage}`);
+                accessibilityManager.announceStatus(fallbackMessage);
                 this.downloadAllFiles();
                 return;
             }
 
-            this.showInfo('📦 Creating ZIP archive...');
+            const creatingMessage = status('CREATING_ZIP');
+            this.showInfo(`📦 ${creatingMessage}`);
+            accessibilityManager.announceStatus(creatingMessage);
             
             const zip = new JSZip();
             
@@ -448,11 +569,21 @@ export class ChatGPTConverter {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             
-            this.showSuccess(`📦 Downloaded ${this.convertedFiles.length} files as ZIP archive`);
+            // Track ZIP download success
+            const zipTime = Date.now() - zipStartTime;
+            telemetry.trackFilesSaved('zip', this.convertedFiles.length, this.convertedFiles.length, zipTime);
+            
+            const successMessage = `📦 ${success('FILES_DOWNLOADED')} ${this.convertedFiles.length} files as ZIP archive`;
+            this.showSuccess(successMessage);
+            accessibilityManager.announceStatus(successMessage, 'success');
             
         } catch (error) {
             logError('Error creating ZIP archive:', error);
-            this.showError('Failed to create ZIP archive. Trying individual downloads...');
+            telemetry.trackError('save', error, { type: 'zip_creation', fileCount: this.convertedFiles.length });
+            
+            const errorMessage = error('ZIP_CREATION_FAILED');
+            this.showError(errorMessage);
+            accessibilityManager.announceStatus(errorMessage, 'error');
             // Fallback to individual downloads
             this.downloadAllFiles();
         }
@@ -463,18 +594,8 @@ export class ChatGPTConverter {
      * WHY: Provides visual feedback about readiness to save
      */
     updateSaveButtonState() {
-        if (this.saveLocalButton) {
-            this.saveLocalButton.disabled = !this.selectedDirectoryHandle;
-            
-            if (this.selectedDirectoryHandle) {
-                this.saveLocalButton.className = 'btn btn-primary';
-                this.saveLocalButton.textContent = `💾 Save ${this.convertedFiles.length} files to selected folder`;
-                this.saveLocalButton.style.animation = 'pulse 2s infinite';
-            } else {
-                this.saveLocalButton.className = 'btn';
-                this.saveLocalButton.textContent = '💾 Save to Local Folder (Select folder first)';
-                this.saveLocalButton.style.animation = 'none';
-            }
+        if (this.uiBuilder) {
+            this.uiBuilder.updateSaveButtonState(this.convertedFiles);
         }
     }
 
@@ -490,16 +611,20 @@ export class ChatGPTConverter {
         
         if (!resultsDiv || !downloadList) return;
         
-        resultsDiv.style.display = 'block';
+        resultsDiv.classList.remove('hidden');
         downloadList.innerHTML = '';
         
         // Add summary card
-        const summaryCard = this.createResultsSummaryCard(results);
+        const summaryCard = this.uiBuilder.createResultsSummaryCard(results);
         downloadList.appendChild(summaryCard);
         
         if (results.files.length > 0) {
-            // Add directory selection card
-            const directoryCard = this.createDirectoryCard(results);
+            // Add directory selection card with callbacks
+            const directoryCard = this.uiBuilder.createDirectoryCard(results, {
+                onDirectorySelect: () => this.handleDirectorySelection(),
+                onSave: () => this.handleLocalSave(),
+                onDownloadZip: () => this.downloadAllAsZip()
+            });
             downloadList.appendChild(directoryCard);
             
             // Store files for the dedicated Files view (but don't create duplicate table in Results view)
@@ -521,7 +646,7 @@ export class ChatGPTConverter {
         if (!filesContainer || !fileTableBody || !resultsInfo) return;
         
         // Show files container
-        filesContainer.style.display = 'block';
+        filesContainer.classList.remove('hidden');
         
         // Store files data for pagination/sorting
         this.allFiles = results.files;
@@ -560,18 +685,15 @@ export class ChatGPTConverter {
      */
     createFileRow(file) {
         const row = document.createElement('tr');
-        row.style.borderBottom = '1px solid var(--border-primary)';
+        row.className = 'border-b border-gray-200 hover:bg-gray-50 transition-colors';
         
         // Fix date extraction - use multiple possible properties
         const dateCreated = this.getFileDate(file);
         
         // Title column with filename shown as subtitle - FIXED WIDTH to prevent layout shifts
         const titleCell = document.createElement('td');
-        titleCell.style.padding = 'var(--space-3) var(--space-4)';
-        titleCell.style.color = 'var(--text-primary)';
-        titleCell.style.fontWeight = 'var(--font-weight-medium)';
+        titleCell.className = 'px-4 py-3 text-gray-800 font-medium align-top';
         titleCell.style.width = '65%'; // Match header width
-        titleCell.style.verticalAlign = 'top';
         
         const titleContainer = document.createElement('div');
         const titleSpan = document.createElement('div');
@@ -583,35 +705,22 @@ export class ChatGPTConverter {
         
         // Date column - FIXED WIDTH to prevent layout shifts
         const dateCell = document.createElement('td');
-        dateCell.style.padding = 'var(--space-3) var(--space-4)';
-        dateCell.style.color = 'var(--text-secondary)';
-        dateCell.style.fontSize = 'var(--font-size-sm)';
+        dateCell.className = 'px-4 py-3 text-gray-600 text-sm align-top whitespace-nowrap';
         dateCell.style.width = '20%'; // Match header width
-        dateCell.style.verticalAlign = 'top';
-        dateCell.style.whiteSpace = 'nowrap'; // Prevent date wrapping
         dateCell.textContent = dateCreated;
         
         // Actions column - FIXED WIDTH to prevent layout shifts
         const actionsCell = document.createElement('td');
-        actionsCell.style.padding = 'var(--space-3) var(--space-4)';
-        actionsCell.style.textAlign = 'right';
+        actionsCell.className = 'px-4 py-3 text-right align-top whitespace-nowrap';
         actionsCell.style.width = '15%'; // Match header width
-        actionsCell.style.verticalAlign = 'top';
-        actionsCell.style.whiteSpace = 'nowrap'; // Prevent button wrapping
         
         const actionsContainer = document.createElement('div');
-        actionsContainer.style.display = 'flex';
-        actionsContainer.style.gap = 'var(--space-2)';
-        actionsContainer.style.justifyContent = 'flex-end';
-        actionsContainer.style.flexWrap = 'nowrap'; // Prevent wrapping
+        actionsContainer.className = 'flex gap-2 justify-end';
         
         // Always create Save button first, then Download button
         // This maintains consistent layout and allows individual file saving
         const saveBtn = document.createElement('button');
-        saveBtn.className = 'btn btn-primary save-file-btn';
-        saveBtn.style.padding = 'var(--space-2) var(--space-3)';
-        saveBtn.style.fontSize = 'var(--font-size-xs)';
-        saveBtn.style.flexShrink = '0'; // Prevent button shrinking
+        saveBtn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs flex-shrink-0 transition-colors save-file-btn';
         saveBtn.setAttribute('data-filename', file.filename);
         saveBtn.setAttribute('data-content', encodeURIComponent(file.content));
         saveBtn.setAttribute('data-title', file.title);
@@ -623,10 +732,7 @@ export class ChatGPTConverter {
         actionsContainer.appendChild(saveBtn);
         
         const downloadBtn = document.createElement('button');
-        downloadBtn.className = 'btn btn-secondary download-file-btn';
-        downloadBtn.style.padding = 'var(--space-2) var(--space-3)';
-        downloadBtn.style.fontSize = 'var(--font-size-xs)';
-        downloadBtn.style.flexShrink = '0'; // Prevent button shrinking
+        downloadBtn.className = 'bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs flex-shrink-0 transition-colors download-file-btn';
         downloadBtn.setAttribute('data-filename', file.filename);
         downloadBtn.setAttribute('data-content', encodeURIComponent(file.content));
         downloadBtn.innerHTML = `
@@ -698,7 +804,7 @@ export class ChatGPTConverter {
         
         // Render current page files
         currentFiles.forEach(file => {
-            const row = this.createFileRow(file);
+            const row = this.uiBuilder.createFileRow(file);
             fileTableBody.appendChild(row);
         });
         
@@ -738,10 +844,10 @@ export class ChatGPTConverter {
             // Create bound handlers to ensure proper removal
             this._titleSortHandler = () => this.handleColumnSort('title');
             this._titleMouseEnterHandler = () => {
-                titleHeader.style.backgroundColor = 'var(--bg-secondary)';
+                titleHeader.classList.add('bg-gray-100');
             };
             this._titleMouseLeaveHandler = () => {
-                titleHeader.style.backgroundColor = '';
+                titleHeader.classList.remove('bg-gray-100');
             };
             
             titleHeader.addEventListener('click', this._titleSortHandler);
@@ -759,10 +865,10 @@ export class ChatGPTConverter {
             // Create bound handlers to ensure proper removal
             this._dateSortHandler = () => this.handleColumnSort('date');
             this._dateMouseEnterHandler = () => {
-                dateHeader.style.backgroundColor = 'var(--bg-secondary)';
+                dateHeader.classList.add('bg-gray-100');
             };
             this._dateMouseLeaveHandler = () => {
-                dateHeader.style.backgroundColor = '';
+                dateHeader.classList.remove('bg-gray-100');
             };
             
             dateHeader.addEventListener('click', this._dateSortHandler);
@@ -832,14 +938,14 @@ export class ChatGPTConverter {
         }
         
         // Reset all indicators to inactive state (hide arrows)
-        titleIndicator.style.color = '#ccc';
-        dateIndicator.style.color = '#ccc';
+        titleIndicator.className = 'text-gray-400';
+        dateIndicator.className = 'text-gray-400';
         titleIndicator.textContent = '';
         dateIndicator.textContent = '';
         
         // Set active indicator with correct direction
         const activeIndicator = this.currentSort === 'title' ? titleIndicator : dateIndicator;
-        activeIndicator.style.color = '#007bff';
+        activeIndicator.className = 'text-indigo-600';
         activeIndicator.textContent = this.sortDirection === 'asc' ? '▲' : '▼';
         
         logDebug(`✨ Active sort: ${this.currentSort} ${this.sortDirection === 'asc' ? '(ascending)' : '(descending)'}`);
@@ -1097,35 +1203,30 @@ export class ChatGPTConverter {
      */
     createResultsSummaryCard(results) {
         const card = document.createElement('div');
-        card.className = 'card';
-        card.style.marginBottom = 'var(--space-6)';
+        card.className = 'bg-white rounded-xl shadow-md p-6 mb-8';
         
         const header = document.createElement('div');
-        header.className = 'card-header';
+        header.className = 'mb-4';
         
         const title = document.createElement('h3');
-        title.className = 'card-title';
+        title.className = 'text-xl font-medium text-gray-800 flex items-center mb-2';
         title.innerHTML = `
-            <svg class="icon" style="margin-right: var(--space-2);" viewBox="0 0 24 24">
-                <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
-            </svg>
+            <i class="fas fa-check-circle mr-3 text-green-500"></i>
             Conversion Summary
         `;
         
         const description = document.createElement('p');
-        description.className = 'card-description';
+        description.className = 'text-gray-600';
         description.textContent = 'Your ChatGPT conversations have been successfully converted';
         
         header.appendChild(title);
         header.appendChild(description);
         
         const content = document.createElement('div');
-        content.className = 'card-content';
+        content.className = '';
         
         const stats = document.createElement('div');
-        stats.style.display = 'flex';
-        stats.style.justifyContent = 'center';
-        stats.style.gap = 'var(--space-4)';
+        stats.className = 'flex justify-center gap-4';
         
         // Create stat items - simplified to show only the main conversion result
         const statItems = [
@@ -1139,18 +1240,15 @@ export class ChatGPTConverter {
         
         statItems.forEach(item => {
             const statCard = document.createElement('div');
-            statCard.style.padding = 'var(--space-6)';
-            statCard.style.backgroundColor = 'var(--bg-tertiary)';
-            statCard.style.borderRadius = 'var(--radius-lg)';
-            statCard.style.textAlign = 'center';
-            statCard.style.minWidth = '200px';
+            statCard.className = 'bg-gray-50 p-6 rounded-lg text-center min-w-[200px]';
+            
+            // Use Font Awesome icon instead of SVG
+            const iconClass = item.label.includes('Error') ? 'fas fa-exclamation-triangle text-red-500' : 'fas fa-comments text-indigo-500';
             
             statCard.innerHTML = `
-                <svg class="icon" style="color: var(--accent-primary); margin-bottom: var(--space-3); width: 32px; height: 32px;" viewBox="0 0 24 24">
-                    <path d="${item.icon}"/>
-                </svg>
-                <div style="font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--text-primary); margin-bottom: var(--space-2);">${item.value}</div>
-                <div style="font-size: var(--font-size-base); color: var(--text-secondary);">${item.label}</div>
+                <i class="${iconClass} text-3xl mb-3 block"></i>
+                <div class="text-2xl font-bold text-gray-800 mb-2">${item.value}</div>
+                <div class="text-base text-gray-600">${item.label}</div>
             `;
             
             stats.appendChild(statCard);
@@ -1169,38 +1267,32 @@ export class ChatGPTConverter {
      */
     createDirectoryCard(results) {
         const card = document.createElement('div');
-        card.className = 'card';
-        card.style.marginBottom = 'var(--space-6)';
+        card.className = 'bg-white rounded-xl shadow-md p-6 mb-8';
         
         const header = document.createElement('div');
-        header.className = 'card-header';
+        header.className = 'mb-4';
         
         const title = document.createElement('h3');
-        title.className = 'card-title';
+        title.className = 'text-xl font-medium text-gray-800 flex items-center mb-2';
         title.innerHTML = `
-            <svg class="icon" style="margin-right: var(--space-2);" viewBox="0 0 24 24">
-                <path d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
-            </svg>
+            <i class="fas fa-folder mr-3 text-indigo-500"></i>
             Save Location
         `;
         
         const description = document.createElement('p');
-        description.className = 'card-description';
+        description.className = 'text-gray-600';
         description.textContent = 'Choose where to save your converted files';
         
         header.appendChild(title);
         header.appendChild(description);
         
         const content = document.createElement('div');
-        content.className = 'card-content';
+        content.className = '';
         
         if (isFileSystemAccessSupported()) {
             // Directory selection buttons
             const buttonGroup = document.createElement('div');
-            buttonGroup.style.display = 'flex';
-            buttonGroup.style.flexDirection = 'column';
-            buttonGroup.style.gap = 'var(--space-3)';
-            buttonGroup.style.marginBottom = 'var(--space-4)';
+            buttonGroup.className = 'flex flex-col gap-3 mb-4';
             
             const selectBtn = this.createDirectoryButton();
             const saveBtn = this.createSaveButton(results);
@@ -1221,37 +1313,25 @@ export class ChatGPTConverter {
             // Add prominent download button for mobile users
             if (apiInfo.mobile) {
                 const downloadSection = document.createElement('div');
-                downloadSection.style.marginTop = 'var(--space-4)';
+                downloadSection.className = 'mt-4';
                 
                 const downloadTitle = document.createElement('h4');
-                downloadTitle.style.marginBottom = 'var(--space-3)';
-                downloadTitle.style.color = 'var(--text-primary)';
+                downloadTitle.className = 'text-lg font-medium text-gray-800 mb-3 flex items-center';
                 downloadTitle.innerHTML = `
-                    <svg class="icon" style="margin-right: var(--space-2);" viewBox="0 0 24 24">
-                        <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
-                    </svg>
+                    <i class="fas fa-download mr-2 text-indigo-500"></i>
                     Download Options
                 `;
                 
                 const downloadButton = document.createElement('button');
-                downloadButton.className = 'btn btn-primary';
-                downloadButton.style.width = '100%';
-                downloadButton.style.padding = 'var(--space-4)';
-                downloadButton.style.fontSize = 'var(--font-size-lg)';
-                downloadButton.style.fontWeight = 'var(--font-weight-semibold)';
-                downloadButton.style.marginBottom = 'var(--space-3)';
+                downloadButton.className = 'bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-lg transition-colors w-full mb-3 flex items-center justify-center';
                 downloadButton.innerHTML = `
-                    <svg class="icon" style="margin-right: var(--space-2);" viewBox="0 0 24 24">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                    </svg>
+                    <i class="fas fa-download mr-3"></i>
                     Download All as ZIP
                 `;
                 downloadButton.onclick = () => this.downloadAllAsZip();
                 
                 const downloadInfo = document.createElement('p');
-                downloadInfo.style.fontSize = 'var(--font-size-sm)';
-                downloadInfo.style.color = 'var(--text-secondary)';
-                downloadInfo.style.marginBottom = 'var(--space-3)';
+                downloadInfo.className = 'text-sm text-gray-600 mb-3';
                 downloadInfo.textContent = 'Download all converted files as a single ZIP archive for easy file management.';
                 
                 downloadSection.appendChild(downloadTitle);
@@ -1280,12 +1360,11 @@ export class ChatGPTConverter {
      */
     createDirectoryButton() {
         const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.textContent = this.selectedDirectoryHandle ? 
-            `📂 Change Directory (Current: ${this.selectedDirectoryHandle.name})` : 
-            '📂 Choose Folder';
+        btn.className = 'bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center';
+        btn.innerHTML = this.selectedDirectoryHandle ? 
+            `<i class="fas fa-folder-open mr-2"></i>Change Directory (Current: ${this.selectedDirectoryHandle.name})` : 
+            '<i class="fas fa-folder mr-2"></i>Choose Folder';
         btn.onclick = () => this.handleDirectorySelection();
-        btn.style.marginRight = '10px';
         return btn;
     }
 
@@ -1297,10 +1376,12 @@ export class ChatGPTConverter {
      */
     createSaveButton(results) {
         const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.textContent = this.selectedDirectoryHandle ? 
-            `💾 Save ${results.files.length} files to selected folder` : 
-            '💾 Save to Local Folder (Select folder first)';
+        btn.className = this.selectedDirectoryHandle ? 
+            'bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center' :
+            'bg-gray-300 text-gray-500 font-medium py-3 px-6 rounded-lg cursor-not-allowed flex items-center justify-center';
+        btn.innerHTML = this.selectedDirectoryHandle ? 
+            `<i class="fas fa-save mr-2"></i>Save ${results.files.length} files to selected folder` : 
+            '<i class="fas fa-save mr-2"></i>Save to Local Folder (Select folder first)';
         btn.disabled = !this.selectedDirectoryHandle;
         btn.onclick = () => this.handleLocalSave();
         
@@ -1315,22 +1396,41 @@ export class ChatGPTConverter {
      * WHY: Provides clear guidance for saving files
      */
     createInstructions() {
-        const instructions = document.createElement('p');
-        instructions.style.marginTop = 'var(--space-3)';
-        instructions.style.fontSize = 'var(--font-size-sm)';
-        instructions.style.color = 'var(--text-secondary)';
-        instructions.style.lineHeight = 'var(--line-height-normal)';
+        const instructions = document.createElement('div');
+        instructions.className = 'mt-3 text-sm text-gray-600 leading-normal';
         
         if (this.selectedDirectoryHandle) {
             instructions.innerHTML = `
-                <strong style="color: var(--success);">✓ Ready to save</strong><br>
-                Selected folder: <strong>${this.selectedDirectoryHandle.name}</strong><br>
-                Click "Save to Local Folder" to save all files directly to your chosen location.
+                <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-green-700">
+                                <strong>Ready to save</strong><br>
+                                Selected folder: <strong>${this.selectedDirectoryHandle.name}</strong><br>
+                                Click "Save to Local Folder" to save all files directly to your chosen location.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             `;
         } else {
             instructions.innerHTML = `
-                <strong>Select your destination folder</strong><br>
-                Choose where you want to save your converted Markdown files.
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-500"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700">
+                                <strong>Select your destination folder</strong><br>
+                                Choose where you want to save your converted Markdown files.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             `;
         }
         
@@ -1344,14 +1444,9 @@ export class ChatGPTConverter {
     createUnsupportedWarning() {
         const apiInfo = getFileSystemAccessInfo();
         const warning = document.createElement('div');
-        warning.style.color = '#856404';
-        warning.style.background = '#fff3cd';
-        warning.style.padding = 'var(--space-4)';
-        warning.style.borderRadius = 'var(--radius-md)';
-        warning.style.border = '1px solid #ffeaa7';
-        warning.style.marginBottom = 'var(--space-4)';
+        warning.className = 'bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded mb-4';
         
-        let message = '⚠️ Your browser doesn\'t support direct folder saving. ';
+        let message = 'Your browser doesn\'t support direct folder saving. ';
         
         if (apiInfo.mobile) {
             if (apiInfo.ios) {
@@ -1364,17 +1459,17 @@ export class ChatGPTConverter {
         }
         
         warning.innerHTML = `
-            <div style="display: flex; align-items: flex-start; gap: var(--space-3);">
-                <svg class="icon" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" viewBox="0 0 24 24">
-                    <path d="M12,2L13.09,8.26L22,9L13.09,9.74L12,16L10.91,9.74L2,9L10.91,8.26L12,2Z"/>
-                </svg>
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
+                </div>
                 <div>
-                    <strong style="display: block; margin-bottom: var(--space-2);">Mobile Browser Detected</strong>
-                    <p style="margin: 0; line-height: 1.5;">${message}</p>
+                    <strong class="block mb-2 text-yellow-800">Mobile Browser Detected</strong>
+                    <p class="text-yellow-700 leading-normal mb-0">${message}</p>
                     ${apiInfo.mobile ? `
-                        <div style="margin-top: var(--space-3); padding: var(--space-3); background: rgba(59, 130, 246, 0.1); border-radius: var(--radius-sm); border: 1px solid rgba(59, 130, 246, 0.2);">
-                            <strong style="color: var(--accent-primary); display: block; margin-bottom: var(--space-1);">💡 Mobile Tip:</strong>
-                            <p style="margin: 0; font-size: var(--font-size-sm);">Download all files as a ZIP archive for easier file management on your device.</p>
+                        <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                            <strong class="block mb-1 text-blue-800"><i class="fas fa-lightbulb mr-1"></i>Mobile Tip:</strong>
+                            <p class="text-blue-700 text-sm mb-0">Download all files as a ZIP archive for easier file management on your device.</p>
                         </div>
                     ` : ''}
                 </div>
