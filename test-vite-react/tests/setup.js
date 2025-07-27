@@ -61,28 +61,56 @@ const mockDirectoryHandle = {
     getFileHandle: jest.fn()
 };
 
-global.document = {
-    getElementById: mockGetElementById,
-    createElement: mockCreateElement,
-    querySelector: mockQuerySelector,
-    querySelectorAll: mockQuerySelectorAll,
-    body: createMockElement('body', 'body'),
-    readyState: 'complete',
-    addEventListener: mockAddEventListener,
-    removeEventListener: mockRemoveEventListener
-};
+// Mock document methods without overriding JSDOM's body property
+if (!global.document) {
+    global.document = {};
+}
+
+// Safely add mock methods to existing document
+global.document.getElementById = mockGetElementById;
+global.document.createElement = mockCreateElement;
+global.document.querySelector = mockQuerySelector;
+global.document.querySelectorAll = mockQuerySelectorAll;
+global.document.addEventListener = mockAddEventListener;
+global.document.removeEventListener = mockRemoveEventListener;
+
+// Only set body if it doesn't exist (to avoid JSDOM conflicts)
+if (!global.document.body) {
+    global.document.body = createMockElement('body', 'body');
+}
 
 // Mock window with File System Access API support
-global.window = {
-    showDirectoryPicker: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    location: {
+if (!global.window) {
+    global.window = {};
+}
+
+// Safely add mock methods and properties to existing window
+global.window.showDirectoryPicker = jest.fn();
+global.window.addEventListener = jest.fn();
+global.window.removeEventListener = jest.fn();
+
+// Only mock location if it doesn't exist or is configurable
+if (!global.window.location) {
+    global.window.location = {
         protocol: 'https:',
         hostname: 'localhost'
-    },
-    isSecureContext: true
-};
+    };
+} else {
+    // If location exists, just set the properties we need
+    try {
+        if (global.window.location.protocol !== 'https:') {
+            // Only set if different to avoid navigation errors
+            Object.defineProperty(global.window.location, 'protocol', { value: 'https:', writable: false });
+        }
+        if (global.window.location.hostname !== 'localhost') {
+            Object.defineProperty(global.window.location, 'hostname', { value: 'localhost', writable: false });
+        }
+    } catch (e) {
+        // If we can't set them, that's ok for tests
+    }
+}
+
+global.window.isSecureContext = true;
 
 // Mock console to reduce noise in tests
 global.console = {
