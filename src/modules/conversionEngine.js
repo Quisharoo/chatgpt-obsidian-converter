@@ -156,14 +156,13 @@ export function convertConversationToMarkdown(conversation) {
 
     const lines = [fm];
 
-    // Per-message collapsible details
+    // Per-message callouts (Obsidian-friendly, collapse rules by role)
     messages.forEach((m, idx) => {
         const isUser = m.author === 'user';
         const icon = isUser ? '🧑‍💬' : '🤖';
         const label = isUser ? 'User' : 'Assistant';
         const msgDate = m.createTime ? new Date(m.createTime * 1000) : null;
         const timeLabel = msgDate ? formatLondonHHmm(msgDate) : `#${idx + 1}`;
-        const openAttr = idx === 0 ? ' open' : '';
 
         // Split content to avoid cleaning inside code
         const segments = splitByCodeFences(m.content || '');
@@ -174,13 +173,19 @@ export function convertConversationToMarkdown(conversation) {
             return normalizeText(withLinks);
         }).join('');
 
-        const safe = ensureClosedFences(processed);
+        const safe = ensureClosedFences(processed).trim();
 
-        lines.push(`<details${openAttr}>`);
-        lines.push(`<summary>${icon} ${label} — ${timeLabel}</summary>`);
-        lines.push('');
-        lines.push(safe.trim());
-        lines.push('</details>');
+        // Callout header: User open by default, Assistant collapsed by default
+        const calloutHeader = isUser
+            ? `> [!note] ${icon} ${label} — ${timeLabel}`
+            : `> [!info]- ${icon} ${label} — ${timeLabel}`;
+        lines.push(calloutHeader);
+
+        // Callout content must be quoted with a single blockquote level
+        const quotedContent = formatAsBlockquote(safe);
+        lines.push(quotedContent);
+
+        // Blank line to separate callouts (not part of the callout block)
         lines.push('');
     });
 

@@ -71,12 +71,14 @@ export function formatLondonCreatedHuman(date) {
 export function buildObsidianFilename(conversation) {
     const timestampSec = conversation.create_time || 0;
     const date = new Date(timestampSec * 1000);
-    const human = formatLondonHumanDate(date);
+    const humanDate = formatLondonHumanDate(date);
     const tz = 'Europe/London';
-    const ymdFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
-    const [yyyy, mm, dd] = ymdFormatter.format(date).split('-');
-    const hm = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit' }).format(date).replace(':', '.');
-    const filename = `${human} — ChatGPT — ${yyyy}-${mm}-${dd} ${hm}.md`;
+    const hm = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit' })
+        .format(date)
+        .replace(':', '.');
+    const rawTitle = conversation.title || 'Untitled Conversation';
+    const safeTitle = cleanFilename(rawTitle) || 'Untitled Conversation';
+    const filename = `${safeTitle} — ${humanDate} — ${hm}.md`;
     return filename;
 }
 
@@ -220,8 +222,16 @@ export function linkifyText(text) {
  */
 export function normalizeText(text) {
     let t = text.replace(/[\u00A0\t]+/g, ' ');
+    // Trim trailing spaces on each line
+    t = t.split('\n').map(line => line.replace(/\s+$/g, '')).join('\n');
+    // Collapse excessive blank lines (keep at most two)
     t = t.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
-    // Simple dash normalization for plain text (avoid heavy quote transforms)
-    t = t.replace(/\s--\s/g, ' — ');
+    // Smart punctuation normalization (outside code)
+    // Curly quotes → straight
+    t = t
+        .replace(/[\u2018\u2019\u201B]/g, "'")
+        .replace(/[\u201C\u201D\u201F]/g, '"');
+    // Em/en dashes → hyphen
+    t = t.replace(/[\u2013\u2014]/g, '-');
     return t;
 }

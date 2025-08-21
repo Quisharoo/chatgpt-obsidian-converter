@@ -41,9 +41,9 @@ describe('Conversion Engine', () => {
             // Frontmatter present
             expect(result).toContain('---');
             expect(result).toContain('tags: [chatgpt]');
-            // Collapsible summaries with role icons/labels
-            expect(result).toContain('<summary>🧑‍💬 User');
-            expect(result).toContain('<summary>🤖 Assistant');
+            // Callout headers with role icons/labels
+            expect(result).toMatch(/> \[!note\] 🧑‍💬 User — (\d{2}:\d{2}|#1)/);
+            expect(result).toMatch(/> \[!info\]- 🤖 Assistant — (\d{2}:\d{2}|#2)/);
             expect(result).toContain('Hello, how are you?');
             expect(result).toContain('I am doing well, thank you!');
         });
@@ -310,9 +310,9 @@ describe('Conversion Engine', () => {
             const result = convertConversationToMarkdown(conversation);
             expect(result).toContain('Valid message');
             expect(result).toContain('Another valid message');
-            // Should not contain empty assistant message
-            const assistantCount = (result.match(/🤖 \*\*Assistant:\*\*/g) || []).length;
-            expect(assistantCount).toBe(0);
+            // Should not render empty assistant message callout
+            const assistantCallouts = (result.match(/> \[!info\]- 🤖 Assistant/g) || []).length;
+            expect(assistantCallouts).toBe(0);
         });
     });
 
@@ -348,13 +348,13 @@ describe('Conversion Engine', () => {
             expect(results.files).toHaveLength(1);
             
             const file = results.files[0];
-            expect(file.filename).toContain(' — ChatGPT — ');
+            expect(file.filename).toMatch(/.+ — [A-Za-z]+, [A-Za-z]+ \d{1,2}(st|nd|rd|th) \d{4} — \d{2}\.\d{2}\.md$/);
             expect(file.filename).toMatch(/\.md$/);
             expect(file.title).toBe('First Conversation');
             expect(file.conversationId).toBe('conv_1');
             expect(file.createTime).toBe(1703522622);
             expect(file.createdDate).toBe(new Date(1703522622 * 1000).toLocaleDateString());
-            expect(file.content).toContain('<summary>🧑‍💬 User');
+            expect(file.content).toMatch(/> \[!note\] 🧑‍💬 User — (\d{2}:\d{2}|#\d+)/);
             expect(file.content).toContain('Test message');
         });
 
@@ -507,8 +507,8 @@ describe('Conversion Engine', () => {
 
             const results = processConversations(conversations, mockProcessedIds);
 
-            expect(results.files[0].filename).toContain(' — ChatGPT — ');
-            expect(results.files[1].filename).toContain(' — ChatGPT — ');
+            expect(results.files[0].filename).toMatch(/.+ — [A-Za-z]+, [A-Za-z]+ \d{1,2}(st|nd|rd|th) \d{4} — \d{2}\.\d{2}( \(\d+\))?\.md$/);
+            expect(results.files[1].filename).toMatch(/.+ — [A-Za-z]+, [A-Za-z]+ \d{1,2}(st|nd|rd|th) \d{4} — \d{2}\.\d{2}( \(\d+\))?\.md$/);
             expect(results.files[0].filename).not.toBe(results.files[1].filename);
         });
 
