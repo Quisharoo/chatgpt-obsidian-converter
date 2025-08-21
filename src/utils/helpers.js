@@ -249,3 +249,25 @@ export function normalizeText(text) {
     t = t.replace(/[\u2013\u2014]/g, '-');
     return t;
 }
+
+/**
+ * Demote heading levels in plain text (outside code blocks).
+ * Ensures outer H2 message headings remain the highest level within the message.
+ * Example: '## Title' -> '### Title' when minLevel = 2
+ */
+export function demoteHeadings(text, minLevel = 2) {
+    // Process line-by-line; only adjust lines that start with heading hashes
+    return text
+        .split('\n')
+        .map(line => {
+            const match = line.match(/^(#{1,6})\s+(.*)$/);
+            if (!match) return line;
+            const level = match[1].length;
+            if (level >= minLevel) {
+                const newLevel = Math.min(level + 1, 6);
+                return `${'#'.repeat(newLevel)} ${match[2]}`;
+            }
+            return line;
+        })
+        .join('\n');
+}
