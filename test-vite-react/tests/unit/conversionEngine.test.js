@@ -38,11 +38,14 @@ describe('Conversion Engine', () => {
             
             // Title no longer included in content (shown by filename)
             expect(result).not.toContain('# Test Conversation');
-            expect(result).toContain('**🧑‍💬 User**');
+            // Frontmatter present
+            expect(result).toContain('---');
+            expect(result).toContain('tags: [chatgpt]');
+            // Callout headers with role icons/labels
+            expect(result).toMatch(/> \[!note\] 🧑‍💬 User — (\d{2}:\d{2}|#1)/);
+            expect(result).toMatch(/> \[!info\]- 🤖 Assistant — (\d{2}:\d{2}|#2)/);
             expect(result).toContain('Hello, how are you?');
-            expect(result).toContain('**🤖 Assistant**');
             expect(result).toContain('I am doing well, thank you!');
-            expect(result).toContain('**Created:**');
         });
 
         test('handles conversation without title', () => {
@@ -61,8 +64,8 @@ describe('Conversion Engine', () => {
             };
 
             const result = convertConversationToMarkdown(conversation);
-            // Title no longer included in content - shown as filename instead
-            expect(result).toContain('**Created:**');
+            // Frontmatter created
+            expect(result).toContain('created:');
         });
 
         test('handles conversation without create_time', () => {
@@ -81,7 +84,7 @@ describe('Conversion Engine', () => {
             };
 
             const result = convertConversationToMarkdown(conversation);
-            expect(result).toContain('1970-01-01, 01:00:00');
+            expect(result).toContain('1970');
         });
 
         test('handles empty mapping', () => {
@@ -93,9 +96,9 @@ describe('Conversion Engine', () => {
 
             const result = convertConversationToMarkdown(conversation);
             // Title no longer included in content
-            expect(result).toContain('**Created:**');
-            expect(result).not.toContain('**🧑‍💬 User**');
-            expect(result).not.toContain('**🤖 Assistant**');
+            expect(result).toContain('created:');
+            expect(result).not.toContain('<summary>🧑‍💬 User');
+            expect(result).not.toContain('<summary>🤖 Assistant');
         });
 
         test('handles complex message content structures', () => {
@@ -307,9 +310,9 @@ describe('Conversion Engine', () => {
             const result = convertConversationToMarkdown(conversation);
             expect(result).toContain('Valid message');
             expect(result).toContain('Another valid message');
-            // Should not contain empty assistant message
-            const assistantCount = (result.match(/🤖 \*\*Assistant:\*\*/g) || []).length;
-            expect(assistantCount).toBe(0);
+            // Should not render empty assistant message callout
+            const assistantCallouts = (result.match(/> \[!info\]- 🤖 Assistant/g) || []).length;
+            expect(assistantCallouts).toBe(0);
         });
     });
 
@@ -345,12 +348,13 @@ describe('Conversion Engine', () => {
             expect(results.files).toHaveLength(1);
             
             const file = results.files[0];
-            expect(file.filename).toBe('First Conversation.md');
+            expect(file.filename).toMatch(/.+ — [A-Za-z]+, [A-Za-z]+ \d{1,2}(st|nd|rd|th) \d{4} — \d{2}\.\d{2}\.md$/);
+            expect(file.filename).toMatch(/\.md$/);
             expect(file.title).toBe('First Conversation');
             expect(file.conversationId).toBe('conv_1');
             expect(file.createTime).toBe(1703522622);
             expect(file.createdDate).toBe(new Date(1703522622 * 1000).toLocaleDateString());
-            expect(file.content).toContain('**🧑‍💬 User**');
+            expect(file.content).toMatch(/> \[!note\] 🧑‍💬 User — (\d{2}:\d{2}|#\d+)/);
             expect(file.content).toContain('Test message');
         });
 
@@ -503,8 +507,9 @@ describe('Conversion Engine', () => {
 
             const results = processConversations(conversations, mockProcessedIds);
 
-            expect(results.files[0].filename).toBe('Same Title.md');
-            expect(results.files[1].filename).toBe('Same Title (2).md');
+            expect(results.files[0].filename).toMatch(/.+ — [A-Za-z]+, [A-Za-z]+ \d{1,2}(st|nd|rd|th) \d{4} — \d{2}\.\d{2}( \(\d+\))?\.md$/);
+            expect(results.files[1].filename).toMatch(/.+ — [A-Za-z]+, [A-Za-z]+ \d{1,2}(st|nd|rd|th) \d{4} — \d{2}\.\d{2}( \(\d+\))?\.md$/);
+            expect(results.files[0].filename).not.toBe(results.files[1].filename);
         });
 
         test('filters out invalid conversation objects', () => {

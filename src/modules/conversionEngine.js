@@ -4,7 +4,18 @@
  * Following AGENTS.md principle: focused, single-responsibility modules
  */
 
-import { generateUniqueFilename, formatTimestamp, sortConversationsChronologically } from '../utils/helpers.js';
+import { 
+    generateUniqueFilename, 
+    formatTimestamp, 
+    sortConversationsChronologically,
+    buildObsidianFilename,
+    formatLondonCreatedHuman,
+    formatLondonHHmm,
+    splitByCodeFences,
+    ensureClosedFences,
+    linkifyText,
+    normalizeText
+} from '../utils/helpers.js';
 import { logInfo, logDebug } from '../utils/logger.js';
 
 /**
@@ -80,6 +91,7 @@ function findRootMessage(mapping) {
 function extractMessageContent(message) {
     const author = message.author?.role || 'unknown';
     const content = message.content || {};
+    const createTime = message.create_time || null;
     
     let textContent = '';
     if (typeof content === 'object' && content.parts) {
@@ -93,7 +105,8 @@ function extractMessageContent(message) {
     
     return {
         author: author,
-        content: textContent.trim()
+        content: textContent.trim(),
+        createTime
     };
 }
 
@@ -129,35 +142,54 @@ export function convertConversationToMarkdown(conversation) {
     const mapping = conversation.mapping || {};
     
     const messages = extractMessagesFromMapping(mapping);
-    
-            // Build Markdown with clean structure
-    // Format timestamp as YYYY-MM-DD, HH:mm:ss for consistency
-    const timestamp = new Date(createTime * 1000);
-    const formattedTimestamp = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}, ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}:${String(timestamp.getSeconds()).padStart(2, '0')}`;
-    
-    const contentLines = [
-        `**Created:** ${formattedTimestamp}`,
-        '',
+    // Frontmatter (Obsidian-optimized)
+    const baseDate = new Date(createTime * 1000);
+    const createdHuman = formatLondonCreatedHuman(baseDate);
+    const fm = [
+        '---',
+        `created: ${createdHuman}`,
+        'tags: [chatgpt]',
+        conversation?.url ? `url: ${conversation.url}` : null,
         '---',
         ''
-    ];
-    
-            // Add formatted messages with clean styling
-    for (const message of messages) {
-        const authorDisplay = message.author === 'user' 
-            ? '**🧑‍💬 User**' 
-            : '**🤖 Assistant**';
-        
-        contentLines.push(authorDisplay);
-        contentLines.push('');
-        
-        // Format content as blockquotes while preserving original formatting
-        const blockquotedContent = formatAsBlockquote(message.content);
-        contentLines.push(blockquotedContent);
-        contentLines.push('');
-    }
-    
-    const content = contentLines.join('\n');
+    ].filter(Boolean).join('\n');
+
+    const lines = [fm];
+
+    // Per-message callouts (Obsidian-friendly, collapse rules by role)
+    messages.forEach((m, idx) => {
+        const isUser = m.author === 'user';
+        const icon = isUser ? '🧑‍💬' : '🤖';
+        const label = isUser ? 'User' : 'Assistant';
+        const msgDate = m.createTime ? new Date(m.createTime * 1000) : null;
+        const timeLabel = msgDate ? formatLondonHHmm(msgDate) : `#${idx + 1}`;
+
+        // Split content to avoid cleaning inside code
+        const segments = splitByCodeFences(m.content || '');
+        const processed = segments.map(seg => {
+            if (seg.type === 'code') return seg.content; // preserve as-is
+            // outside code: cleanup
+            const withLinks = linkifyText(seg.content);
+            return normalizeText(withLinks);
+        }).join('');
+
+        const safe = ensureClosedFences(processed).trim();
+
+        // Callout header: User open by default, Assistant collapsed by default
+        const calloutHeader = isUser
+            ? `> [!note] ${icon} ${label} — ${timeLabel}`
+            : `> [!info]- ${icon} ${label} — ${timeLabel}`;
+        lines.push(calloutHeader);
+
+        // Callout content must be quoted with a single blockquote level
+        const quotedContent = formatAsBlockquote(safe);
+        lines.push(quotedContent);
+
+        // Blank line to separate callouts (not part of the callout block)
+        lines.push('');
+    });
+
+    const content = lines.join('\n');
     // Clean broken citation artifacts (e.g., citeturn0search12.)
     // Unicode range \uE000-\uF8FF is Private Use Area, covers these weird chars
     const cleanedContent = cleanCitationArtifacts(content);
@@ -257,8 +289,17 @@ function processSingleConversation(conversation, processedIds, usedFilenames) {
     // Convert to Markdown
     const markdownContent = convertConversationToMarkdown(conversation);
     
-    // Generate unique filename
-    const filename = generateUniqueFilename(conversation, usedFilenames);
+    // Generate obsidian-optimized filename
+    let filename = buildObsidianFilename(conversation);
+    // Ensure uniqueness in session
+    let counter = 2;
+    while (usedFilenames.includes(filename)) {
+        const dot = filename.lastIndexOf('.');
+        const base = filename.slice(0, dot);
+        const ext = filename.slice(dot);
+        filename = `${base} (${counter})${ext}`;
+        counter++;
+    }
     usedFilenames.push(filename);
     
     return {
