@@ -271,3 +271,16 @@ export function demoteHeadings(text, minLevel = 2) {
         })
         .join('\n');
 }
+
+/**
+ * Prevent unintended Setext H2 headings from '---' lines under text.
+ * Convert standalone '---' lines to '***' so they render as horizontal rules
+ * without turning the previous line into a Setext heading in Obsidian/CommonMark.
+ * Applies only to plain text (not code fences) at message level.
+ */
+export function avoidSetextFromHyphens(text) {
+    return text
+        .split('\n')
+        .map(line => (/^\s{0,3}-{3,}\s*$/.test(line) ? '***' : line))
+        .join('\n');
+}

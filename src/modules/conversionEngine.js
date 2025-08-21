@@ -15,7 +15,8 @@ import {
     ensureClosedFences,
     linkifyText,
     normalizeText,
-    demoteHeadings
+    demoteHeadings,
+    avoidSetextFromHyphens
 } from '../utils/helpers.js';
 import { logInfo, logDebug } from '../utils/logger.js';
 
@@ -181,7 +182,8 @@ export function convertConversationToMarkdown(conversation) {
             return demoted;
         }).join('');
 
-        const safe = ensureClosedFences(processed).trim();
+        // Avoid Setext H2 from '---' lines and ensure fences closed
+        const safe = ensureClosedFences(avoidSetextFromHyphens(processed)).trim();
 
         // Heading style for foldable sections in Obsidian Reading/Edit modes
         const heading = `## ${icon} ${label} — ${timeLabel}`;
