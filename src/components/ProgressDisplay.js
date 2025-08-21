@@ -182,7 +182,8 @@ export class ProgressDisplay {
             // For conversion operations, show the Upload view progress card
             const conversionProgressCard = document.getElementById('conversionProgressCard');
             if (conversionProgressCard) {
-                conversionProgressCard.classList.remove('hidden');
+                conversionProgressCard.classList.remove && conversionProgressCard.classList.remove('hidden');
+                conversionProgressCard.style.display = 'block';
                 logInfo('✅ Conversion progress card made visible in Upload view');
             } else {
                 logWarn('⚠️ Conversion progress card element not found');
@@ -217,14 +218,22 @@ export class ProgressDisplay {
         // Hide both progress cards
         const progressCard = document.getElementById('progressCard');
         if (progressCard) {
-            progressCard.classList.add('hidden');
+            progressCard.classList.add && progressCard.classList.add('hidden');
+            progressCard.style.display = 'none';
             logInfo('✅ Progress card hidden');
         }
         
         const conversionProgressCard = document.getElementById('conversionProgressCard');
         if (conversionProgressCard) {
-            conversionProgressCard.classList.add('hidden');
+            conversionProgressCard.classList.add && conversionProgressCard.classList.add('hidden');
+            conversionProgressCard.style.display = 'none';
             logInfo('✅ Conversion progress card hidden');
+        }
+
+        // Show upload card again when hiding conversion progress
+        const uploadCard = document.getElementById('uploadCard');
+        if (uploadCard) {
+            uploadCard.style.display = 'block';
         }
     }
 

@@ -32,7 +32,7 @@ import {
     message, 
     formatFileSize 
 } from '../utils/strings.js';
-import accessibilityManager from '../utils/accessibility.js';
+import { accessibilityManager } from '../utils/accessibility.js';
 
 /**
  * ChatGPT to Markdown Application
@@ -79,8 +79,8 @@ export class ChatGPTConverter {
             // Announce initialization to screen readers
             accessibilityManager.announceStatus(initMessage, 'success');
             
-        } catch (error) {
-            logError('❌ Failed to initialize application:', error);
+        } catch (e) {
+            logError('❌ Failed to initialize application:', e);
             const errorMessage = error('FAILED_TO_INITIALIZE');
             this.showError(errorMessage);
             accessibilityManager.announceStatus(errorMessage, 'error');

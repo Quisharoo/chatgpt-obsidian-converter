@@ -211,13 +211,11 @@ describe('Utility Functions', () => {
         let converter;
         
         beforeEach(() => {
-            // Mock DOM elements that the converter expects
-            global.document = {
-                getElementById: jest.fn().mockReturnValue(null),
-                createElement: jest.fn().mockReturnValue({}),
-                addEventListener: jest.fn()
-            };
-            
+            // Mock DOM elements that the converter expects without redefining document
+            global.document.getElementById = jest.fn().mockReturnValue(null);
+            global.document.createElement = jest.fn().mockReturnValue({});
+            global.document.addEventListener = jest.fn();
+
             converter = new ChatGPTConverter();
             converter.currentSort = 'title';
             converter.sortDirection = 'asc';
@@ -322,11 +320,11 @@ describe('Utility Functions', () => {
         test('updateSortIndicators shows only active column arrow', () => {
             // Mock DOM elements for sort indicators
             const titleIndicator = {
-                style: { color: '' },
+                className: '',
                 textContent: ''
             };
             const dateIndicator = {
-                style: { color: '' },
+                className: '',
                 textContent: ''
             };
             
@@ -342,9 +340,9 @@ describe('Utility Functions', () => {
             converter.sortDirection = 'asc';
             converter.updateSortIndicators();
             
-            expect(titleIndicator.style.color).toBe('#007bff');
+            expect(titleIndicator.className).toBe('text-indigo-600');
             expect(titleIndicator.textContent).toBe('▲');
-            expect(dateIndicator.style.color).toBe('#ccc');
+            expect(dateIndicator.className).toBe('text-gray-400');
             expect(dateIndicator.textContent).toBe('');
             
             // Test date column active (descending)
@@ -352,9 +350,9 @@ describe('Utility Functions', () => {
             converter.sortDirection = 'desc';
             converter.updateSortIndicators();
             
-            expect(titleIndicator.style.color).toBe('#ccc');
+            expect(titleIndicator.className).toBe('text-gray-400');
             expect(titleIndicator.textContent).toBe('');
-            expect(dateIndicator.style.color).toBe('#007bff');
+            expect(dateIndicator.className).toBe('text-indigo-600');
             expect(dateIndicator.textContent).toBe('▼');
         });
 

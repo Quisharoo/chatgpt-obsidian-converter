@@ -7,6 +7,80 @@
 import { FILE_SYSTEM, PROCESSING_CONFIG } from './constants.js';
 
 /**
+ * Get ordinal suffix for a day of month
+ * @param {number} day
+ * @returns {string}
+ */
+function getOrdinalSuffix(day) {
+    const j = day % 10, k = day % 100;
+    if (j === 1 && k !== 11) return 'st';
+    if (j === 2 && k !== 12) return 'nd';
+    if (j === 3 && k !== 13) return 'rd';
+    return 'th';
+}
+
+/**
+ * Format a Date to London timezone parts
+ * @param {Date} date
+ * @returns {{weekday:string, month:string, day:number, year:number, hour12:number, minute:number, ampm:string}}
+ */
+export function getLondonParts(date) {
+    const tz = 'Europe/London';
+    const dateFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const timeFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true });
+    const dParts = dateFormatter.formatToParts(date);
+    const tParts = timeFormatter.formatToParts(date);
+    const mapParts = (parts) => Object.fromEntries(parts.map(p => [p.type, p.value]));
+    const d = mapParts(dParts);
+    const t = mapParts(tParts);
+    const hour12 = parseInt(t.hour || '0', 10);
+    const minute = parseInt((t.minute || '0').padStart(2, '0'), 10);
+    const ampm = (t.dayPeriod || '').toLowerCase();
+    return { weekday: d.weekday, month: d.month, day: parseInt(d.day || '0', 10), year: parseInt(d.year || '0', 10), hour12, minute, ampm };
+}
+
+/**
+ * Format human-readable London date with ordinals, e.g., Monday, August 18th 2025
+ */
+export function formatLondonHumanDate(date) {
+    const p = getLondonParts(date);
+    return `${p.weekday}, ${p.month} ${p.day}${getOrdinalSuffix(p.day)} ${p.year}`;
+}
+
+/**
+ * Format London time HH:mm (24-hour)
+ */
+export function formatLondonHHmm(date) {
+    const tz = 'Europe/London';
+    const f = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+    return f.format(date);
+}
+
+/**
+ * Format London created string for frontmatter: Monday, August 18th 2025, 1:23 pm
+ */
+export function formatLondonCreatedHuman(date) {
+    const p = getLondonParts(date);
+    return `${p.weekday}, ${p.month} ${p.day}${getOrdinalSuffix(p.day)} ${p.year}, ${p.hour12}:${String(p.minute).padStart(2, '0')} ${p.ampm}`;
+}
+
+/**
+ * Build Obsidian filename: <HumanTitle> — ChatGPT — YYYY-MM-DD HH.mm.md
+ * HumanTitle is the London human date with ordinals
+ */
+export function buildObsidianFilename(conversation) {
+    const timestampSec = conversation.create_time || 0;
+    const date = new Date(timestampSec * 1000);
+    const human = formatLondonHumanDate(date);
+    const tz = 'Europe/London';
+    const ymdFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const [yyyy, mm, dd] = ymdFormatter.format(date).split('-');
+    const hm = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit' }).format(date).replace(':', '.');
+    const filename = `${human} — ChatGPT — ${yyyy}-${mm}-${dd} ${hm}.md`;
+    return filename;
+}
+
+/**
  * Clean text for safe filename usage while maintaining readability
  * WHY: Filenames must be filesystem-compatible but remain human-readable
  * 
@@ -96,3 +170,58 @@ export function sortConversationsChronologically(conversations) {
             return timeA - timeB; // Ascending order (oldest first)
         });
 } 
+
+/**
+ * Split content into alternating text/code segments using fenced blocks
+ * Returns array of { type: 'text'|'code', fence?: string, content: string }
+ */
+export function splitByCodeFences(content) {
+    const segments = [];
+    const fenceRegex = /```([a-zA-Z0-9_-]*)\n[\s\S]*?```/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = fenceRegex.exec(content)) !== null) {
+        const start = match.index;
+        if (start > lastIndex) {
+            segments.push({ type: 'text', content: content.slice(lastIndex, start) });
+        }
+        const lang = match[1] || '';
+        const fenceBlock = match[0];
+        segments.push({ type: 'code', fence: lang || 'txt', content: fenceBlock });
+        lastIndex = start + fenceBlock.length;
+    }
+    if (lastIndex < content.length) {
+        segments.push({ type: 'text', content: content.slice(lastIndex) });
+    }
+    return segments;
+}
+
+/**
+ * Ensure all code fences are closed; if odd number, append closing ```txt
+ */
+export function ensureClosedFences(markdown) {
+    const count = (markdown.match(/```/g) || []).length;
+    if (count % 2 === 1) {
+        return markdown + '\n```txt\n';
+    }
+    return markdown;
+}
+
+/**
+ * Linkify bare URLs in plain text segments
+ */
+export function linkifyText(text) {
+    const urlRegex = /(?<!\]\()\b(https?:\/\/[\w.-]+(?:\/[\w\-._~:/?#[\]@!$&'()*+,;=%]*)?)/g;
+    return text.replace(urlRegex, (url) => `[${url}](${url})`);
+}
+
+/**
+ * Normalize whitespace and basic punctuation (outside code)
+ */
+export function normalizeText(text) {
+    let t = text.replace(/[\u00A0\t]+/g, ' ');
+    t = t.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+    // Simple dash normalization for plain text (avoid heavy quote transforms)
+    t = t.replace(/\s--\s/g, ' — ');
+    return t;
+}

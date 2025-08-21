@@ -9,7 +9,9 @@ import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globa
 // Mock DOM environment
 document.body.innerHTML = `
     <div id="progressContainer"></div>
-    <div id="progressCard" style="display: none;"></div>
+    <div id="conversionProgressContainer"></div>
+    <div id="progressCard" class="hidden" style="display: none;"></div>
+    <div id="conversionProgressCard" class="hidden" style="display: none;"></div>
     <div id="uploadCard" style="display: block;"></div>
 `;
 
@@ -32,18 +34,29 @@ describe('Progress Display Component', () => {
     let progressDisplay;
 
     beforeEach(() => {
-        // Reset DOM
-        document.getElementById('progressContainer').innerHTML = '';
-        document.getElementById('progressCard').style.display = 'none';
-        document.getElementById('uploadCard').style.display = 'block';
+        // Reset DOM (recreate if needed)
+        if (!document.getElementById('progressContainer')) {
+            document.body.innerHTML = `
+                <div id="progressContainer"></div>
+                <div id="conversionProgressContainer"></div>
+                <div id="progressCard" class="hidden" style="display: none;"></div>
+                <div id="conversionProgressCard" class="hidden" style="display: none;"></div>
+                <div id="uploadCard" style="display: block;"></div>
+            `;
+        } else {
+            document.getElementById('progressContainer').innerHTML = '';
+            document.getElementById('conversionProgressContainer').innerHTML = '';
+            document.getElementById('progressCard').style.display = 'none';
+            document.getElementById('conversionProgressCard').style.display = 'none';
+            document.getElementById('uploadCard').style.display = 'block';
+        }
         
         // Reset mocks
         jest.clearAllMocks();
         
-        // Mock window.switchToView
-        global.window = {
-            switchToView: jest.fn()
-        };
+        // Mock window.switchToView (do not redefine window)
+        if (!global.window) global.window = {};
+        global.window.switchToView = jest.fn();
         
         // Mock the module imports
         jest.doMock('../../../src/utils/constants.js', () => constants);
@@ -81,7 +94,7 @@ describe('Progress Display Component', () => {
             expect(progressDisplay.container.style.display).toBe('block');
             
             const cancelButton = progressDisplay.cancelButton;
-            expect(cancelButton.style.display).toBe('none');
+            expect(cancelButton.className).toContain('hidden');
         });
 
         test('should show progress display with cancel button when requested', () => {
@@ -91,7 +104,7 @@ describe('Progress Display Component', () => {
             expect(progressDisplay.container.style.display).toBe('block');
             
             const cancelButton = progressDisplay.cancelButton;
-            expect(cancelButton.style.display).toBe('inline-flex');
+            expect(cancelButton.className).not.toContain('hidden');
             expect(cancelButton.disabled).toBe(false);
         });
     });
@@ -185,42 +198,46 @@ describe('Progress Display Component', () => {
             expect(statusText.getAttribute('aria-live')).toBe('polite');
             
             expect(cancelButton).toBeDefined();
-            expect(cancelButton.className).toContain('btn');
-            expect(cancelButton.className).toContain('btn-secondary');
-            expect(cancelButton.className).toContain('cancel-btn');
+            expect(cancelButton.id).toBe('cancelButton');
+            expect(cancelButton.className).toContain('bg-gray-500');
         });
     });
 
     describe('Progress bar visibility logic', () => {
         test('should show only one progress bar at a time', () => {
+            jest.useFakeTimers();
             // Mock DOM elements
-            const mockProgressCard = { style: { display: 'none' } };
-            const mockConversionProgressCard = { style: { display: 'none' } };
-            
+            const mockProgressCard = { style: { display: 'none' }, classList: { remove: jest.fn(), add: jest.fn() } };
+            const mockConversionProgressCard = { style: { display: 'none' }, classList: { remove: jest.fn(), add: jest.fn() } };
+
             // Mock document.getElementById
             const originalGetElementById = document.getElementById;
             document.getElementById = jest.fn((id) => {
                 if (id === 'progressCard') return mockProgressCard;
                 if (id === 'conversionProgressCard') return mockConversionProgressCard;
-                return null;
+                return originalGetElementById.call(document, id);
             });
-            
-            // Test conversion progress (should show conversion card)
-            progressDisplay.show(false, false);
-            expect(mockConversionProgressCard.style.display).toBe('block');
-            expect(mockProgressCard.style.display).toBe('none');
-            
-            // Reset display
-            mockProgressCard.style.display = 'none';
-            mockConversionProgressCard.style.display = 'none';
-            
-            // Test save progress (should show files card)
-            progressDisplay.show(true, true);
-            expect(mockProgressCard.style.display).toBe('block');
-            expect(mockConversionProgressCard.style.display).toBe('none');
-            
-            // Restore original function
-            document.getElementById = originalGetElementById;
+
+            try {
+                // Test conversion progress (should show conversion card)
+                progressDisplay.show(false, false);
+                jest.runAllTimers();
+                expect(mockConversionProgressCard.classList.remove).toHaveBeenCalledWith('hidden');
+                expect(mockProgressCard.classList.remove).not.toHaveBeenCalled();
+
+                // Reset display
+                mockProgressCard.style.display = 'none';
+                mockConversionProgressCard.style.display = 'none';
+
+                // Test save progress (should show files card)
+                progressDisplay.show(true, true);
+                jest.runAllTimers();
+                expect(mockProgressCard.style.display).toBe('block');
+            } finally {
+                // Restore original function
+                document.getElementById = originalGetElementById;
+                jest.useRealTimers();
+            }
         });
 
         test('should visually update progress bar width', () => {

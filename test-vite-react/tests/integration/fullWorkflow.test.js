@@ -88,16 +88,17 @@ describe('Full Workflow Integration Tests', () => {
 
             // Verify file generation
             const firstFile = results.files[0];
-            expect(firstFile.filename).toBe('Test Integration Workflow.md');
+            expect(firstFile.filename).toContain(' — ChatGPT — ');
             // Title no longer included in content (shown by filename)
             expect(firstFile.content).not.toContain('# Test Integration Workflow');
-            expect(firstFile.content).toContain('**🧑‍💬 User**');
+            expect(firstFile.content).toContain('<summary>🧑‍💬 User');
             // Verify markdown content structure and formatting
             expect(firstFile.content).toContain('How do I test modular JavaScript?');
-            expect(firstFile.content).toContain('**🤖 Assistant**');
+            expect(firstFile.content).toContain('<summary>🤖 Assistant');
             expect(firstFile.content).toContain('You can use Jest with ES modules');
-            expect(firstFile.content).toContain('> What about testing file operations?');
-            expect(firstFile.content).toContain('> For file operations, you should mock the File System Access API');
+            // Collapsible content should include both user and assistant messages
+            expect(firstFile.content).toContain('What about testing file operations?');
+            expect(firstFile.content).toContain('For file operations, you should mock the File System Access API');
 
             // Verify chronological ordering
             expect(results.files[0].title).toBe('Test Integration Workflow');
@@ -382,9 +383,9 @@ describe('Full Workflow Integration Tests', () => {
             expect(results.processed).toBe(2);
             expect(results.files).toHaveLength(2);
             
-            // Both should generate basic markdown with timestamp (titles in filenames)
-            expect(results.files[0].content).toContain('**Created:**');
-            expect(results.files[1].content).toContain('**Created:**');
+            // Both should generate YAML frontmatter and created time
+            expect(results.files[0].content).toContain('created:');
+            expect(results.files[1].content).toContain('created:');
         });
 
         test('handles conversations with complex nested message structures', () => {

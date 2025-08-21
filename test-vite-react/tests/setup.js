@@ -66,13 +66,25 @@ if (!global.document) {
     global.document = {};
 }
 
-// Safely add mock methods to existing document
-global.document.getElementById = mockGetElementById;
-global.document.createElement = mockCreateElement;
-global.document.querySelector = mockQuerySelector;
-global.document.querySelectorAll = mockQuerySelectorAll;
-global.document.addEventListener = mockAddEventListener;
-global.document.removeEventListener = mockRemoveEventListener;
+// Safely add mock methods to existing document ONLY if not provided by JSDOM
+if (typeof global.document.getElementById !== 'function') {
+    global.document.getElementById = mockGetElementById;
+}
+if (typeof global.document.createElement !== 'function') {
+    global.document.createElement = mockCreateElement;
+}
+if (typeof global.document.querySelector !== 'function') {
+    global.document.querySelector = mockQuerySelector;
+}
+if (typeof global.document.querySelectorAll !== 'function') {
+    global.document.querySelectorAll = mockQuerySelectorAll;
+}
+if (typeof global.document.addEventListener !== 'function') {
+    global.document.addEventListener = mockAddEventListener;
+}
+if (typeof global.document.removeEventListener !== 'function') {
+    global.document.removeEventListener = mockRemoveEventListener;
+}
 
 // Only set body if it doesn't exist (to avoid JSDOM conflicts)
 if (!global.document.body) {
