@@ -94,11 +94,14 @@ function extractMessageContent(message) {
     const createTime = message.create_time || null;
     
     let textContent = '';
-    if (typeof content === 'object' && content.parts) {
-        // Filter out non-string parts (citations, web search results, etc.)
-        // to prevent garbled text like "citeturn0search2turn0search0"
-        const textParts = content.parts.filter(part => typeof part === 'string');
-        textContent = textParts.join('');
+    if (typeof content === 'object' && Array.isArray(content.parts)) {
+        const parts = content.parts;
+        const mapped = parts.map(part => {
+            if (typeof part === 'string') return part;
+            // Placeholder for non-text parts (images, citations, etc.)
+            return '_Image omitted_';
+        });
+        textContent = mapped.join('');
     } else if (typeof content === 'string') {
         textContent = content;
     }
@@ -145,18 +148,19 @@ export function convertConversationToMarkdown(conversation) {
     // Frontmatter (Obsidian-optimized)
     const baseDate = new Date(createTime * 1000);
     const createdHuman = formatLondonCreatedHuman(baseDate);
+    const convUrl = conversation?.id ? `https://chat.openai.com/c/${conversation.id}` : null;
     const fm = [
         '---',
         `created: ${createdHuman}`,
         'tags: [chatgpt]',
-        conversation?.url ? `url: ${conversation.url}` : null,
+        convUrl ? `url: ${convUrl}` : null,
         '---',
         ''
     ].filter(Boolean).join('\n');
 
     const lines = [fm];
 
-    // Per-message callouts (Obsidian-friendly, collapse rules by role)
+    // Per-message sections rendered as headings (foldable in Obsidian)
     messages.forEach((m, idx) => {
         const isUser = m.author === 'user';
         const icon = isUser ? '🧑‍💬' : '🤖';
@@ -175,17 +179,11 @@ export function convertConversationToMarkdown(conversation) {
 
         const safe = ensureClosedFences(processed).trim();
 
-        // Callout header: User open by default, Assistant collapsed by default
-        const calloutHeader = isUser
-            ? `> [!note] ${icon} ${label} — ${timeLabel}`
-            : `> [!info]- ${icon} ${label} — ${timeLabel}`;
-        lines.push(calloutHeader);
-
-        // Callout content must be quoted with a single blockquote level
-        const quotedContent = formatAsBlockquote(safe);
-        lines.push(quotedContent);
-
-        // Blank line to separate callouts (not part of the callout block)
+        // Heading style for foldable sections in Obsidian Reading/Edit modes
+        const heading = `## ${icon} ${label} — ${timeLabel}`;
+        lines.push(heading);
+        lines.push('');
+        lines.push(safe);
         lines.push('');
     });
 

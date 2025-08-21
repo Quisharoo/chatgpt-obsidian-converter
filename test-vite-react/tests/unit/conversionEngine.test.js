@@ -41,9 +41,9 @@ describe('Conversion Engine', () => {
             // Frontmatter present
             expect(result).toContain('---');
             expect(result).toContain('tags: [chatgpt]');
-            // Callout headers with role icons/labels
-            expect(result).toMatch(/> \[!note\] 🧑‍💬 User — (\d{2}:\d{2}|#1)/);
-            expect(result).toMatch(/> \[!info\]- 🤖 Assistant — (\d{2}:\d{2}|#2)/);
+            // Heading sections with role icons/labels
+            expect(result).toMatch(/## 🧑‍💬 User — (\d{2}:\d{2}|#1)/);
+            expect(result).toMatch(/## 🤖 Assistant — (\d{2}:\d{2}|#2)/);
             expect(result).toContain('Hello, how are you?');
             expect(result).toContain('I am doing well, thank you!');
         });
@@ -97,6 +97,7 @@ describe('Conversion Engine', () => {
             const result = convertConversationToMarkdown(conversation);
             // Title no longer included in content
             expect(result).toContain('created:');
+            expect(result).toContain('---');
             expect(result).not.toContain('<summary>🧑‍💬 User');
             expect(result).not.toContain('<summary>🤖 Assistant');
         });
@@ -166,8 +167,8 @@ describe('Conversion Engine', () => {
             };
 
             const result = convertConversationToMarkdown(conversation);
-            // Should only contain the text parts, not the garbled object strings
-            expect(result).toContain('This is text content and this continues the text with more text.');
+            // Should include image placeholders for non-text parts
+            expect(result).toContain('This is text content_Image omitted_ and this continues the text_Image omitted_ with more text.');
             // Should not contain the garbled citation text
             expect(result).not.toContain('citeturn');
             expect(result).not.toContain('[object Object]');
@@ -310,9 +311,9 @@ describe('Conversion Engine', () => {
             const result = convertConversationToMarkdown(conversation);
             expect(result).toContain('Valid message');
             expect(result).toContain('Another valid message');
-            // Should not render empty assistant message callout
-            const assistantCallouts = (result.match(/> \[!info\]- 🤖 Assistant/g) || []).length;
-            expect(assistantCallouts).toBe(0);
+            // Should not render empty assistant section
+            const assistantHeadings = (result.match(/## 🤖 Assistant/g) || []).length;
+            expect(assistantHeadings).toBe(0);
         });
     });
 
@@ -354,7 +355,7 @@ describe('Conversion Engine', () => {
             expect(file.conversationId).toBe('conv_1');
             expect(file.createTime).toBe(1703522622);
             expect(file.createdDate).toBe(new Date(1703522622 * 1000).toLocaleDateString());
-            expect(file.content).toMatch(/> \[!note\] 🧑‍💬 User — (\d{2}:\d{2}|#\d+)/);
+            expect(file.content).toMatch(/## 🧑‍💬 User — (\d{2}:\d{2}|#\d+)/);
             expect(file.content).toContain('Test message');
         });
 
