@@ -14,7 +14,8 @@ import {
     splitByCodeFences,
     ensureClosedFences,
     linkifyText,
-    normalizeText
+    normalizeText,
+    demoteHeadings
 } from '../utils/helpers.js';
 import { logInfo, logDebug } from '../utils/logger.js';
 
@@ -174,7 +175,10 @@ export function convertConversationToMarkdown(conversation) {
             if (seg.type === 'code') return seg.content; // preserve as-is
             // outside code: cleanup
             const withLinks = linkifyText(seg.content);
-            return normalizeText(withLinks);
+            // Demote inner headings so the H2 wrapper folds everything beneath
+            const normalized = normalizeText(withLinks);
+            const demoted = demoteHeadings(normalized, 2);
+            return demoted;
         }).join('');
 
         const safe = ensureClosedFences(processed).trim();
