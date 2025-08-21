@@ -57,6 +57,23 @@ export function formatLondonHHmm(date) {
 }
 
 /**
+ * Format London time human-readable: h:mm am/pm (lowercase)
+ */
+export function formatLondonTimeHuman(date) {
+    const p = getLondonParts(date);
+    return `${p.hour12}:${String(p.minute).padStart(2, '0')} ${p.ampm}`;
+}
+
+/**
+ * Format London time for filenames: HH.mm (24-hour)
+ */
+export function formatLondonTimeFile(date) {
+    const tz = 'Europe/London';
+    const f = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+    return f.format(date).replace(':', '.');
+}
+
+/**
  * Format London created string for frontmatter: Monday, August 18th 2025, 1:23 pm
  */
 export function formatLondonCreatedHuman(date) {
@@ -72,10 +89,7 @@ export function buildObsidianFilename(conversation) {
     const timestampSec = conversation.create_time || 0;
     const date = new Date(timestampSec * 1000);
     const humanDate = formatLondonHumanDate(date);
-    const tz = 'Europe/London';
-    const hm = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit' })
-        .format(date)
-        .replace(':', '.');
+    const hm = formatLondonTimeFile(date);
     const rawTitle = conversation.title || 'Untitled Conversation';
     const safeTitle = cleanFilename(rawTitle) || 'Untitled Conversation';
     const filename = `${safeTitle} — ${humanDate} — ${hm}.md`;
@@ -204,7 +218,7 @@ export function splitByCodeFences(content) {
 export function ensureClosedFences(markdown) {
     const count = (markdown.match(/```/g) || []).length;
     if (count % 2 === 1) {
-        return markdown + '\n```txt\n';
+        return markdown + '\n```\n';
     }
     return markdown;
 }

@@ -92,10 +92,10 @@ describe('Full Workflow Integration Tests', () => {
             expect(firstFile.filename).toMatch(/.+ — [A-Za-z]+, [A-Za-z]+ \d{1,2}(st|nd|rd|th) \d{4} — \d{2}\.\d{2}\.md$/);
             // Title no longer included in content (shown by filename)
             expect(firstFile.content).not.toContain('# Test Integration Workflow');
-            expect(firstFile.content).toMatch(/> \[!note\] 🧑‍💬 User — (\d{2}:\d{2}|#\d+)/);
+            expect(firstFile.content).toMatch(/## 🧑‍💬 User — (\d{2}:\d{2}|#\d+)/);
             // Verify markdown content structure and formatting
             expect(firstFile.content).toContain('How do I test modular JavaScript?');
-            expect(firstFile.content).toMatch(/> \[!info\]- 🤖 Assistant — (\d{2}:\d{2}|#\d+)/);
+            expect(firstFile.content).toMatch(/## 🤖 Assistant — (\d{2}:\d{2}|#\d+)/);
             expect(firstFile.content).toContain('You can use Jest with ES modules');
             // Collapsible content should include both user and assistant messages
             expect(firstFile.content).toContain('What about testing file operations?');
