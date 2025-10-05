@@ -14,6 +14,7 @@ import {
     sortConversationsChronologically 
 } from '../../../src/utils/helpers.js';
 import { ChatGPTConverter } from '../../../src/modules/applicationOrchestrator.js';
+import { switchToComplete, switchToUpload, switchToView, showResults, showFiles } from '../../../src/utils/navigation.js';
 
 describe('Utility Functions', () => {
     
@@ -479,6 +480,42 @@ describe('Utility Functions', () => {
             
             expect(buttonTexts).not.toContain('»');
             expect(buttonTexts).toContain('«'); // First button should still show
+        });
+
+        test('navigation helpers fall back when window handlers absent', () => {
+            delete window.switchToComplete;
+            delete window.switchToUpload;
+            delete window.switchToView;
+            delete window.showResults;
+            delete window.showFiles;
+
+            document.body.innerHTML = `
+                <section id="upload-section" class=""></section>
+                <section id="complete-section" class="hidden"></section>
+                <div id="results" class="hidden"></div>
+                <div id="filesContainer" class="hidden"></div>
+                <div id="progressCard" class="hidden"></div>
+            `;
+
+            // Rewire getElementById for this test to return real elements
+            const realGetById = (id) => document.querySelector(`#${id}`);
+            global.document.getElementById = realGetById;
+            // Rewire querySelector in case a previous test mocked it
+            global.document.querySelector = (selector) => document.body.querySelector(selector);
+
+            switchToComplete();
+            expect(document.querySelector('#upload-section').classList.contains('hidden')).toBe(true);
+            expect(document.querySelector('#complete-section').classList.contains('hidden')).toBe(false);
+
+            showResults();
+            expect(document.querySelector('#results').classList.contains('hidden')).toBe(false);
+
+            switchToView('files');
+            expect(document.querySelector('#filesContainer').classList.contains('hidden')).toBe(false);
+
+            switchToUpload();
+            expect(document.querySelector('#complete-section').classList.contains('hidden')).toBe(true);
+            expect(document.querySelector('#upload-section').classList.contains('hidden')).toBe(false);
         });
 
         test('default sort is date descending', () => {
