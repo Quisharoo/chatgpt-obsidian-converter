@@ -7,6 +7,7 @@
 import { getString, ui, message, success, error, info } from '../utils/strings.js';
 import { getFileSystemAccessInfo, isFileSystemAccessSupported } from '../modules/fileSystemManager.js';
 import { getPreferences, setPreferences } from '../utils/helpers.js';
+import { Modal } from './Modal.js';
 
 /**
  * UI Builder class for creating complex UI components
@@ -64,48 +65,21 @@ export class UIBuilder {
      * Show a lightweight transparency modal explaining client-side behavior
      */
     showTransparencyModal() {
-        // Lazy build once
+        // Use shared Modal component for consistent, accessible UI
         if (!this.transparencyModal) {
-            const modal = document.createElement('div');
-            modal.className = 'custom-modal';
-            modal.innerHTML = `
-                <div class="modal-overlay" role="dialog" aria-modal="true" aria-label="Transparency information">
-                    <div class="modal-container">
-                        <div class="modal-header">
-                            <div class="modal-title-section">
-                                <svg class="modal-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5M12,6A5,5 0 0,1 17,11A5,5 0 0,1 12,16A5,5 0 0,1 7,11A5,5 0 0,1 12,6Z"/></svg>
-                                <h3 class="modal-title">Client-side Processing</h3>
-                            </div>
-                            <button class="modal-close-btn" aria-label="Close" data-close>
-                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12"/></svg>
-                            </button>
-                        </div>
-                        <div class="modal-content">
-                            <p>All conversion happens locally in your browser using JavaScript. No network requests are made to upload your data.</p>
-                            <p>Optional libraries are loaded from CDNs for UI and ZIP creation. If unavailable, the app falls back gracefully.</p>
-                            <p>You can inspect the source modules under <code>src/</code> to verify behavior.</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn" data-close>Close</button>
-                        </div>
-                    </div>
-                </div>`;
-
-            // Reuse modal CSS from existing Modal.js if present
-            document.body.appendChild(modal);
-
-            const close = () => modal.classList.remove('show');
-            modal.addEventListener('click', (e) => {
-                if (e.target && (e.target.getAttribute('data-close') !== null || e.target.classList.contains('modal-overlay'))) {
-                    close();
-                }
+            this.transparencyModal = new Modal({
+                title: 'Client-side Processing',
+                content: `
+                    <p>All conversion happens locally in your browser using JavaScript. No network requests are made to upload your data.</p>
+                    <p>Optional libraries are loaded from CDNs for UI and ZIP creation. If unavailable, the app falls back gracefully.</p>
+                    <p>You can inspect the source modules under <code>src/</code> to verify behavior.</p>
+                `,
+                buttons: [
+                    { text: 'Close', action: 'cancel' }
+                ]
             });
-            const closeBtns = modal.querySelectorAll('[data-close]');
-            closeBtns.forEach(btn => btn.addEventListener('click', close));
-
-            this.transparencyModal = modal;
         }
-        this.transparencyModal.classList.add('show');
+        this.transparencyModal.show();
     }
     
     /**
