@@ -6,6 +6,7 @@
 
 import { getString, ui, message, success, error, info } from '../utils/strings.js';
 import { getFileSystemAccessInfo, isFileSystemAccessSupported } from '../modules/fileSystemManager.js';
+import { getPreferences, setPreferences } from '../utils/helpers.js';
 
 /**
  * UI Builder class for creating complex UI components
@@ -16,8 +17,97 @@ export class UIBuilder {
         // Store references for dynamic updates
         this.saveLocalButton = null;
         this.selectedDirectoryHandle = null;
+        this.privacyBanner = null;
+        this.transparencyModal = null;
     }
 
+    /**
+     * Mount a persistent privacy banner at the top of the container
+     * WHY: Clearly communicates client-side processing and builds trust
+     */
+    mountPrivacyBanner() {
+        if (this.privacyBanner) return this.privacyBanner;
+        const container = document.querySelector('.container');
+        if (!container) return null;
+
+        const banner = document.createElement('div');
+        banner.className = 'bg-green-900/30 border border-green-700 rounded-lg p-3 mb-4 flex items-start gap-3';
+        banner.setAttribute('role', 'region');
+        banner.setAttribute('aria-label', 'Privacy information');
+        banner.innerHTML = `
+            <div class="flex-shrink-0"><i class="fas fa-shield-alt text-green-400"></i></div>
+            <div class="text-green-100 text-sm">
+                <strong>All processing happens in your browser.</strong> No files or data are uploaded to any server.
+                <button id="privacy-transparency-btn" class="ml-2 underline text-green-200 hover:text-green-100">Learn more</button>
+            </div>
+        `;
+
+        // Insert banner at top of main content
+        const main = document.querySelector('main');
+        if (main && main.parentNode) {
+            main.parentNode.insertBefore(banner, main);
+        } else {
+            container.insertBefore(banner, container.firstChild);
+        }
+
+        // Hook up modal trigger
+        const trigger = banner.querySelector('#privacy-transparency-btn');
+        if (trigger) {
+            trigger.addEventListener('click', () => this.showTransparencyModal());
+        }
+
+        this.privacyBanner = banner;
+        return banner;
+    }
+
+    /**
+     * Show a lightweight transparency modal explaining client-side behavior
+     */
+    showTransparencyModal() {
+        // Lazy build once
+        if (!this.transparencyModal) {
+            const modal = document.createElement('div');
+            modal.className = 'custom-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay" role="dialog" aria-modal="true" aria-label="Transparency information">
+                    <div class="modal-container">
+                        <div class="modal-header">
+                            <div class="modal-title-section">
+                                <svg class="modal-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5M12,6A5,5 0 0,1 17,11A5,5 0 0,1 12,16A5,5 0 0,1 7,11A5,5 0 0,1 12,6Z"/></svg>
+                                <h3 class="modal-title">Client-side Processing</h3>
+                            </div>
+                            <button class="modal-close-btn" aria-label="Close" data-close>
+                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12"/></svg>
+                            </button>
+                        </div>
+                        <div class="modal-content">
+                            <p>All conversion happens locally in your browser using JavaScript. No network requests are made to upload your data.</p>
+                            <p>Optional libraries are loaded from CDNs for UI and ZIP creation. If unavailable, the app falls back gracefully.</p>
+                            <p>You can inspect the source modules under <code>src/</code> to verify behavior.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn" data-close>Close</button>
+                        </div>
+                    </div>
+                </div>`;
+
+            // Reuse modal CSS from existing Modal.js if present
+            document.body.appendChild(modal);
+
+            const close = () => modal.classList.remove('show');
+            modal.addEventListener('click', (e) => {
+                if (e.target && (e.target.getAttribute('data-close') !== null || e.target.classList.contains('modal-overlay'))) {
+                    close();
+                }
+            });
+            const closeBtns = modal.querySelectorAll('[data-close]');
+            closeBtns.forEach(btn => btn.addEventListener('click', close));
+
+            this.transparencyModal = modal;
+        }
+        this.transparencyModal.classList.add('show');
+    }
+    
     /**
      * Set directory handle for UI updates
      * WHY: Allows UI to reflect current directory selection state
@@ -72,6 +162,13 @@ export class UIBuilder {
                 label: 'Errors', 
                 value: results.errors, 
                 icon: 'fas fa-exclamation-triangle text-red-500'
+            });
+        }
+        if (typeof results.skipped === 'number' && results.skipped > 0) {
+            statItems.push({
+                label: 'Skipped',
+                value: results.skipped,
+                icon: 'fas fa-forward text-yellow-400'
             });
         }
         
@@ -443,6 +540,136 @@ export class UIBuilder {
         `;
         
         return dialog;
+    }
+
+    /**
+     * Create preferences panel
+     * WHY: Allows users to control naming preset and frontmatter options
+     */
+    createPreferencesPanel(onChange) {
+        const panel = document.createElement('div');
+        panel.className = 'bg-gray-900 border border-gray-700 rounded-xl p-4 mb-6';
+
+        const title = document.createElement('h3');
+        title.className = 'text-lg font-medium text-gray-100 mb-3';
+        title.textContent = 'Preferences';
+
+        const content = document.createElement('div');
+        content.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+
+        // Naming preset
+        const presetGroup = document.createElement('div');
+        presetGroup.innerHTML = `
+            <label class="block text-sm text-gray-300 mb-1">Naming preset</label>
+            <select id="pref-filename-preset" class="bg-gray-800 text-gray-100 rounded px-3 py-2 w-full">
+                <option value="obsidian">Obsidian Mode</option>
+                <option value="date">Date-based</option>
+                <option value="zettel">Zettelkasten</option>
+            </select>
+        `;
+
+        // Frontmatter toggle
+        const fmGroup = document.createElement('div');
+        fmGroup.innerHTML = `
+            <label class="block text-sm text-gray-300 mb-1">Frontmatter</label>
+            <div class="flex items-center gap-4 text-gray-200">
+                <label class="inline-flex items-center gap-2"><input type="checkbox" id="pref-frontmatter-enabled" class="form-checkbox"> Enable</label>
+                <label class="inline-flex items-center gap-2"><input type="checkbox" id="pref-frontmatter-participants" class="form-checkbox"> Participants</label>
+                <label class="inline-flex items-center gap-2"><input type="checkbox" id="pref-frontmatter-source" class="form-checkbox"> Source + URL</label>
+            </div>
+        `;
+
+        content.appendChild(presetGroup);
+        content.appendChild(fmGroup);
+
+        panel.appendChild(title);
+        panel.appendChild(content);
+
+        // Initialize from stored prefs
+        try {
+            const prefs = getPreferences();
+            const presetSel = panel.querySelector('#pref-filename-preset');
+            const fmEnabled = panel.querySelector('#pref-frontmatter-enabled');
+            const fmParticipants = panel.querySelector('#pref-frontmatter-participants');
+            const fmSource = panel.querySelector('#pref-frontmatter-source');
+            if (presetSel) presetSel.value = prefs.filenamePreset || 'obsidian';
+            if (fmEnabled) fmEnabled.checked = !!prefs.frontmatterEnabled;
+            if (fmParticipants) fmParticipants.checked = !!prefs.includeParticipants;
+            if (fmSource) fmSource.checked = !!prefs.includeSource;
+
+            const commit = () => {
+                const next = setPreferences({
+                    filenamePreset: presetSel ? presetSel.value : 'obsidian',
+                    frontmatterEnabled: fmEnabled ? fmEnabled.checked : true,
+                    includeParticipants: fmParticipants ? fmParticipants.checked : true,
+                    includeSource: fmSource ? fmSource.checked : true
+                });
+                if (onChange) onChange(next);
+            };
+
+            [presetSel, fmEnabled, fmParticipants, fmSource].forEach((el) => {
+                if (el) el.addEventListener('change', commit);
+            });
+        } catch (_) {
+            // no-op if helpers not available in test env
+        }
+
+        return panel;
+    }
+
+    /**
+     * Mount theme toggle in header area
+     */
+    mountThemeToggle() {
+        const header = document.querySelector('header');
+        if (!header || header.querySelector('#theme-toggle')) return;
+        const btn = document.createElement('button');
+        btn.id = 'theme-toggle';
+        btn.className = 'ml-3 bg-gray-800 hover:bg-gray-700 text-white text-sm px-3 py-1 rounded';
+        const syncLabel = () => {
+            const prefs = getPreferences();
+            btn.textContent = prefs.theme === 'light' ? 'Switch to Dark' : 'Switch to Light';
+        };
+        syncLabel();
+        btn.addEventListener('click', () => {
+            const prefs = getPreferences();
+            const nextTheme = prefs.theme === 'light' ? 'dark' : 'light';
+            setPreferences({ theme: nextTheme });
+            document.documentElement.setAttribute('data-theme', nextTheme);
+            syncLabel();
+        });
+        header.appendChild(btn);
+    }
+
+    /**
+     * Show preview modal for a file's content (first N lines)
+     */
+    showPreview(file, maxLines = 50) {
+        const lines = (file.content || '').split('\n').slice(0, maxLines).join('\n');
+        const dialog = document.createElement('div');
+        dialog.className = 'file-preview-dialog';
+        dialog.innerHTML = `
+            <div class="dialog-overlay">
+                <div class="dialog-content" style="max-width: 800px;">
+                    <h3 class="mb-2">Preview — ${file.title}</h3>
+                    <pre style="white-space: pre-wrap; max-height: 60vh; overflow: auto; background:#111; color:#ddd; padding:12px; border:1px solid #333;">${this.escapeHtml(lines)}</pre>
+                    <div class="dialog-buttons" style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+                        <button class="btn btn-secondary close-btn">Close</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(dialog);
+        const close = () => { if (dialog && dialog.parentNode) dialog.parentNode.removeChild(dialog); };
+        dialog.querySelector('.close-btn')?.addEventListener('click', close);
+        dialog.addEventListener('click', (e) => { if (e.target && e.target.classList.contains('dialog-overlay')) close(); });
+        setTimeout(() => dialog.querySelector('.close-btn')?.focus(), 50);
+    }
+
+    escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     /**

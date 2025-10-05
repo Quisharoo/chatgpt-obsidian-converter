@@ -16,7 +16,9 @@ import {
     linkifyText,
     normalizeText,
     demoteHeadings,
-    avoidSetextFromHyphens
+    avoidSetextFromHyphens,
+    getPreference,
+    buildFilenameFromPreset
 } from '../utils/helpers.js';
 import { logInfo, logDebug } from '../utils/logger.js';
 
@@ -147,20 +149,30 @@ export function convertConversationToMarkdown(conversation) {
     const mapping = conversation.mapping || {};
     
     const messages = extractMessagesFromMapping(mapping);
-    // Frontmatter (Obsidian-optimized)
+    // Frontmatter (configurable)
     const baseDate = new Date(createTime * 1000);
     const createdHuman = formatLondonCreatedHuman(baseDate);
     const convUrl = conversation?.id ? `https://chat.openai.com/c/${conversation.id}` : null;
-    const fm = [
-        '---',
-        `created: ${createdHuman}`,
-        'tags: [chatgpt]',
-        convUrl ? `url: ${convUrl}` : null,
-        '---',
-        ''
-    ].filter(Boolean).join('\n');
+    const frontmatterEnabled = getPreference('frontmatterEnabled', true);
+    const includeParticipants = getPreference('includeParticipants', true);
+    const includeSource = getPreference('includeSource', true);
+    const fmLines = [];
+    if (frontmatterEnabled) {
+        fmLines.push('---');
+        fmLines.push(`created: ${createdHuman}`);
+        fmLines.push('tags: [chatgpt]');
+        if (includeParticipants) {
+            fmLines.push('participants: [user, assistant]');
+        }
+        if (includeSource && convUrl) {
+            fmLines.push(`source: chatgpt`);
+            fmLines.push(`url: ${convUrl}`);
+        }
+        fmLines.push('---');
+        fmLines.push('');
+    }
 
-    const lines = [fm];
+    const lines = frontmatterEnabled ? fmLines : [];
 
     // Per-message sections rendered as headings (foldable in Obsidian)
     messages.forEach((m, idx) => {
@@ -247,7 +259,6 @@ export function processConversations(conversations, processedIds = new Set()) {
     for (const conversation of sortedConversations) {
         try {
             const result = processSingleConversation(conversation, processedIds, usedFilenames);
-            
             if (result.skipped) {
                 results.skipped++;
             } else if (result.file) {
@@ -260,7 +271,6 @@ export function processConversations(conversations, processedIds = new Set()) {
             results.errors++;
         }
     }
-    
     return results;
 }
 
@@ -289,8 +299,8 @@ function processSingleConversation(conversation, processedIds, usedFilenames) {
     // Convert to Markdown
     const markdownContent = convertConversationToMarkdown(conversation);
     
-    // Generate obsidian-optimized filename
-    let filename = buildObsidianFilename(conversation);
+    // Generate filename based on preset
+    let filename = buildFilenameFromPreset(conversation);
     // Ensure uniqueness in session
     let counter = 2;
     while (usedFilenames.includes(filename)) {

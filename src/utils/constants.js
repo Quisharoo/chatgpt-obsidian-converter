@@ -12,8 +12,8 @@ export const PROCESSING_CONFIG = {
 
 // File system constants
 export const FILE_SYSTEM = {
-    SUPPORTED_MIME_TYPES: ['application/json'],
-    SUPPORTED_EXTENSIONS: ['.json'],
+    SUPPORTED_MIME_TYPES: ['application/json', 'application/zip', 'application/x-zip-compressed', 'multipart/x-zip'],
+    SUPPORTED_EXTENSIONS: ['.json', '.zip'],
     OUTPUT_EXTENSION: '.md',
     DEFAULT_FILENAME: 'Conversation'
 };

@@ -7,6 +7,7 @@
 import { ChatGPTConverter } from './modules/applicationOrchestrator.js';
 import { logInfo, logError, configureLogger } from './utils/logger.js';
 import { LOGGING_CONFIG } from './utils/constants.js';
+import { getPreferences, setPreferences } from './utils/helpers.js';
 
 /**
  * Global application instance
@@ -36,8 +37,32 @@ function initializeApplication() {
         // Add screen reader only styles if not present
         addAccessibilityStyles();
         
+        // Apply theme from prefs
+        try {
+            const prefs = getPreferences();
+            document.documentElement.setAttribute('data-theme', prefs.theme || 'dark');
+        } catch (_) {}
+
+        // Inject DevUI CSS/JS via CDN (no index.html edits)
+        try {
+            const devuiCss = document.createElement('link');
+            devuiCss.rel = 'stylesheet';
+            devuiCss.href = 'https://cdn.jsdelivr.net/npm/devui-css@latest/dist/devui.min.css';
+            document.head.appendChild(devuiCss);
+        } catch (_) {}
+
         logInfo('🚀 Application initialized successfully');
         
+        // Register service worker for offline capability (manifest deferred)
+        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+            try {
+                navigator.serviceWorker.register('/sw.js');
+                logInfo('🛡️ Service worker registration initiated');
+            } catch (e) {
+                logError('Service worker registration failed:', e);
+            }
+        }
+
     } catch (error) {
         logError('❌ Failed to initialize application:', error);
         showFallbackError('Failed to initialize application. Please refresh the page.');
@@ -247,3 +272,30 @@ if (document.readyState === 'loading') {
     // DOM already loaded
     initializeApplication();
 } 
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+    // Cmd/Ctrl+U to open upload dialog
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'u') {
+        const app = window.ChatGPTConverterApp.getInstance();
+        const uploader = app && app.fileUploader;
+        if (uploader && uploader.fileInput) {
+            e.preventDefault();
+            uploader.fileInput.click();
+        }
+    }
+    // Cmd/Ctrl+S to save all (if directory already selected)
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        const app = window.ChatGPTConverterApp.getInstance();
+        if (app && typeof app.handleLocalSave === 'function') {
+            e.preventDefault();
+            app.handleLocalSave();
+        }
+    }
+    // Cmd/Ctrl+R to restart flow
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        window.ChatGPTConverterApp.restart();
+    }
+});

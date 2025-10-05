@@ -93,7 +93,7 @@ function handleDirectorySelectionError(error) {
  * @param {boolean} forceOverwrite - Whether to overwrite without asking (for bulk operations)
  * @returns {Promise<Object>} - Detailed result with success status and information
  */
-export async function saveFileToDirectory(filename, content, directoryHandle, forceOverwrite = false) {
+export async function saveFileToDirectory(filename, content, directoryHandle, forceOverwrite = false, conflictStrategy = undefined) {
     try {
         // Sanitize filename for filesystem compatibility
         const safeFilename = sanitizeFilename(filename);
@@ -108,17 +108,29 @@ export async function saveFileToDirectory(filename, content, directoryHandle, fo
             fileExists = false;
         }
         
-        // If file exists and we're not forcing overwrite, ask for confirmation
+        // If file exists and we're not forcing overwrite, ask for strategy unless provided
         if (fileExists && !forceOverwrite) {
-            const shouldOverwrite = await showFileExistsConfirmation(safeFilename);
-            if (!shouldOverwrite) {
+            let strategy = conflictStrategy;
+            if (!strategy) {
+                strategy = await showFileExistsChoice(safeFilename); // 'overwrite' | 'skip' | 'version'
+            }
+            if (strategy === 'skip') {
                 return { 
                     success: false, 
                     cancelled: true, 
-                    message: `File "${safeFilename}" already exists and user chose not to overwrite.`,
+                    message: `File "${safeFilename}" already exists and was skipped by user choice.`,
                     filename: safeFilename 
                 };
             }
+            if (strategy === 'version') {
+                const versioned = await getAvailableVersionedFilename(directoryHandle, safeFilename);
+                if (versioned) {
+                    // Overwrite local variable for subsequent creation
+                    safeFilename = versioned;
+                    fileExists = false; // New name shouldn't exist by construction
+                }
+            }
+            // 'overwrite' falls through
         }
         
         // Create file handle (this will overwrite if exists)
@@ -168,7 +180,7 @@ export async function saveFileToDirectory(filename, content, directoryHandle, fo
  * @param {string} filename - Name of the existing file
  * @returns {Promise<boolean>} - Whether user confirmed to overwrite
  */
-async function showFileExistsConfirmation(filename) {
+async function showFileExistsChoice(filename) {
     return new Promise((resolve) => {
         // Create confirmation dialog
         const dialog = document.createElement('div');
@@ -178,9 +190,10 @@ async function showFileExistsConfirmation(filename) {
                 <div class="dialog-content">
                     <h3>File Already Exists</h3>
                     <p>The file "<strong>${filename}</strong>" already exists in the selected folder.</p>
-                    <p>Do you want to overwrite it?</p>
+                    <p>Choose how to proceed:</p>
                     <div class="dialog-buttons">
-                        <button class="btn btn-secondary cancel-btn">Cancel</button>
+                        <button class="btn btn-secondary skip-btn">Skip</button>
+                        <button class="btn btn-info version-btn">Create New Version</button>
                         <button class="btn btn-primary overwrite-btn">Overwrite</button>
                     </div>
                 </div>
@@ -250,6 +263,15 @@ async function showFileExistsConfirmation(filename) {
                 background: #4a4a4a;
                 border-color: #666;
             }
+            .file-exists-dialog .btn-info {
+                background: #17a2b8;
+                color: #ffffff;
+            }
+            .file-exists-dialog .btn-info:hover {
+                background: #138496;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+            }
             .file-exists-dialog .btn-primary {
                 background: #007acc;
                 color: #ffffff;
@@ -267,7 +289,8 @@ async function showFileExistsConfirmation(filename) {
         
         // Focus the overwrite button for better UX
         const overwriteBtn = dialog.querySelector('.overwrite-btn');
-        const cancelBtn = dialog.querySelector('.cancel-btn');
+        const skipBtn = dialog.querySelector('.skip-btn');
+        const versionBtn = dialog.querySelector('.version-btn');
         
         // Handle button clicks
         const cleanup = () => {
@@ -276,28 +299,40 @@ async function showFileExistsConfirmation(filename) {
             document.head.removeChild(style);
         };
         
-        overwriteBtn.addEventListener('click', () => {
-            cleanup();
-            resolve(true);
-        });
-        
-        cancelBtn.addEventListener('click', () => {
-            cleanup();
-            resolve(false);
-        });
+        overwriteBtn.addEventListener('click', () => { cleanup(); resolve('overwrite'); });
+        skipBtn.addEventListener('click', () => { cleanup(); resolve('skip'); });
+        versionBtn.addEventListener('click', () => { cleanup(); resolve('version'); });
         
         // Handle escape key
         const handleKeyDown = (event) => {
-            if (event.key === 'Escape') {
-                cleanup();
-                resolve(false);
-            }
+            if (event.key === 'Escape') { cleanup(); resolve('skip'); }
         };
         document.addEventListener('keydown', handleKeyDown);
         
-        // Focus the overwrite button
-        setTimeout(() => overwriteBtn.focus(), 100);
+        // Focus the safest default (Skip)
+        setTimeout(() => skipBtn.focus(), 100);
     });
+}
+
+/**
+ * Compute an available versioned filename by appending " (n)" before extension
+ */
+async function getAvailableVersionedFilename(directoryHandle, safeFilename) {
+    const dot = safeFilename.lastIndexOf('.');
+    const base = dot > 0 ? safeFilename.slice(0, dot) : safeFilename;
+    const ext = dot > 0 ? safeFilename.slice(dot) : '';
+    let counter = 2;
+    while (true) {
+        const candidate = `${base} (${counter})${ext}`;
+        try {
+            await directoryHandle.getFileHandle(candidate);
+            // exists, increment
+            counter++;
+        } catch (e) {
+            // Not found -> available
+            return candidate;
+        }
+    }
 }
 
 /**
@@ -394,10 +429,12 @@ async function showBulkDuplicateDialog(scanResults) {
                     <div class="dialog-buttons">
                         <button class="btn btn-secondary cancel-btn">Cancel</button>
                         <button class="btn btn-info skip-btn">Skip Duplicates</button>
+                        <button class="btn btn-success version-btn">Create New Versions</button>
                         <button class="btn btn-warning overwrite-btn">Overwrite All</button>
                     </div>
                     <div class="dialog-info">
                         <small>• Skip: Only save ${newFiles.length} new files</small>
+                        <small>• Create New Versions: Save ${duplicateCount} duplicates with numeric suffixes</small>
                         <small>• Overwrite: Replace existing files with new content</small>
                     </div>
                 </div>
@@ -522,6 +559,15 @@ async function showBulkDuplicateDialog(scanResults) {
                 transform: translateY(-1px);
                 box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
             }
+            .bulk-duplicate-dialog .btn-success {
+                background: #28a745;
+                color: #ffffff;
+            }
+            .bulk-duplicate-dialog .btn-success:hover {
+                background: #218838;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            }
             .bulk-duplicate-dialog .btn-warning {
                 background: #ffc107;
                 color: #212529;
@@ -553,6 +599,7 @@ async function showBulkDuplicateDialog(scanResults) {
         // Get button references
         const cancelBtn = dialog.querySelector('.cancel-btn');
         const skipBtn = dialog.querySelector('.skip-btn');
+        const versionBtn = dialog.querySelector('.version-btn');
         const overwriteBtn = dialog.querySelector('.overwrite-btn');
         
         // Handle button clicks
@@ -582,6 +629,12 @@ async function showBulkDuplicateDialog(scanResults) {
             resolve('skip');
         });
         
+        versionBtn.addEventListener('click', () => {
+            logInfo('📋 User chose to create new versions for duplicates');
+            cleanup();
+            resolve('version');
+        });
+
         overwriteBtn.addEventListener('click', () => {
             logInfo('📋 User chose to overwrite duplicates');
             cleanup();
@@ -686,6 +739,19 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
             // Save all files (overwrite existing)
             filesToSave = files;
             logInfo(`⚠️ User chose to overwrite duplicates. Saving all ${filesToSave.length} files.`);
+        } else if (userChoice === 'version') {
+            // Create versioned filenames for duplicates
+            filesToSave = [];
+            const duplicateMap = new Set(scanResults.existingFiles.map(f => f.safeFilename));
+            for (const f of files) {
+                if (duplicateMap.has(sanitizeFilename(f.filename))) {
+                    const versioned = await getAvailableVersionedFilename(directoryHandle, sanitizeFilename(f.filename));
+                    filesToSave.push({ ...f, filename: versioned });
+                } else {
+                    filesToSave.push(f);
+                }
+            }
+            logInfo(`🆕 User chose to create versions. Saving ${filesToSave.length} files with versioned duplicates.`);
         }
     } else {
         logInfo('✅ No duplicate files found, proceeding with all files');
@@ -771,7 +837,8 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         try {
             // For bulk operations, force overwrite when user chose overwrite, or don't ask when no duplicates
             const forceOverwrite = userChoice === 'overwrite' || scanResults.duplicateCount === 0;
-            const result = await saveFileToDirectory(file.filename, file.content, directoryHandle, forceOverwrite);
+            const conflictStrategy = userChoice === 'version' ? 'version' : (userChoice === 'skip' ? 'skip' : undefined);
+            const result = await saveFileToDirectory(file.filename, file.content, directoryHandle, forceOverwrite, conflictStrategy);
             
             results.push(result);
             
