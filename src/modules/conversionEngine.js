@@ -226,9 +226,10 @@ function cleanCitationArtifacts(content) {
     cleaned = cleaned.replace(/[\uE000-\uF8FF]*(?:cite|navlist)[\uE000-\uF8FF]*.*?turn\d+(?:search|news)\d+[\uE000-\uF8FF]*\.?/g, '');
     cleaned = cleaned.replace(/turn\d+(?:search|news)\d+[\uE000-\uF8FF]*\.?/g, '');
     cleaned = cleaned.replace(/turn\d+(?:search|news)\d+\.?/g, '');
-
+    
     // Only remove leftover contiguous PUA runs that are isolated (surrounded by whitespace or punctuation)
-    cleaned = cleaned.replace(/(?<=^|\s|[.,;:!?])[\uE000-\uF8FF]+(?=$|\s|[.,;:!?])/g, '');
+    // Avoid lookbehind for Safari compatibility by capturing the prefix/suffix
+    cleaned = cleaned.replace(/(^|\s|[.,;:!?])[\uE000-\uF8FF]+(\s|[.,;:!?]|$)/g, '$1$2');
     
     return cleaned;
 }

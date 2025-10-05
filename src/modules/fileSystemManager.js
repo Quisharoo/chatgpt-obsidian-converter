@@ -38,7 +38,8 @@ export function getFileSystemAccessInfo() {
  * WHY: Directory selection is the most error-prone operation, needs robust handling
  * 
  * @param {Object} options - Configuration options for directory picker
- * @returns {Promise<FileSystemDirectoryHandle|null>} - Selected directory handle or null
+ * @returns {Promise<FileSystemDirectoryHandle>} - Selected directory handle
+ * @throws {Error} - Throws descriptive error when selection fails
  */
 export async function selectDirectory(options = {}) {
     if (!isFileSystemAccessSupported()) {
@@ -65,7 +66,6 @@ export async function selectDirectory(options = {}) {
  * WHY: Provides user-friendly error messages for different failure scenarios
  * 
  * @param {Error} error - Directory selection error
- * @returns {null} - Always returns null for failed selection
  * @throws {Error} - Throws error with user-friendly message
  */
 function handleDirectorySelectionError(error) {
@@ -96,7 +96,7 @@ function handleDirectorySelectionError(error) {
 export async function saveFileToDirectory(filename, content, directoryHandle, forceOverwrite = false, conflictStrategy = undefined) {
     try {
         // Sanitize filename for filesystem compatibility
-        const safeFilename = sanitizeFilename(filename);
+        let safeFilename = sanitizeFilename(filename);
         
         // Check if file already exists
         let fileExists = false;
@@ -178,7 +178,7 @@ export async function saveFileToDirectory(filename, content, directoryHandle, fo
  * WHY: Provides user choice when file already exists
  * 
  * @param {string} filename - Name of the existing file
- * @returns {Promise<boolean>} - Whether user confirmed to overwrite
+ * @returns {Promise<'skip'|'overwrite'|'version'>}
  */
 async function showFileExistsChoice(filename) {
     return new Promise((resolve) => {
@@ -676,10 +676,11 @@ async function showBulkDuplicateDialog(scanResults) {
  */
 export async function saveFilesChronologically(files, directoryHandle, progressCallback = null, cancellationCallback = null) {
     logInfo(`🔄 Starting chronological save process: ${files.length} files to ${directoryHandle.name}/`);
+    let userCancelledFlag = false;
     
     // First, scan for existing files
     if (progressCallback) {
-        progressCallback(5, 0, files.length, 'Scanning for existing files...');
+        progressCallback({ percent: 5, completed: 0, total: files.length, message: 'Scanning for existing files...' });
     }
     
     let scanResults;
@@ -767,7 +768,7 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         // Quick re-validation for critical files if needed
         if (userChoice === 'skip') {
             if (progressCallback) {
-                progressCallback(8, 0, files.length, 'Re-validating scan results...');
+                progressCallback({ percent: 8, completed: 0, total: files.length, message: 'Re-validating scan results...' });
             }
             
             // Re-check a few files to ensure scan is still valid
@@ -819,6 +820,7 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         // Check for cancellation before processing each file
         if (cancellationCallback && cancellationCallback()) {
             logInfo('🛑 Save operation cancelled by user');
+            userCancelledFlag = true;
             // Mark remaining files as cancelled
             for (let j = i; j < filesToSave.length; j++) {
                 results.push({
@@ -871,12 +873,12 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         // Report progress
         if (progressCallback) {
             // Calculate progress based on files being saved (this represents actual save operation progress)
-            const progress = Math.round((10 + ((i + 1) / filesToSave.length) * 90)); // 10% for scanning, 90% for saving
+            const percent = Math.round((10 + ((i + 1) / filesToSave.length) * 90)); // 10% for scanning, 90% for saving
             // Use filesToSave.length for the total display when duplicates are skipped
             // This ensures the progress shows the actual files being processed
             const totalForProgress = userChoice === 'skip' ? filesToSave.length : files.length;
             // The current file number should always be (i + 1) for the files being saved
-            progressCallback(progress, i + 1, totalForProgress);
+            progressCallback({ percent, completed: i + 1, total: totalForProgress });
         }
     }
 
@@ -890,7 +892,7 @@ export async function saveFilesChronologically(files, directoryHandle, progressC
         duplicatesFound: scanResults.duplicateCount,
         scanErrors: scanResults.scanErrors,
         scanAge: Math.round(scanAge / 1000), // Include scan age in results
-        userCancelled: cancellationCallback && cancellationCallback() // Check if cancelled at the end
+        userCancelled: userCancelledFlag // Stable flag captured during processing
     };
 }
 

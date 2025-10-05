@@ -358,11 +358,20 @@ export class ChatGPTConverter {
         accessibilityManager.announceStatus(preparingMessage);
 
         try {
-            const progressCallback = (progress, completed, total, statusMessage) => {
-                const message = statusMessage || `💾 ${status('SAVING_FILES')} ${progress}% (${completed}/${total})`;
-                logInfo(`📊 Progress update: ${progress}% - ${message}`);
-                this.saveProgressDisplay.updateProgress(progress, message);
-                accessibilityManager.announceProgress(message, progress);
+            const progressCallback = (arg1, arg2, arg3, arg4) => {
+                let percent, completed, total, message;
+                if (typeof arg1 === 'object' && arg1 !== null) {
+                    ({ percent, completed, total, message } = arg1);
+                } else {
+                    percent = arg1;
+                    completed = arg2;
+                    total = arg3;
+                    message = arg4;
+                }
+                const msg = message || `💾 ${status('SAVING_FILES')} ${percent}% (${completed}/${total})`;
+                logInfo(`📊 Progress update: ${percent}% - ${msg}`);
+                this.saveProgressDisplay.updateProgress(percent, msg);
+                accessibilityManager.announceProgress(msg, percent);
             };
 
             const cancellationCallback = () => isCancelled;
