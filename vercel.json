@@ -39,7 +39,7 @@
   ],
   "routes": [
     { "src": "/src/(.*)", "dest": "/src/$1" },
-    { "src": "/(.*)\.(js|css|svg|png|jpg|jpeg|gif|webp|ico|json|txt)", "dest": "/$1.$2" },
+    { "src": "/(.*)\\.(js|css|svg|png|jpg|jpeg|gif|webp|ico|json|txt)", "dest": "/$1.$2" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
