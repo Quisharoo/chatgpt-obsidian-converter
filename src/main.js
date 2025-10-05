@@ -82,6 +82,11 @@ function handleGlobalError(event) {
     if (event.error?.message?.includes('Non-Error promise rejection')) {
         return;
     }
+    // Ignore resource loading/CORS noise and known benign errors
+    const msg = String(event?.message || '');
+    if (msg.includes('Script error.') || msg.includes('ResizeObserver loop') || msg.includes('favicon.ico')) {
+        return;
+    }
     
     showFallbackError('An unexpected error occurred. Please try refreshing the page.');
 }
@@ -98,6 +103,10 @@ function handleUnhandledRejection(event) {
     // Don't show user errors for known harmless issues
     if (event.reason?.name === 'AbortError') {
         return; // User cancelled operation
+    }
+    const reasonMsg = String(event?.reason?.message || '');
+    if (reasonMsg.includes('ResizeObserver') || reasonMsg.includes('Non-Error promise rejection')) {
+        return;
     }
     
     showFallbackError('An error occurred during processing. Please try again.');

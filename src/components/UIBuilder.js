@@ -28,6 +28,12 @@ export class UIBuilder {
      */
     mountPrivacyBanner() {
         if (this.privacyBanner) return this.privacyBanner;
+        // Respect dismissal (persistent) and session visibility rules
+        try {
+            const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem('privacyBannerDismissed') === '1';
+            const shownSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('privacyBannerShown') === '1';
+            if (dismissed || shownSession) return null;
+        } catch (_) {}
         const container = document.querySelector('.container');
         if (!container) return null;
 
@@ -39,7 +45,12 @@ export class UIBuilder {
             <div class="flex-shrink-0"><i class="fas fa-shield-alt text-green-400"></i></div>
             <div class="text-green-100 text-sm">
                 <strong>All processing happens in your browser.</strong> No files or data are uploaded to any server.
-                <button id="privacy-transparency-btn" class="ml-2 underline text-green-200 hover:text-green-100">Learn more</button>
+                <button id="privacy-transparency-btn" class="ml-2 underline text-green-200 hover:text-green-100" type="button" aria-haspopup="dialog">Learn more</button>
+            </div>
+            <div class="ml-auto">
+                <button id="privacy-dismiss-btn" class="text-green-200 hover:text-green-100" type="button" aria-label="Dismiss privacy information" title="Dismiss">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         `;
 
@@ -56,8 +67,18 @@ export class UIBuilder {
         if (trigger) {
             trigger.addEventListener('click', () => this.showTransparencyModal());
         }
+        // Hook up dismiss to persist suppression
+        const dismiss = banner.querySelector('#privacy-dismiss-btn');
+        if (dismiss) {
+            dismiss.addEventListener('click', () => {
+                try { if (typeof localStorage !== 'undefined') localStorage.setItem('privacyBannerDismissed', '1'); } catch (_) {}
+                if (banner.parentNode) banner.parentNode.removeChild(banner);
+            });
+        }
 
         this.privacyBanner = banner;
+        // Mark as shown for this session so it won't re-appear on reload within the same session
+        try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('privacyBannerShown', '1'); } catch (_) {}
         return banner;
     }
 
@@ -600,9 +621,15 @@ export class UIBuilder {
         const btn = document.createElement('button');
         btn.id = 'theme-toggle';
         btn.className = 'ml-3 bg-gray-800 hover:bg-gray-700 text-white text-sm px-3 py-1 rounded';
+        btn.setAttribute('type', 'button');
+        btn.setAttribute('aria-label', 'Toggle color theme');
+        btn.setAttribute('aria-pressed', 'false');
         const syncLabel = () => {
             const prefs = getPreferences();
-            btn.textContent = prefs.theme === 'light' ? 'Switch to Dark' : 'Switch to Light';
+            const isDark = (prefs.theme || 'dark') === 'dark';
+            btn.textContent = isDark ? 'Switch to Light' : 'Switch to Dark';
+            btn.setAttribute('aria-pressed', String(isDark));
+            btn.title = isDark ? 'Switch to light theme' : 'Switch to dark theme';
         };
         syncLabel();
         btn.addEventListener('click', () => {
