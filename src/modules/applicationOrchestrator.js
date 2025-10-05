@@ -66,6 +66,12 @@ export class ChatGPTConverter {
             // Set up file upload handling
             this.fileUploader.setFileSelectedCallback(this.handleFileUpload.bind(this));
             
+            // Mount privacy banner
+            if (this.uiBuilder && typeof this.uiBuilder.mountPrivacyBanner === 'function') {
+                this.uiBuilder.mountPrivacyBanner();
+                this.uiBuilder.mountThemeToggle();
+            }
+
             // Initialize accessibility features
             accessibilityManager.initialize();
             
@@ -105,19 +111,55 @@ export class ChatGPTConverter {
         this.progressDisplay.show(false, false); // Don't switch to Files view for conversion
         
         try {
-            // Read and parse file
+            // Read and parse file (supports .json and .zip containing conversations.json)
             const readingMessage = status('READING_FILE');
             this.progressDisplay.updateProgress(0, readingMessage);
             accessibilityManager.announceProgress(readingMessage, 0);
-            const fileContent = await this.readFileContent(file);
-            
-            // Add a small delay to make reading feel more substantial
-            await this.delay(300);
-            
-            const parsingMessage = status('PARSING_JSON');
-            this.progressDisplay.updateProgress(20, parsingMessage);
-            accessibilityManager.announceProgress(parsingMessage, 20);
-            const conversations = this.parseConversations(fileContent);
+
+            let conversations = [];
+            const lowerName = (file.name || '').toLowerCase();
+            if (lowerName.endsWith('.zip')) {
+                // ZIP ingestion path
+                this.progressDisplay.updateProgress(5, 'Scanning export…');
+                accessibilityManager.announceProgress('Scanning export…', 5);
+                const arrayBuffer = await file.arrayBuffer();
+                // JSZip is loaded from CDN in index.html; guard if unavailable
+                if (typeof JSZip === 'undefined') {
+                    throw new Error('ZIP support unavailable. Please upload conversations.json directly or enable JSZip.');
+                }
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                // Try common paths
+                const candidatePaths = ['conversations.json', 'conversations/conversations.json', 'data/conversations.json'];
+                let conversationsEntry = null;
+                for (const p of candidatePaths) {
+                    if (zip.file(p)) { conversationsEntry = zip.file(p); break; }
+                }
+                // Fallback: search any conversations.json
+                if (!conversationsEntry) {
+                    const matches = Object.keys(zip.files).filter(k => /conversations\.json$/i.test(k));
+                    if (matches.length > 0) conversationsEntry = zip.file(matches[0]);
+                }
+                if (!conversationsEntry) {
+                    throw new Error('Could not find conversations.json in the ZIP export.');
+                }
+                this.progressDisplay.updateProgress(15, 'Loading conversations.json…');
+                accessibilityManager.announceProgress('Loading conversations.json…', 15);
+                const jsonText = await conversationsEntry.async('text');
+                const parsingMessage = status('PARSING_JSON');
+                this.progressDisplay.updateProgress(20, parsingMessage);
+                accessibilityManager.announceProgress(parsingMessage, 20);
+                conversations = this.parseConversations(jsonText);
+                this.progressDisplay.updateProgress(30, `Found ${conversations.length} conversations`);
+                accessibilityManager.announceProgress(`Found ${conversations.length} conversations`, 30);
+            } else {
+                // JSON file path
+                const fileContent = await this.readFileContent(file);
+                await this.delay(300);
+                const parsingMessage = status('PARSING_JSON');
+                this.progressDisplay.updateProgress(20, parsingMessage);
+                accessibilityManager.announceProgress(parsingMessage, 20);
+                conversations = this.parseConversations(fileContent);
+            }
             
             // Add delay for parsing
             await this.delay(400);

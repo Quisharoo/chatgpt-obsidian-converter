@@ -97,6 +97,103 @@ export function buildObsidianFilename(conversation) {
 }
 
 /**
+ * Build Date-based filename: YYYY-MM-DD — Title — HH.mm.md
+ */
+export function buildDateBasedFilename(conversation) {
+    const timestampSec = conversation.create_time || 0;
+    const date = new Date(timestampSec * 1000);
+    const dateStr = date.toISOString().split('T')[0];
+    const hm = formatLondonTimeFile(date);
+    const rawTitle = conversation.title || 'Untitled Conversation';
+    const safeTitle = cleanFilename(rawTitle) || 'Untitled Conversation';
+    return `${dateStr} — ${safeTitle} — ${hm}.md`;
+}
+
+/**
+ * Build Zettelkasten filename: yyyymmddHHmm Title.md
+ */
+export function buildZettelFilename(conversation) {
+    const timestampSec = conversation.create_time || 0;
+    const d = new Date(timestampSec * 1000);
+    const pad = (n, w=2) => String(n).padStart(w, '0');
+    const id = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}`;
+    const rawTitle = conversation.title || 'Untitled Conversation';
+    const safeTitle = cleanFilename(rawTitle) || 'Untitled Conversation';
+    return `${id} ${safeTitle}.md`;
+}
+
+/**
+ * Preferences storage helpers (localStorage)
+ */
+const PREFS_KEY = 'chatgpt_md_prefs';
+
+export function getPreferences() {
+    try {
+        const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(PREFS_KEY) : null;
+        const parsed = raw ? JSON.parse(raw) : {};
+        return {
+            filenamePreset: 'obsidian',
+            frontmatterEnabled: true,
+            includeParticipants: true,
+            includeSource: true,
+            generateIndex: true,
+            theme: 'dark',
+            ...parsed
+        };
+    } catch (_) {
+        return { filenamePreset: 'obsidian', frontmatterEnabled: true, includeParticipants: true, includeSource: true, generateIndex: true, theme: 'dark' };
+    }
+}
+
+export function setPreferences(nextPrefs) {
+    try {
+        const current = getPreferences();
+        const merged = { ...current, ...nextPrefs };
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(PREFS_KEY, JSON.stringify(merged));
+        }
+        return merged;
+    } catch (_) {
+        return nextPrefs;
+    }
+}
+
+export function getPreference(key, fallback) {
+    const prefs = getPreferences();
+    return Object.prototype.hasOwnProperty.call(prefs, key) ? prefs[key] : fallback;
+}
+
+/**
+ * Choose filename builder based on preferences
+ */
+export function buildFilenameFromPreset(conversation) {
+    const preset = getPreference('filenamePreset', 'obsidian');
+    if (preset === 'date') return buildDateBasedFilename(conversation);
+    if (preset === 'zettel') return buildZettelFilename(conversation);
+    return buildObsidianFilename(conversation);
+}
+
+/**
+ * Build an index note linking all converted files
+ */
+export function buildIndexNote(files) {
+    const sorted = [...files].sort((a, b) => (a.createTime || 0) - (b.createTime || 0));
+    const lines = ['# ChatGPT Index', ''];
+    for (const f of sorted) {
+        const date = f.createdDate || '';
+        lines.push(`- [${f.title}](${f.filename})${date ? ` — ${date}` : ''}`);
+    }
+    return {
+        filename: 'ChatGPT Index.md',
+        content: lines.join('\n'),
+        title: 'ChatGPT Index',
+        conversationId: 'index',
+        createTime: Date.now() / 1000,
+        createdDate: new Date().toLocaleDateString()
+    };
+}
+
+/**
  * Clean text for safe filename usage while maintaining readability
  * WHY: Filenames must be filesystem-compatible but remain human-readable
  * 

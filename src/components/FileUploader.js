@@ -50,7 +50,12 @@ export class FileUploader {
         
         // Ensure file input is properly labeled
         if (!this.fileInput.getAttribute('aria-label')) {
-            this.fileInput.setAttribute('aria-label', 'Select conversations.json file');
+            this.fileInput.setAttribute('aria-label', 'Select conversations.json or export ZIP file');
+        }
+        // Broaden accept to .json and .zip without changing index.html
+        const accept = this.fileInput.getAttribute('accept');
+        if (!accept || accept.indexOf('.zip') === -1) {
+            this.fileInput.setAttribute('accept', '.json,.zip');
         }
     }
 
@@ -169,7 +174,11 @@ export class FileUploader {
     processFile(file) {
         try {
             // Validate file type and content
-            if (!isValidJsonFile(file)) {
+            // Accept .json and .zip (validated downstream)
+            const lowerName = (file.name || '').toLowerCase();
+            const isJson = lowerName.endsWith('.json');
+            const isZip = lowerName.endsWith('.zip');
+            if (!isJson && !isZip && !isValidJsonFile(file)) {
                 this.showFileError(ERROR_MESSAGES.INVALID_FILE_TYPE);
                 return;
             }
