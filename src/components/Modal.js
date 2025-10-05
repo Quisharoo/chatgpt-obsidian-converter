@@ -117,8 +117,9 @@ export class Modal {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                backdrop-filter: blur(3px);
+                /* Dim background very lightly so the focus is the card, not the dimmer */
+                background: rgba(0, 0, 0, 0.35);
+                backdrop-filter: blur(2px);
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -126,10 +127,11 @@ export class Modal {
             }
             
             .custom-modal .modal-container {
-                background: var(--bg-card);
-                border: 1px solid var(--border-primary);
-                border-radius: var(--radius-lg);
-                box-shadow: var(--shadow-lg);
+                /* Visible card styling */
+                background: var(--bg-card, #0f1115);
+                border: 1px solid var(--border-primary, #2a2f3a);
+                border-radius: var(--radius-lg, 12px);
+                box-shadow: var(--shadow-lg, 0 10px 30px rgba(0,0,0,0.45), 0 2px 10px rgba(0,0,0,0.4));
                 max-width: 500px;
                 width: 100%;
                 max-height: 80vh;
