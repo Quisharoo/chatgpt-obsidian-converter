@@ -32,9 +32,11 @@
   "engines": {
     "node": ">=14.0.0"
   },
-  "devDependencies": {
-    "kill-port": "^2.0.1",
+  "dependencies": {
     "vite": "^7.0.6"
+  },
+  "devDependencies": {
+    "kill-port": "^2.0.1"
   },
   "files": [
     "index.html",
