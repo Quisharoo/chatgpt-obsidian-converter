@@ -310,7 +310,7 @@ export function splitByCodeFences(content) {
 }
 
 /**
- * Ensure all code fences are closed; if odd number, append closing ```txt
+ * Ensure all code fences are closed; if odd number, append closing ```
  */
 export function ensureClosedFences(markdown) {
     const count = (markdown.match(/```/g) || []).length;
@@ -324,8 +324,12 @@ export function ensureClosedFences(markdown) {
  * Linkify bare URLs in plain text segments
  */
 export function linkifyText(text) {
-    const urlRegex = /(?<!\]\()\b(https?:\/\/[\w.-]+(?:\/[\w\-._~:/?#[\]@!$&'()*+,;=%]*)?)/g;
-    return text.replace(urlRegex, (url) => `[${url}](${url})`);
+    const urlRegex = /\bhttps?:\/\/[\w.-]+(?:\/[\w\-._~:\/?#[\]@!$&'()*+,;=%]*)?/g;
+    return text.replace(urlRegex, (url, offset, str) => {
+        const prevTwo = str.slice(Math.max(0, offset - 2), offset);
+        if (prevTwo === '](') return url; // already part of a Markdown link
+        return `[${url}](${url})`;
+    });
 }
 
 /**

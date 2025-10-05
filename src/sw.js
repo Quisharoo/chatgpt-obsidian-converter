@@ -20,10 +20,16 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  // Only handle GET requests for caching safety
+  if (req.method !== 'GET') {
+    return;
+  }
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
       return fetch(req).then((resp) => {
+        // Cache successful, non-opaque responses only
+        if (!resp || resp.status !== 200 || resp.type === 'opaque') return resp;
         const copy = resp.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
         return resp;
