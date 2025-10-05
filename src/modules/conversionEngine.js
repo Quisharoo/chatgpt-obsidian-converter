@@ -210,17 +210,13 @@ export function convertConversationToMarkdown(conversation) {
 function cleanCitationArtifacts(content) {
     let cleaned = content;
     
-    // Pattern 1: Remove complex citation patterns with Unicode characters
+    // Remove sequences that match the known artifact shapes only, avoid generic PUA wipes first
     cleaned = cleaned.replace(/[\uE000-\uF8FF]*(?:cite|navlist)[\uE000-\uF8FF]*.*?turn\d+(?:search|news)\d+[\uE000-\uF8FF]*\.?/g, '');
-    
-    // Pattern 2: Remove simple turn patterns with Unicode
     cleaned = cleaned.replace(/turn\d+(?:search|news)\d+[\uE000-\uF8FF]*\.?/g, '');
-    
-    // Pattern 3: Remove any remaining turn patterns without Unicode
     cleaned = cleaned.replace(/turn\d+(?:search|news)\d+\.?/g, '');
-    
-    // Pattern 4: Remove any remaining Unicode citation artifacts
-    cleaned = cleaned.replace(/[\uE000-\uF8FF]+/g, '');
+
+    // Only remove leftover contiguous PUA runs that are isolated (surrounded by whitespace or punctuation)
+    cleaned = cleaned.replace(/(?<=^|\s|[.,;:!?])[\uE000-\uF8FF]+(?=$|\s|[.,;:!?])/g, '');
     
     return cleaned;
 }

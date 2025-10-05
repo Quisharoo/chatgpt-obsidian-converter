@@ -32,20 +32,20 @@ export class UIBuilder {
      */
     createResultsSummaryCard(results) {
         const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl shadow-md p-6 mb-8';
+        card.className = 'bg-gray-900 border border-gray-700 rounded-xl shadow-md p-6 mb-8';
         
         const header = document.createElement('div');
         header.className = 'mb-4';
         
         const title = document.createElement('h3');
-        title.className = 'text-xl font-medium text-gray-800 flex items-center mb-2';
+        title.className = 'text-xl font-medium text-gray-100 flex items-center mb-2';
         title.innerHTML = `
             <i class="fas fa-check-circle mr-3 text-green-500"></i>
             ${ui('CONVERSION_SUMMARY')}
         `;
         
         const description = document.createElement('p');
-        description.className = 'text-gray-600';
+        description.className = 'text-gray-300';
         description.textContent = message('CONVERSION_DESCRIPTION');
         
         header.appendChild(title);
@@ -77,12 +77,12 @@ export class UIBuilder {
         
         statItems.forEach(item => {
             const statCard = document.createElement('div');
-            statCard.className = 'bg-gray-50 p-6 rounded-lg text-center min-w-[200px]';
+            statCard.className = 'bg-gray-800 border border-gray-700 p-6 rounded-lg text-center min-w-[200px]';
             
             statCard.innerHTML = `
                 <i class="${item.icon} text-3xl mb-3 block"></i>
-                <div class="text-2xl font-bold text-gray-800 mb-2">${item.value}</div>
-                <div class="text-base text-gray-600">${item.label}</div>
+                <div class="text-2xl font-bold text-gray-100 mb-2">${item.value}</div>
+                <div class="text-base text-gray-300">${item.label}</div>
             `;
             
             stats.appendChild(statCard);
@@ -101,20 +101,20 @@ export class UIBuilder {
      */
     createDirectoryCard(results, callbacks = {}) {
         const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl shadow-md p-6 mb-8';
+        card.className = 'bg-gray-900 border border-gray-700 rounded-xl shadow-md p-6 mb-8';
         
         const header = document.createElement('div');
         header.className = 'mb-4';
         
         const title = document.createElement('h3');
-        title.className = 'text-xl font-medium text-gray-800 flex items-center mb-2';
+        title.className = 'text-xl font-medium text-gray-100 flex items-center mb-2';
         title.innerHTML = `
             <i class="fas fa-folder mr-3 text-indigo-500"></i>
             ${ui('SAVE_LOCATION')}
         `;
         
         const description = document.createElement('p');
-        description.className = 'text-gray-600';
+        description.className = 'text-gray-300';
         description.textContent = message('CHOOSE_SAVE_LOCATION');
         
         header.appendChild(title);
@@ -163,7 +163,7 @@ export class UIBuilder {
      */
     createDirectoryButton(onDirectorySelect) {
         const btn = document.createElement('button');
-        btn.className = 'bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center';
+        btn.className = 'bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center';
         
         if (this.selectedDirectoryHandle) {
             btn.innerHTML = `<i class="fas fa-folder-open mr-2"></i>${ui('CHANGE_DIRECTORY', { folderName: this.selectedDirectoryHandle.name })}`;
@@ -186,11 +186,11 @@ export class UIBuilder {
         const btn = document.createElement('button');
         
         if (this.selectedDirectoryHandle) {
-            btn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center';
+            btn.className = 'bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center';
             btn.innerHTML = `<i class="fas fa-save mr-2"></i>${ui('SAVE_FILES_TO_FOLDER', { count: results.files.length })}`;
             btn.disabled = false;
         } else {
-            btn.className = 'bg-gray-300 text-gray-500 font-medium py-3 px-6 rounded-lg cursor-not-allowed flex items-center justify-center';
+            btn.className = 'bg-gray-800 text-gray-500 font-medium py-3 px-6 rounded-lg cursor-not-allowed flex items-center justify-center';
             btn.innerHTML = `<i class="fas fa-save mr-2"></i>${ui('SAVE_TO_LOCAL_FOLDER')} (${info('SELECT_FOLDER_FIRST')})`;
             btn.disabled = true;
         }
@@ -211,17 +211,17 @@ export class UIBuilder {
      */
     createInstructions() {
         const instructions = document.createElement('div');
-        instructions.className = 'mt-3 text-sm text-gray-600 leading-normal';
+        instructions.className = 'mt-3 text-sm text-gray-300 leading-normal';
         
         if (this.selectedDirectoryHandle) {
             instructions.innerHTML = `
-                <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded">
+                <div class="bg-green-900/30 border-l-4 border-green-500 p-3 rounded">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <i class="fas fa-check-circle text-green-500"></i>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm text-green-700">
+                            <p class="text-sm text-green-300">
                                 <strong>Ready to save</strong><br>
                                 ${message('READY_TO_SAVE_DESCRIPTION', { folderName: this.selectedDirectoryHandle.name })}
                             </p>
@@ -231,13 +231,13 @@ export class UIBuilder {
             `;
         } else {
             instructions.innerHTML = `
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                <div class="bg-blue-900/30 border-l-4 border-blue-500 p-3 rounded">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <i class="fas fa-info-circle text-blue-500"></i>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm text-blue-700">
+                            <p class="text-sm text-blue-300">
                                 <strong>Select your destination folder</strong><br>
                                 ${message('SELECT_DESTINATION')}
                             </p>
@@ -257,7 +257,7 @@ export class UIBuilder {
     createUnsupportedWarning() {
         const apiInfo = getFileSystemAccessInfo();
         const warning = document.createElement('div');
-        warning.className = 'bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded mb-4';
+        warning.className = 'bg-yellow-900/30 border-l-4 border-yellow-500 p-4 rounded mb-4';
         
         let messageText = message('MOBILE_SAVE_INFO') + ' ';
         
@@ -277,12 +277,12 @@ export class UIBuilder {
                     <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
                 </div>
                 <div>
-                    <strong class="block mb-2 text-yellow-800">${message('MOBILE_BROWSER_DETECTED')}</strong>
-                    <p class="text-yellow-700 leading-normal mb-0">${messageText}</p>
+                    <strong class="block mb-2 text-yellow-200">${message('MOBILE_BROWSER_DETECTED')}</strong>
+                    <p class="text-yellow-200 leading-normal mb-0">${messageText}</p>
                     ${apiInfo.mobile ? `
-                        <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                            <strong class="block mb-1 text-blue-800"><i class="fas fa-lightbulb mr-1"></i>${message('MOBILE_TIP')}</strong>
-                            <p class="text-blue-700 text-sm mb-0">${message('MOBILE_TIP_DESCRIPTION')}</p>
+                        <div class="mt-3 p-3 bg-blue-900/30 border border-blue-700 rounded">
+                            <strong class="block mb-1 text-blue-200"><i class="fas fa-lightbulb mr-1"></i>${message('MOBILE_TIP')}</strong>
+                            <p class="text-blue-200 text-sm mb-0">${message('MOBILE_TIP_DESCRIPTION')}</p>
                         </div>
                     ` : ''}
                 </div>
@@ -300,8 +300,8 @@ export class UIBuilder {
         const downloadSection = document.createElement('div');
         downloadSection.className = 'mt-4';
         
-        const downloadTitle = document.createElement('h4');
-        downloadTitle.className = 'text-lg font-medium text-gray-800 mb-3 flex items-center';
+            const downloadTitle = document.createElement('h4');
+            downloadTitle.className = 'text-lg font-medium text-gray-100 mb-3 flex items-center';
         downloadTitle.innerHTML = `
             <i class="fas fa-download mr-2 text-indigo-500"></i>
             ${ui('DOWNLOAD_OPTIONS')}
@@ -318,7 +318,7 @@ export class UIBuilder {
         }
         
         const downloadInfo = document.createElement('p');
-        downloadInfo.className = 'text-sm text-gray-600 mb-3';
+        downloadInfo.className = 'text-sm text-gray-300 mb-3';
         downloadInfo.textContent = message('ZIP_ARCHIVE_INFO');
         
         downloadSection.appendChild(downloadTitle);

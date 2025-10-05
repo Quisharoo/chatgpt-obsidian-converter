@@ -276,6 +276,30 @@ describe('Conversion Engine', () => {
             expect(result).not.toMatch(/turn\d+(?:search|news)\d+/);
         });
 
+        test('does not remove legitimate PUA-like characters inside code blocks', () => {
+            const conversation = {
+                title: 'PUA In Code',
+                create_time: 1703522622,
+                mapping: {
+                    'msg_1': {
+                        message: {
+                            author: { role: 'assistant' },
+                            content: { parts: [
+                                'Normal text before.\n',
+                                '```js\n// Private Use Area char next line should remain in code\nconst s = "\\uE200test";\n```\n',
+                                'Normal text after.'
+                            ] }
+                        },
+                        children: [],
+                        parent: null
+                    }
+                }
+            };
+            const result = convertConversationToMarkdown(conversation);
+            expect(result).toContain('```js');
+            expect(result).toContain('"\\uE200test"');
+        });
+
         test('filters out empty messages', () => {
             const conversation = {
                 title: 'With Empty Messages',
@@ -535,6 +559,42 @@ describe('Conversion Engine', () => {
             expect(results.skipped).toBe(0);
             expect(results.errors).toBe(0);
             expect(results.files).toHaveLength(0);
+        });
+
+        test('scales to large datasets with chronological ordering and unique filenames', () => {
+            const N = 500; // stress size
+            const conversations = [];
+            for (let i = 0; i < N; i++) {
+                conversations.push({
+                    id: `conv_${i}`,
+                    title: i % 10 === 0 ? 'Repeated Title' : `Conversation ${i}`,
+                    create_time: 1_700_000_000 + i, // strictly increasing
+                    mapping: {
+                        root: {
+                            message: {
+                                author: { role: 'user' },
+                                content: { parts: [`Message #${i}`] }
+                            },
+                            children: [],
+                            parent: null
+                        }
+                    }
+                });
+            }
+
+            const results = processConversations(conversations, new Set());
+            expect(results.errors).toBe(0);
+            expect(results.processed).toBe(N);
+            expect(results.files).toHaveLength(N);
+
+            // Check chronological order (oldest first)
+            for (let i = 1; i < results.files.length; i++) {
+                expect(results.files[i].createTime).toBeGreaterThanOrEqual(results.files[i - 1].createTime);
+            }
+
+            // Filenames must be unique
+            const names = new Set(results.files.map(f => f.filename));
+            expect(names.size).toBe(N);
         });
     });
 }); 

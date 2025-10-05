@@ -10,6 +10,7 @@ import path from 'path';
 
 // Import modules from new structure
 import { processConversations } from '../../../src/modules/conversionEngine.js';
+import { ChatGPTConverter } from '../../../src/modules/applicationOrchestrator.js';
 import { 
     generateUniqueFilename, 
     sortConversationsChronologically 
@@ -110,6 +111,18 @@ describe('Full Workflow Integration Tests', () => {
             expect(results.files[1].createTime).toBe(1703522700);
             expect(results.files[0].createdDate).toBe(new Date(1703522600 * 1000).toLocaleDateString());
             expect(results.files[1].createdDate).toBe(new Date(1703522700 * 1000).toLocaleDateString());
+        });
+
+        test('ZIP fallback triggers individual downloads when JSZip not available', () => {
+            const converter = new ChatGPTConverter();
+            converter.convertedFiles = [
+                { filename: 'a.md', content: 'A' },
+                { filename: 'b.md', content: 'B' }
+            ];
+            global.JSZip = undefined;
+            const spy = jest.spyOn(converter, 'downloadAllFiles');
+            converter.downloadAllAsZip();
+            expect(spy).toHaveBeenCalled();
         });
 
         test('handles real conversation export structure', async () => {

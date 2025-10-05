@@ -33,6 +33,7 @@ import {
     formatFileSize 
 } from '../utils/strings.js';
 import { accessibilityManager } from '../utils/accessibility.js';
+import { switchToComplete, switchToView, showResults, showFiles } from '../utils/navigation.js';
 
 /**
  * ChatGPT to Markdown Application
@@ -157,21 +158,19 @@ export class ChatGPTConverter {
                 this.displayResults(results);
                 
                 // Switch to complete section and show results
-                if (window.switchToComplete) {
-                    window.switchToComplete();
-                    window.showResults();
-                    
-                    // Populate the Files view in the background
-                    setTimeout(() => {
-                        if (results.files && results.files.length > 0) {
-                            this.populateFilesView(results);
-                            window.showFiles();
-                            logInfo(`✅ Files view populated with ${results.files.length} files`);
-                        } else {
-                            logWarn('⚠️ No files available to populate Files view');
-                        }
-                    }, 100);
-                }
+                switchToComplete();
+                showResults();
+                
+                // Populate the Files view in the background
+                setTimeout(() => {
+                    if (results.files && results.files.length > 0) {
+                        this.populateFilesView(results);
+                        showFiles();
+                        logInfo(`✅ Files view populated with ${results.files.length} files`);
+                    } else {
+                        logWarn('⚠️ No files available to populate Files view');
+                    }
+                }, 100);
                 
                 // Hide progress after switching to results view
                 setTimeout(() => {
@@ -296,10 +295,8 @@ export class ChatGPTConverter {
         logInfo(`💾 Starting save operation for ${this.convertedFiles.length} files to ${this.selectedDirectoryHandle.name}`);
         
         // Switch to Files view first, then show progress
-        if (window.switchToView) {
-            window.switchToView('files');
-            logInfo('✅ Switched to Files view for save operation');
-        }
+        switchToView('files');
+        logInfo('✅ Switched to Files view for save operation');
         
         // Set up cancellation flag
         let isCancelled = false;
