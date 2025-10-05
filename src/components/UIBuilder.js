@@ -612,35 +612,7 @@ export class UIBuilder {
         return panel;
     }
 
-    /**
-     * Mount theme toggle in header area
-     */
-    mountThemeToggle() {
-        const header = document.querySelector('header');
-        if (!header || header.querySelector('#theme-toggle')) return;
-        const btn = document.createElement('button');
-        btn.id = 'theme-toggle';
-        btn.className = 'ml-3 bg-gray-800 hover:bg-gray-700 text-white text-sm px-3 py-1 rounded';
-        btn.setAttribute('type', 'button');
-        btn.setAttribute('aria-label', 'Toggle color theme');
-        btn.setAttribute('aria-pressed', 'false');
-        const syncLabel = () => {
-            const prefs = getPreferences();
-            const isDark = (prefs.theme || 'dark') === 'dark';
-            btn.textContent = isDark ? 'Switch to Light' : 'Switch to Dark';
-            btn.setAttribute('aria-pressed', String(isDark));
-            btn.title = isDark ? 'Switch to light theme' : 'Switch to dark theme';
-        };
-        syncLabel();
-        btn.addEventListener('click', () => {
-            const prefs = getPreferences();
-            const nextTheme = prefs.theme === 'light' ? 'dark' : 'light';
-            setPreferences({ theme: nextTheme });
-            document.documentElement.setAttribute('data-theme', nextTheme);
-            syncLabel();
-        });
-        header.appendChild(btn);
-    }
+    // Theme toggle removed by request; intentionally no-op
 
     /**
      * Show preview modal for a file's content (first N lines)

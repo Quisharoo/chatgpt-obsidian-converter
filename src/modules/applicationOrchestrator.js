@@ -69,7 +69,7 @@ export class ChatGPTConverter {
             // Mount privacy banner
             if (this.uiBuilder && typeof this.uiBuilder.mountPrivacyBanner === 'function') {
                 this.uiBuilder.mountPrivacyBanner();
-                this.uiBuilder.mountThemeToggle();
+                // Theme toggle removed
             }
 
             // Initialize accessibility features
