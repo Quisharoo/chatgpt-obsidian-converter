@@ -55,11 +55,32 @@ function initializeApplication() {
         
         // Register service worker for offline capability (manifest deferred)
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+            const swUrl = '/sw.js';
             try {
-                navigator.serviceWorker.register('/sw.js');
-                logInfo('🛡️ Service worker registration initiated');
+                // Check availability and content-type before registering to avoid MIME errors
+                fetch(swUrl, { method: 'HEAD', cache: 'no-store' })
+                    .then((resp) => {
+                        const contentType = (resp.headers && resp.headers.get && resp.headers.get('content-type')) || '';
+                        const isJs = /javascript|ecmascript/i.test(contentType);
+                        if (resp.ok && isJs) {
+                            return navigator.serviceWorker.register(swUrl)
+                                .then(() => {
+                                    logInfo('🛡️ Service worker registration initiated');
+                                })
+                                .catch((e) => {
+                                    logError('Service worker registration failed (async):', e);
+                                });
+                        } else {
+                            logInfo('ℹ️ Service worker not registered (missing or wrong content-type)');
+                            return null;
+                        }
+                    })
+                    .catch((e) => {
+                        // HEAD check failed; skip registration to avoid noisy console errors
+                        logInfo('ℹ️ Skipping service worker (pre-check failed)');
+                    });
             } catch (e) {
-                logError('Service worker registration failed:', e);
+                logError('Service worker registration failed (sync):', e);
             }
         }
 
