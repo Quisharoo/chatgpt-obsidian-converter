@@ -147,6 +147,11 @@ export class ProgressDisplay {
         this.container.style.display = 'block';
         this.isVisible = true;
         
+        // Ensure any 'hidden' utility class is removed so inline styles are not overridden
+        if (this.container && this.container.classList && this.container.classList.contains('hidden')) {
+            this.container.classList.remove('hidden');
+        }
+        
         // Show/hide cancel button based on parameter
         if (this.cancelButton) {
             if (showCancelButton) {

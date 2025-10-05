@@ -107,6 +107,17 @@ describe('Progress Display Component', () => {
             expect(cancelButton.className).not.toContain('hidden');
             expect(cancelButton.disabled).toBe(false);
         });
+
+        test('should remove hidden class from container when showing', () => {
+            // Ensure hidden utility class is present
+            progressDisplay.container.classList.add('hidden');
+            expect(progressDisplay.container.classList.contains('hidden')).toBe(true);
+            
+            progressDisplay.show();
+            
+            expect(progressDisplay.container.style.display).toBe('block');
+            expect(progressDisplay.container.classList.contains('hidden')).toBe(false);
+        });
     });
 
     describe('hide method', () => {

@@ -13,6 +13,7 @@ import {
     isValidJsonFile,
     sortConversationsChronologically 
 } from '../../../src/utils/helpers.js';
+import UIBuilder from '../../../src/components/UIBuilder.js';
 import { ChatGPTConverter } from '../../../src/modules/applicationOrchestrator.js';
 import { switchToComplete, switchToUpload, switchToView, showResults, showFiles } from '../../../src/utils/navigation.js';
 
@@ -539,6 +540,46 @@ describe('Utility Functions', () => {
             
             // Should be sorted by date descending (newest first)
             expect(sorted.map(f => f.title)).toEqual(['Latest', 'Middle', 'Oldest']);
+        });
+    });
+
+    describe('UIBuilder privacy modal', () => {
+        test('Learn more opens shared Modal with content', (done) => {
+            // Restore real DOM APIs in case previous tests mocked them
+            const realCreateElement = Document.prototype.createElement.bind(document);
+            const realGetElementById = Document.prototype.getElementById.bind(document);
+            const realQuerySelector = Document.prototype.querySelector.bind(document);
+            global.document.createElement = realCreateElement;
+            global.document.getElementById = realGetElementById;
+            global.document.querySelector = realQuerySelector;
+
+            // Provide minimal DOM structure for banner mounting
+            document.body.innerHTML = `
+                <div class="container"><main></main></div>
+                <header></header>
+            `;
+
+            const ui = new UIBuilder();
+            const banner = ui.mountPrivacyBanner();
+            expect(banner).toBeTruthy();
+
+            // Trigger modal
+            ui.showTransparencyModal();
+
+            // Wait for requestAnimationFrame/async show to apply class
+            setTimeout(() => {
+                const modal = document.querySelector('.custom-modal');
+                expect(modal).toBeTruthy();
+                expect(modal.classList.contains('show')).toBe(true);
+
+                const title = modal.querySelector('.modal-title');
+                expect(title).toBeTruthy();
+                expect(title.textContent).toContain('Client-side Processing');
+
+                const content = modal.querySelector('.modal-content');
+                expect(content.textContent).toContain('conversion happens locally');
+                done();
+            }, 50);
         });
     });
 }); 
