@@ -1,20 +1,18 @@
 {
   "name": "chatgpt-cursor-import",
   "version": "1.0.0",
+  "private": true,
   "description": "Convert ChatGPT conversation exports to clean Markdown files",
   "main": "index.html",
   "scripts": {
-    "start": "kill-port 5173 && vite",
-    "dev": "kill-port 5173 && vite",
+    "dev": "vite",
     "build": "vite build",
+    "start": "vite preview --host",
     "preview": "vite preview --host",
     "deploy": "vercel --prod",
     "test": "cd test-vite-react && npm test",
     "test:install": "cd test-vite-react && npm install",
-    "test:watch": "cd test-vite-react && npm run test:watch",
-    "test:coverage": "cd test-vite-react && npm run test:coverage",
-    "test:python": "python3 -m pytest tests/ -v",
-    "test:all": "npm run test:python && npm run test"
+    "test:python": "python3 -m pytest tests/ -v"
   },
   "keywords": [
     "chatgpt",
@@ -35,9 +33,7 @@
   "dependencies": {
     "vite": "^7.0.6"
   },
-  "devDependencies": {
-    "kill-port": "^2.0.1"
-  },
+  "devDependencies": {},
   "files": [
     "index.html",
     "src/",

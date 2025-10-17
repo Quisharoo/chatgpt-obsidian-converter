@@ -28,18 +28,36 @@ export class UIBuilder {
      */
     mountPrivacyBanner() {
         if (this.privacyBanner) return this.privacyBanner;
+        // Respect dismissal (persistent) and session visibility rules
+        try {
+            const params = new URLSearchParams((typeof location !== 'undefined' && location.search) || '');
+            const forceShow = params.get('privacy') === '1';
+            const dismissed = typeof localStorage !== 'undefined' && localStorage.getItem('privacyBannerDismissed') === '1';
+            const shownSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('privacyBannerShown') === '1';
+            if (!forceShow && (dismissed || shownSession)) {
+                // When suppressed, still provide a quick access link to the modal
+                this.mountPrivacyQuickLink();
+                return null;
+            }
+        } catch (_) {}
         const container = document.querySelector('.container');
         if (!container) return null;
 
         const banner = document.createElement('div');
-        banner.className = 'bg-green-900/30 border border-green-700 rounded-lg p-3 mb-4 flex items-start gap-3';
+        // Neutral dark theme card with subtle accent, avoid saturated greens
+        banner.className = 'bg-gray-900/40 border border-gray-700 rounded-lg p-3 mb-4 flex items-start gap-3';
         banner.setAttribute('role', 'region');
         banner.setAttribute('aria-label', 'Privacy information');
         banner.innerHTML = `
-            <div class="flex-shrink-0"><i class="fas fa-shield-alt text-green-400"></i></div>
-            <div class="text-green-100 text-sm">
+            <div class="flex-shrink-0"><i class="fas fa-shield-alt text-indigo-400"></i></div>
+            <div class="text-gray-200 text-sm">
                 <strong>All processing happens in your browser.</strong> No files or data are uploaded to any server.
-                <button id="privacy-transparency-btn" class="ml-2 underline text-green-200 hover:text-green-100">Learn more</button>
+                <button id="privacy-transparency-btn" class="ml-2 underline text-indigo-300 hover:text-indigo-200" type="button" aria-haspopup="dialog">Learn more</button>
+            </div>
+            <div class="ml-auto">
+                <button id="privacy-dismiss-btn" class="text-gray-300 hover:text-gray-100" type="button" aria-label="Dismiss privacy information" title="Dismiss">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         `;
 
@@ -56,9 +74,40 @@ export class UIBuilder {
         if (trigger) {
             trigger.addEventListener('click', () => this.showTransparencyModal());
         }
+        // Hook up dismiss to persist suppression
+        const dismiss = banner.querySelector('#privacy-dismiss-btn');
+        if (dismiss) {
+            dismiss.addEventListener('click', () => {
+                try { if (typeof localStorage !== 'undefined') localStorage.setItem('privacyBannerDismissed', '1'); } catch (_) {}
+                if (banner.parentNode) banner.parentNode.removeChild(banner);
+            });
+        }
 
         this.privacyBanner = banner;
+        // Mark as shown for this session so it won't re-appear on reload within the same session
+        try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('privacyBannerShown', '1'); } catch (_) {}
         return banner;
+    }
+
+    /**
+     * Mount a subtle, always-available privacy link when banner is suppressed
+     */
+    mountPrivacyQuickLink() {
+        if (document.getElementById('privacyQuickLink')) return;
+        const container = document.querySelector('.container');
+        if (!container) return;
+        // Ensure container can host absolutely positioned children without layout shift
+        if (!container.style.position) {
+            container.style.position = 'relative';
+        }
+        const link = document.createElement('button');
+        link.id = 'privacyQuickLink';
+        link.type = 'button';
+        link.className = 'text-indigo-300 hover:text-indigo-200 underline text-xs absolute top-2 right-3';
+        link.setAttribute('aria-haspopup', 'dialog');
+        link.textContent = 'Privacy';
+        link.addEventListener('click', () => this.showTransparencyModal());
+        container.appendChild(link);
     }
 
     /**
@@ -80,6 +129,15 @@ export class UIBuilder {
             });
         }
         this.transparencyModal.show();
+    }
+
+    /**
+     * Expose helper to open privacy modal programmatically
+     */
+    exposePrivacyHelper() {
+        try {
+            window.openPrivacyInfo = () => this.showTransparencyModal();
+        } catch (_) {}
     }
     
     /**
@@ -591,29 +649,7 @@ export class UIBuilder {
         return panel;
     }
 
-    /**
-     * Mount theme toggle in header area
-     */
-    mountThemeToggle() {
-        const header = document.querySelector('header');
-        if (!header || header.querySelector('#theme-toggle')) return;
-        const btn = document.createElement('button');
-        btn.id = 'theme-toggle';
-        btn.className = 'ml-3 bg-gray-800 hover:bg-gray-700 text-white text-sm px-3 py-1 rounded';
-        const syncLabel = () => {
-            const prefs = getPreferences();
-            btn.textContent = prefs.theme === 'light' ? 'Switch to Dark' : 'Switch to Light';
-        };
-        syncLabel();
-        btn.addEventListener('click', () => {
-            const prefs = getPreferences();
-            const nextTheme = prefs.theme === 'light' ? 'dark' : 'light';
-            setPreferences({ theme: nextTheme });
-            document.documentElement.setAttribute('data-theme', nextTheme);
-            syncLabel();
-        });
-        header.appendChild(btn);
-    }
+    // Theme toggle removed by request; intentionally no-op
 
     /**
      * Show preview modal for a file's content (first N lines)

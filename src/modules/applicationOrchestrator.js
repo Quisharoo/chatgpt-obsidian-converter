@@ -7,7 +7,7 @@
 import { FileUploader } from '../components/FileUploader.js';
 import { ProgressDisplay } from '../components/ProgressDisplay.js';
 import UIBuilder from '../components/UIBuilder.js';
-import { processConversations } from './conversionEngine.js';
+import { processConversations, processConversationsProgressive } from './conversionEngine.js';
 import { 
     selectDirectory, 
     saveFilesChronologically, 
@@ -69,7 +69,10 @@ export class ChatGPTConverter {
             // Mount privacy banner
             if (this.uiBuilder && typeof this.uiBuilder.mountPrivacyBanner === 'function') {
                 this.uiBuilder.mountPrivacyBanner();
-                this.uiBuilder.mountThemeToggle();
+                if (typeof this.uiBuilder.exposePrivacyHelper === 'function') {
+                    this.uiBuilder.exposePrivacyHelper();
+                }
+                // Theme toggle removed
             }
 
             // Initialize accessibility features
@@ -131,13 +134,35 @@ export class ChatGPTConverter {
                 // Try common paths
                 const candidatePaths = ['conversations.json', 'conversations/conversations.json', 'data/conversations.json'];
                 let conversationsEntry = null;
-                for (const p of candidatePaths) {
-                    if (zip.file(p)) { conversationsEntry = zip.file(p); break; }
+                for (const [idx, p] of candidatePaths.entries()) {
+                    if (zip.file(p)) { 
+                        conversationsEntry = zip.file(p); 
+                        // Show quick progress when preferred path is found
+                        const pct = 10 + (idx * 2);
+                        this.progressDisplay.updateProgress(pct, `Found ${p}…`);
+                        accessibilityManager.announceProgress(`Found ${p}…`, pct);
+                        break; 
+                    }
                 }
                 // Fallback: search any conversations.json
                 if (!conversationsEntry) {
-                    const matches = Object.keys(zip.files).filter(k => /conversations\.json$/i.test(k));
-                    if (matches.length > 0) conversationsEntry = zip.file(matches[0]);
+                    const allNames = Object.keys(zip.files);
+                    const total = allNames.length || 1;
+                    let seen = 0;
+                    for (const name of allNames) {
+                        seen++;
+                        if (/conversations\.json$/i.test(name)) {
+                            conversationsEntry = zip.file(name);
+                            break;
+                        }
+                        if (seen % 25 === 0) {
+                            const pct = Math.min(20 + Math.floor((seen / total) * 40), 60);
+                            this.progressDisplay.updateProgress(pct, `Scanning: ${name}`);
+                            accessibilityManager.announceProgress(`Scanning: ${name}`, pct);
+                            // Yield to UI
+                            await new Promise(r => setTimeout(r, 0));
+                        }
+                    }
                 }
                 if (!conversationsEntry) {
                     throw new Error('Could not find conversations.json in the ZIP export.');
@@ -168,14 +193,25 @@ export class ChatGPTConverter {
             const convertingMessage = status('CONVERTING');
             this.progressDisplay.updateProgress(40, convertingMessage);
             accessibilityManager.announceProgress(convertingMessage, 40);
-            const results = processConversations(conversations, this.processedIds);
+            // Progressive conversion to update UI
+            const results = await processConversationsProgressive(
+                conversations,
+                this.processedIds,
+                ({ percent, completed, total, message }) => {
+                    const adjusted = Math.min(80, 40 + Math.floor((percent / 100) * 40));
+                    const msg = message || convertingMessage;
+                    this.progressDisplay.updateProgress(adjusted, msg);
+                    accessibilityManager.announceProgress(msg, adjusted);
+                },
+                8
+            );
             
             // Add delay for conversion processing
             await this.delay(500);
             
             const finalizingMessage = status('FINALIZING');
-            this.progressDisplay.updateProgress(80, finalizingMessage);
-            accessibilityManager.announceProgress(finalizingMessage, 80);
+            this.progressDisplay.updateProgress(85, finalizingMessage);
+            accessibilityManager.announceProgress(finalizingMessage, 85);
             await this.delay(300);
             
             const completeMessage = status('COMPLETE');
