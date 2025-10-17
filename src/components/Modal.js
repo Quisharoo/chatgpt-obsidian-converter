@@ -91,6 +91,28 @@ export class Modal {
         const style = document.createElement('style');
         style.id = 'customModalStyles';
         style.textContent = `
+            /* Provide safe defaults for CSS variables to prevent black text on black bg */
+            :root {
+                /* Align with existing cards (Tailwind gray palette) */
+                --bg-card: #1f2937;             /* gray-800: lighter than page bg for contrast */
+                --bg-secondary: #111827;        /* gray-900 footer */
+                --bg-tertiary: #273244;         /* btn hover base */
+                --border-primary: #374151;       /* gray-700 */
+                --text-primary: #e5e7eb;         /* gray-200 */
+                --text-secondary: #cbd5e1;       /* gray-300 */
+                --accent-primary: #6366f1;       /* indigo-500 */
+                --font-size-lg: 16px;
+                --font-weight-semibold: 600;
+                --space-2: 8px;
+                --space-3: 12px;
+                --space-4: 16px;
+                --space-5: 20px;
+                --space-6: 24px;
+                --radius-sm: 6px;
+                --radius-lg: 12px;
+                --line-height-normal: 1.5;
+                --shadow-lg: 0 10px 30px rgba(0,0,0,0.45), 0 2px 10px rgba(0,0,0,0.4);
+            }
             .custom-modal {
                 position: fixed;
                 top: 0;
@@ -117,8 +139,8 @@ export class Modal {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                /* Dim background very lightly so the focus is the card, not the dimmer */
-                background: rgba(0, 0, 0, 0.35);
+                /* Slightly lighter overlay to avoid full-black feel */
+                background: rgba(0, 0, 0, 0.25);
                 backdrop-filter: blur(2px);
                 display: flex;
                 align-items: center;
@@ -211,7 +233,7 @@ export class Modal {
             
             .custom-modal .modal-content {
                 padding: var(--space-6);
-                color: var(--text-primary);
+                color: var(--text-primary, #e5e7eb);
                 line-height: var(--line-height-normal);
                 overflow-y: auto;
                 max-height: 60vh;
@@ -219,6 +241,11 @@ export class Modal {
             
             .custom-modal .modal-content p {
                 margin: 0 0 var(--space-3) 0;
+            }
+
+            .custom-modal .modal-content a {
+                color: var(--accent-primary, #6366f1);
+                text-decoration: underline;
             }
             
             .custom-modal .modal-content p:last-child {
@@ -231,12 +258,23 @@ export class Modal {
                 justify-content: flex-end;
                 padding: var(--space-5) var(--space-6);
                 border-top: 1px solid var(--border-primary);
-                background: var(--bg-secondary);
+                background: var(--bg-secondary, #0f172a);
             }
             
             .custom-modal .modal-footer .btn {
                 min-width: 80px;
                 justify-content: center;
+                background: #1f2937; /* gray-800 */
+                color: var(--text-primary, #e5e7eb);
+                border: 1px solid var(--border-primary, #374151);
+                border-radius: var(--radius-sm, 6px);
+                padding: 10px 14px;
+                transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .custom-modal .modal-footer .btn:hover {
+                background: var(--bg-tertiary, #273244); /* slightly lighter accent */
+                border-color: #4b5563; /* gray-600 */
             }
             
             .custom-modal .modal-footer .btn[data-primary="true"] {

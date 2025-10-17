@@ -276,6 +276,69 @@ export function processConversations(conversations, processedIds = new Set()) {
 }
 
 /**
+ * Progressively process conversations with progress callbacks and UI-friendly yielding
+ * WHY: Enables real-time progress bar updates during long conversions without blocking the UI
+ *
+ * @param {Array} conversations - Array of ChatGPT conversation objects
+ * @param {Set} processedIds - Already processed conversation IDs
+ * @param {Function} onProgress - Callback receiving { percent, completed, total, message }
+ * @param {number} yieldEvery - Yield to event loop every N items (default 10)
+ * @returns {Promise<Object>} - Same shape as processConversations
+ */
+export async function processConversationsProgressive(
+    conversations,
+    processedIds = new Set(),
+    onProgress = () => {},
+    yieldEvery = 10
+) {
+    const results = {
+        processed: 0,
+        skipped: 0,
+        errors: 0,
+        files: []
+    };
+
+    const microYield = () => new Promise((r) => setTimeout(r, 0));
+
+    // Sort chronologically for proper file creation order
+    const sortedConversations = sortConversationsChronologically(conversations);
+    const total = sortedConversations.length;
+
+    onProgress({ percent: 0, completed: 0, total, message: 'Starting conversion…' });
+
+    const usedFilenames = [];
+    let index = 0;
+    for (const conversation of sortedConversations) {
+        try {
+            const result = processSingleConversation(conversation, processedIds, usedFilenames);
+            if (result.skipped) {
+                results.skipped++;
+            } else if (result.file) {
+                results.files.push(result.file);
+                results.processed++;
+                processedIds.add(conversation.id);
+            }
+        } catch (error) {
+            console.error(`Error processing conversation '${conversation.title || 'Unknown'}':`, error);
+            results.errors++;
+        }
+
+        index++;
+        const completed = results.processed + results.skipped + results.errors;
+        const percent = total > 0 ? Math.min(100, Math.floor((completed / total) * 100)) : 100;
+        const msgTitle = conversation?.title || 'Untitled';
+        onProgress({ percent, completed, total, message: `Converting: ${msgTitle}` });
+
+        if (index % yieldEvery === 0) {
+            await microYield();
+        }
+    }
+
+    onProgress({ percent: 100, completed: total, total, message: 'Conversion complete' });
+    return results;
+}
+
+/**
  * Process a single conversation with validation and error handling
  * WHY: Isolates single conversation processing for better error containment
  * 
