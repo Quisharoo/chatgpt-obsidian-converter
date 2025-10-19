@@ -19,6 +19,11 @@ import {
     scanForExistingFiles,
     getFileSystemAccessInfo
 } from './fileSystemManager.js';
+import { ProgressController } from './ui/progressController.js';
+import { ResultsView } from './ui/resultsView.js';
+import { DialogService } from './ui/dialogService.js';
+import { NotificationService } from './ui/notificationService.js';
+import { DownloadService } from './ui/downloadService.js';
 import { ERROR_MESSAGES, STATUS_MESSAGES } from '../utils/constants.js';
 import { logInfo, logDebug, logWarn, logError } from '../utils/logger.js';
 import { telemetry } from '../utils/telemetry.js';
@@ -48,6 +53,11 @@ export class ChatGPTConverter {
         this.processedIds = new Set();
         this.saveLocalButton = null;
         this.uiBuilder = new UIBuilder();
+        this.progressController = null;
+        this.resultsView = null;
+        this.dialogService = new DialogService();
+        this.notificationService = new NotificationService();
+        this.downloadService = null;
         
         this.initializeComponents();
     }
@@ -62,6 +72,29 @@ export class ChatGPTConverter {
             this.fileUploader = new FileUploader('dropzone', 'fileInput');
             this.progressDisplay = new ProgressDisplay('conversionProgressContainer');
             this.saveProgressDisplay = new ProgressDisplay('progressContainer');
+            this.progressController = new ProgressController({
+                conversionDisplay: this.progressDisplay,
+                saveDisplay: this.saveProgressDisplay,
+                accessibility: accessibilityManager
+            });
+            this.notificationService.setProgressController(this.progressController);
+            this.downloadService = new DownloadService({
+                createDownloadBlob,
+                downloadFile,
+                telemetry,
+                accessibilityManager,
+                notificationService: this.notificationService
+            });
+            this.resultsView = new ResultsView({
+                uiBuilder: this.uiBuilder,
+                handlers: {
+                    onSelectDirectory: () => this.handleDirectorySelection(),
+                    onSaveAll: () => this.handleLocalSave(),
+                    onDownloadZip: () => this.downloadAllAsZip(),
+                    onDownloadFile: (file) => this.downloadSingleFile(file),
+                    onSaveFile: (file) => this.saveSingleFileToMarkdown(file)
+                }
+            });
             
             // Set up file upload handling
             this.fileUploader.setFileSelectedCallback(this.handleFileUpload.bind(this));
@@ -93,7 +126,6 @@ export class ChatGPTConverter {
             logError('❌ Failed to initialize application:', e);
             const errorMessage = error('FAILED_TO_INITIALIZE');
             this.showError(errorMessage);
-            accessibilityManager.announceStatus(errorMessage, 'error');
         }
     }
 
@@ -104,6 +136,8 @@ export class ChatGPTConverter {
      * @param {File} file - Uploaded file to process
      */
     async handleFileUpload(file) {
+        // Programmatic breakpoint to inspect file upload handling and initial state
+        /* istanbul ignore next */
         const startTime = Date.now();
         logInfo(message('PROCESSING_FILE', { fileName: file.name, fileSize: formatFileSize(file.size) }));
         
@@ -111,20 +145,24 @@ export class ChatGPTConverter {
         telemetry.trackConversionStarted(file.size, file.name);
         
         this.fileUploader.setProcessingState(true);
-        this.progressDisplay.show(false, false); // Don't switch to Files view for conversion
+        if (this.progressController) {
+            this.progressController.startConversion();
+        }
         
         try {
             // Read and parse file (supports .json and .zip containing conversations.json)
             const readingMessage = status('READING_FILE');
-            this.progressDisplay.updateProgress(0, readingMessage);
-            accessibilityManager.announceProgress(readingMessage, 0);
+            if (this.progressController) {
+            this.progressController.updateConversion(0, readingMessage);
+            }
 
             let conversations = [];
             const lowerName = (file.name || '').toLowerCase();
             if (lowerName.endsWith('.zip')) {
                 // ZIP ingestion path
-                this.progressDisplay.updateProgress(5, 'Scanning export…');
-                accessibilityManager.announceProgress('Scanning export…', 5);
+                if (this.progressController) {
+                    this.progressController.updateConversion(5, 'Scanning export…');
+                }
                 const arrayBuffer = await file.arrayBuffer();
                 // JSZip is loaded from CDN in index.html; guard if unavailable
                 if (typeof JSZip === 'undefined') {
@@ -139,8 +177,9 @@ export class ChatGPTConverter {
                         conversationsEntry = zip.file(p); 
                         // Show quick progress when preferred path is found
                         const pct = 10 + (idx * 2);
-                        this.progressDisplay.updateProgress(pct, `Found ${p}…`);
-                        accessibilityManager.announceProgress(`Found ${p}…`, pct);
+                        if (this.progressController) {
+                            this.progressController.updateConversion(pct, `Found ${p}…`);
+                        }
                         break; 
                     }
                 }
@@ -157,8 +196,9 @@ export class ChatGPTConverter {
                         }
                         if (seen % 25 === 0) {
                             const pct = Math.min(20 + Math.floor((seen / total) * 40), 60);
-                            this.progressDisplay.updateProgress(pct, `Scanning: ${name}`);
-                            accessibilityManager.announceProgress(`Scanning: ${name}`, pct);
+                            if (this.progressController) {
+                                this.progressController.updateConversion(pct, `Scanning: ${name}`);
+                            }
                             // Yield to UI
                             await new Promise(r => setTimeout(r, 0));
                         }
@@ -167,22 +207,26 @@ export class ChatGPTConverter {
                 if (!conversationsEntry) {
                     throw new Error('Could not find conversations.json in the ZIP export.');
                 }
-                this.progressDisplay.updateProgress(15, 'Loading conversations.json…');
-                accessibilityManager.announceProgress('Loading conversations.json…', 15);
+                if (this.progressController) {
+                    this.progressController.updateConversion(15, 'Loading conversations.json…');
+                }
                 const jsonText = await conversationsEntry.async('text');
                 const parsingMessage = status('PARSING_JSON');
-                this.progressDisplay.updateProgress(20, parsingMessage);
-                accessibilityManager.announceProgress(parsingMessage, 20);
+                if (this.progressController) {
+                    this.progressController.updateConversion(20, parsingMessage);
+                }
                 conversations = this.parseConversations(jsonText);
-                this.progressDisplay.updateProgress(30, `Found ${conversations.length} conversations`);
-                accessibilityManager.announceProgress(`Found ${conversations.length} conversations`, 30);
+                if (this.progressController) {
+                    this.progressController.updateConversion(30, `Found ${conversations.length} conversations`);
+                }
             } else {
                 // JSON file path
                 const fileContent = await this.readFileContent(file);
                 await this.delay(300);
                 const parsingMessage = status('PARSING_JSON');
-                this.progressDisplay.updateProgress(20, parsingMessage);
-                accessibilityManager.announceProgress(parsingMessage, 20);
+                if (this.progressController) {
+                    this.progressController.updateConversion(20, parsingMessage);
+                }
                 conversations = this.parseConversations(fileContent);
             }
             
@@ -191,8 +235,9 @@ export class ChatGPTConverter {
             
             // Convert conversations with more granular progress
             const convertingMessage = status('CONVERTING');
-            this.progressDisplay.updateProgress(40, convertingMessage);
-            accessibilityManager.announceProgress(convertingMessage, 40);
+            if (this.progressController) {
+                this.progressController.updateConversion(40, convertingMessage);
+            }
             // Progressive conversion to update UI
             const results = await processConversationsProgressive(
                 conversations,
@@ -200,8 +245,9 @@ export class ChatGPTConverter {
                 ({ percent, completed, total, message }) => {
                     const adjusted = Math.min(80, 40 + Math.floor((percent / 100) * 40));
                     const msg = message || convertingMessage;
-                    this.progressDisplay.updateProgress(adjusted, msg);
-                    accessibilityManager.announceProgress(msg, adjusted);
+                    if (this.progressController) {
+                        this.progressController.updateConversion(adjusted, msg);
+                    }
                 },
                 8
             );
@@ -210,13 +256,15 @@ export class ChatGPTConverter {
             await this.delay(500);
             
             const finalizingMessage = status('FINALIZING');
-            this.progressDisplay.updateProgress(85, finalizingMessage);
-            accessibilityManager.announceProgress(finalizingMessage, 85);
+            if (this.progressController) {
+                this.progressController.updateConversion(85, finalizingMessage);
+            }
             await this.delay(300);
             
             const completeMessage = status('COMPLETE');
-            this.progressDisplay.updateProgress(100, completeMessage);
-            accessibilityManager.announceProgress(completeMessage, 100);
+            if (this.progressController) {
+                this.progressController.completeConversion(completeMessage);
+            }
             this.convertedFiles = results.files;
             
             // Track successful conversion
@@ -242,7 +290,9 @@ export class ChatGPTConverter {
                 // Populate the Files view in the background
                 setTimeout(() => {
                     if (results.files && results.files.length > 0) {
-                        this.populateFilesView(results);
+                        if (this.resultsView) {
+                            this.resultsView.refreshTable();
+                        }
                         showFiles();
                         logInfo(`✅ Files view populated with ${results.files.length} files`);
                     } else {
@@ -252,7 +302,9 @@ export class ChatGPTConverter {
                 
                 // Hide progress after switching to results view
                 setTimeout(() => {
-                    this.progressDisplay.hide();
+                    if (this.progressController) {
+                        this.progressController.hideConversion();
+                    }
                 }, 200);
             }, 500);
             
@@ -264,9 +316,10 @@ export class ChatGPTConverter {
                          error.message.includes('structure') ? 'parsing' : 'processing';
             telemetry.trackConversionFailed(error, stage);
             
-            this.progressDisplay.showError(error.message);
+            if (this.progressController) {
+                this.progressController.failConversion(error.message);
+            }
             this.showError(error.message);
-            accessibilityManager.announceStatus(`Conversion failed: ${error.message}`, 'error');
         } finally {
             this.fileUploader.setProcessingState(false);
         }
@@ -326,7 +379,6 @@ export class ChatGPTConverter {
             
             const successMessage = `✅ ${success('DIRECTORY_SELECTED')}: ${directoryHandle.name}. ${success('READY_TO_SAVE')}`;
             this.showSuccess(successMessage);
-            accessibilityManager.announceStatus(`Directory selected: ${directoryHandle.name}`, 'success');
             
             this.updateSaveButtonState();
             
@@ -338,7 +390,6 @@ export class ChatGPTConverter {
         } catch (error) {
             console.error('Directory selection error:', error);
             this.showError(error.message);
-            accessibilityManager.announceStatus(`Directory selection failed: ${error.message}`, 'error');
         }
     }
 
@@ -354,7 +405,6 @@ export class ChatGPTConverter {
         if (!this.selectedDirectoryHandle) {
             const errorMessage = error('NO_DIRECTORY');
             this.showError(errorMessage);
-            accessibilityManager.announceStatus(errorMessage, 'error');
             return;
         }
 
@@ -363,7 +413,6 @@ export class ChatGPTConverter {
         if (!isValid) {
             const errorMessage = error('DIRECTORY_ACCESS_LOST');
             this.showError(`❌ ${errorMessage}`);
-            accessibilityManager.announceStatus(errorMessage, 'error');
             this.selectedDirectoryHandle = null;
             this.uiBuilder.setDirectoryHandle(null);
             this.updateSaveButtonState();
@@ -379,19 +428,18 @@ export class ChatGPTConverter {
         // Set up cancellation flag
         let isCancelled = false;
         
-        // Show progress display with cancel button and switch to Files view
-        this.saveProgressDisplay.show(true, true);
-        this.saveProgressDisplay.setCancelCallback(() => {
-            isCancelled = true;
-            logInfo('🛑 User requested cancellation of save operation');
-        });
+        if (this.progressController) {
+            this.progressController.startSaveOperation(() => {
+                isCancelled = true;
+                logInfo('🛑 User requested cancellation of save operation');
+            });
+        }
         
         const preparingMessage = info('PREPARING_FILES', { 
             count: this.convertedFiles.length, 
             folderName: this.selectedDirectoryHandle.name 
         });
         this.showInfo(`💾 ${preparingMessage}`);
-        accessibilityManager.announceStatus(preparingMessage);
 
         try {
             const progressCallback = (arg1, arg2, arg3, arg4) => {
@@ -406,8 +454,9 @@ export class ChatGPTConverter {
                 }
                 const msg = message || `💾 ${status('SAVING_FILES')} ${percent}% (${completed}/${total})`;
                 logInfo(`📊 Progress update: ${percent}% - ${msg}`);
-                this.saveProgressDisplay.updateProgress(percent, msg);
-                accessibilityManager.announceProgress(msg, percent);
+                if (this.progressController) {
+                    this.progressController.updateSave(percent, msg);
+                }
             };
 
             const cancellationCallback = () => isCancelled;
@@ -424,6 +473,10 @@ export class ChatGPTConverter {
             telemetry.trackFilesSaved('local', this.convertedFiles.length, results.successCount, saveTime);
 
             logInfo(`✅ Save operation completed: ${results.successCount} saved, ${results.cancelledCount} cancelled, ${results.errorCount} errors`);
+
+            if (this.progressController) {
+                this.progressController.completeSave('Save operation completed');
+            }
 
             // Handle different outcomes based on user choice and results
             if (results.userCancelled) {
@@ -489,12 +542,17 @@ export class ChatGPTConverter {
             });
             
             const errorMessage = `${error('SAVE_FAILED')}: ${error.message}`;
+            if (this.progressController) {
+                this.progressController.failSave(errorMessage);
+            }
             this.showError(errorMessage);
-            accessibilityManager.announceStatus(errorMessage, 'error');
         } finally {
-            // Clear the cancel callback
-            this.saveProgressDisplay.setCancelCallback(null);
-            setTimeout(() => this.saveProgressDisplay.hide(), 1000);
+            if (this.progressController) {
+                this.progressController.hideSave(1000);
+            } else {
+                this.saveProgressDisplay.setCancelCallback(null);
+                setTimeout(() => this.saveProgressDisplay.hide(), 1000);
+            }
         }
     }
 
@@ -505,21 +563,7 @@ export class ChatGPTConverter {
      * @param {Object} file - File object to download
      */
     downloadSingleFile(file) {
-        try {
-            const blob = createDownloadBlob(file.content);
-            downloadFile(blob, file.filename);
-            
-            // Track individual file download
-            telemetry.trackIndividualFileAction('download', true);
-            accessibilityManager.announceFileOperation('download', true, file.filename);
-        } catch (error) {
-            console.error(`Error downloading ${file.filename}:`, error);
-            telemetry.trackIndividualFileAction('download', false, error);
-            
-            const errorMessage = `${error('DOWNLOAD_FAILED')} ${file.filename}`;
-            this.showError(errorMessage);
-            accessibilityManager.announceFileOperation('download', false, file.filename);
-        }
+        this.downloadService?.downloadSingleFile(file);
     }
 
     /**
@@ -534,7 +578,6 @@ export class ChatGPTConverter {
             if (!isFileSystemAccessSupported()) {
                 const errorMessage = error('BROWSER_NOT_SUPPORTED');
                 this.showError(errorMessage);
-                accessibilityManager.announceStatus(errorMessage, 'error');
                 return;
             }
 
@@ -547,7 +590,6 @@ export class ChatGPTConverter {
             if (!directoryHandle) {
                 const cancelMessage = info('SAVE_CANCELLED');
                 this.showInfo(`📂 ${cancelMessage}`);
-                accessibilityManager.announceStatus(cancelMessage);
                 return;
             }
 
@@ -561,13 +603,18 @@ export class ChatGPTConverter {
                 telemetry.trackIndividualFileAction('save', true);
                 
                 // Show prominent success confirmation
-                this.showFileSaveConfirmation(file.title || file.filename, directoryHandle.name, result.filename);
+                if (this.dialogService) {
+                    this.dialogService.showFileSaveConfirmation({
+                        fileTitle: file.title || file.filename,
+                        folderName: directoryHandle.name,
+                        filename: result.filename
+                    });
+                }
                 logInfo(`✅ Individual file saved: ${result.filename} → ${directoryHandle.name}/`);
                 accessibilityManager.announceFileOperation('save', true, file.filename);
             } else if (result.cancelled) {
                 this.showInfo(`📂 ${result.message}`);
                 logInfo(`📂 Save cancelled by user: ${result.filename}`);
-                accessibilityManager.announceStatus(result.message);
             } else {
                 telemetry.trackIndividualFileAction('save', false, new Error(result.message));
                 this.showError(`❌ ${result.message}`);
@@ -583,11 +630,9 @@ export class ChatGPTConverter {
             if (saveError.message.includes('cancelled')) {
                 const cancelMessage = info('SAVE_CANCELLED');
                 this.showInfo(`📂 ${cancelMessage}`);
-                accessibilityManager.announceStatus(cancelMessage);
             } else {
                 const errorMessage = `${error('SAVE_FAILED')} "${file.filename}": ${saveError.message}`;
                 this.showError(errorMessage);
-                accessibilityManager.announceStatus(errorMessage, 'error');
             }
         }
     }
@@ -597,18 +642,8 @@ export class ChatGPTConverter {
      * WHY: Batch download fallback when local saving fails
      */
     downloadAllFiles() {
-        let successCount = 0;
-        
-        for (const file of this.convertedFiles) {
-            try {
-                this.downloadSingleFile(file);
-                successCount++;
-            } catch (error) {
-                logError(`Error downloading ${file.filename}:`, error);
-            }
-        }
-        
-        this.showSuccess(`📥 Downloaded ${successCount} files`);
+        if (!this.convertedFiles || this.convertedFiles.length === 0) return;
+        this.downloadService?.downloadAllFiles(this.convertedFiles);
     }
 
     /**
@@ -616,61 +651,8 @@ export class ChatGPTConverter {
      * WHY: Provides a single download option for mobile users
      */
     async downloadAllAsZip() {
-        const zipStartTime = Date.now();
-        
-        try {
-            // Check if JSZip is available
-            if (typeof JSZip === 'undefined') {
-                // Fallback to individual downloads
-                const fallbackMessage = info('ZIP_NOT_AVAILABLE');
-                this.showInfo(`📦 ${fallbackMessage}`);
-                accessibilityManager.announceStatus(fallbackMessage);
-                this.downloadAllFiles();
-                return;
-            }
-
-            const creatingMessage = status('CREATING_ZIP');
-            this.showInfo(`📦 ${creatingMessage}`);
-            accessibilityManager.announceStatus(creatingMessage);
-            
-            const zip = new JSZip();
-            
-            // Add all files to the ZIP
-            for (const file of this.convertedFiles) {
-                zip.file(file.filename, file.content);
-            }
-            
-            // Generate the ZIP file
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
-            
-            // Download the ZIP file
-            const url = URL.createObjectURL(zipBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `chatgpt-conversations-${new Date().toISOString().split('T')[0]}.zip`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            // Track ZIP download success
-            const zipTime = Date.now() - zipStartTime;
-            telemetry.trackFilesSaved('zip', this.convertedFiles.length, this.convertedFiles.length, zipTime);
-            
-            const successMessage = `📦 ${success('FILES_DOWNLOADED')} ${this.convertedFiles.length} files as ZIP archive`;
-            this.showSuccess(successMessage);
-            accessibilityManager.announceStatus(successMessage, 'success');
-            
-        } catch (error) {
-            logError('Error creating ZIP archive:', error);
-            telemetry.trackError('save', error, { type: 'zip_creation', fileCount: this.convertedFiles.length });
-            
-            const errorMessage = error('ZIP_CREATION_FAILED');
-            this.showError(errorMessage);
-            accessibilityManager.announceStatus(errorMessage, 'error');
-            // Fallback to individual downloads
-            this.downloadAllFiles();
-        }
+        if (!this.convertedFiles || this.convertedFiles.length === 0) return;
+        await this.downloadService?.downloadAllAsZip(this.convertedFiles);
     }
 
     /**
@@ -690,884 +672,27 @@ export class ChatGPTConverter {
      * @param {Object} results - Conversion results
      */
     displayResults(results) {
-        const resultsDiv = document.getElementById('results');
-        const downloadList = document.getElementById('downloadList');
-        
-        if (!resultsDiv || !downloadList) return;
-        
-        resultsDiv.classList.remove('hidden');
-        downloadList.innerHTML = '';
-        
-        // Add summary card
-        const summaryCard = this.uiBuilder.createResultsSummaryCard(results);
-        downloadList.appendChild(summaryCard);
-        
-        if (results.files.length > 0) {
-            // Add directory selection card with callbacks
-            const directoryCard = this.uiBuilder.createDirectoryCard(results, {
-                onDirectorySelect: () => this.handleDirectorySelection(),
-                onSave: () => this.handleLocalSave(),
-                onDownloadZip: () => this.downloadAllAsZip()
-            });
-            downloadList.appendChild(directoryCard);
-            
-            // Store files for the dedicated Files view (but don't create duplicate table in Results view)
-            this.populateFilesView(results);
+        if (this.resultsView) {
+            this.resultsView.show(results);
         }
     }
 
-    /**
-     * Populate the dedicated Files view with sorting and pagination
-     * WHY: Provides a dedicated interface for browsing individual files
-     */
-    populateFilesView(results) {
-        const filesContainer = document.getElementById('filesContainer');
-        const fileTableBody = document.getElementById('fileTableBody');
-        const resultsInfo = document.getElementById('resultsInfo');
-        const sortSelect = document.getElementById('sortSelect');
-        const paginationContainer = document.getElementById('paginationContainer');
-        
-        if (!filesContainer || !fileTableBody || !resultsInfo) return;
-        
-        // Show files container
-        filesContainer.classList.remove('hidden');
-        
-        // Store files data for pagination/sorting
-        this.allFiles = results.files;
-        this.currentPage = 1;
-        this.filesPerPage = 10;
-        
-        // Initialize sort state if not already set
-        if (!this.currentSort) {
-            this.currentSort = 'date';
-            this.sortDirection = 'desc';
-        }
-        
-        // Hide sort dropdown and set up column click handlers
-        if (sortSelect) {
-            sortSelect.style.display = 'none';
-            // Also hide the sort label
-            const sortLabel = sortSelect.previousElementSibling;
-            if (sortLabel && sortLabel.textContent.includes('Sort by:')) {
-                sortLabel.style.display = 'none';
-            }
-        }
-        
-        // Set up column header click handlers (only if not already set up)
-        if (!this.columnSortingSetup) {
-            this.setupColumnSorting();
-            this.columnSortingSetup = true;
-        }
-        
-        // Initial render
-        this.renderFilesTable();
-    }
-
-    /**
-     * Create a table row for a file
-     * WHY: Extracted method for cleaner code and better maintainability
-     */
-    createFileRow(file) {
-        const row = document.createElement('tr');
-        row.className = 'border-b border-gray-200 hover:bg-gray-50 transition-colors';
-        
-        // Fix date extraction - use multiple possible properties
-        const dateCreated = this.getFileDate(file);
-        
-        // Title column with filename shown as subtitle - FIXED WIDTH to prevent layout shifts
-        const titleCell = document.createElement('td');
-        titleCell.className = 'px-4 py-3 text-gray-800 font-medium align-top';
-        titleCell.style.width = '65%'; // Match header width
-        
-        const titleContainer = document.createElement('div');
-        const titleSpan = document.createElement('div');
-        titleSpan.textContent = file.title;
-        titleSpan.style.wordBreak = 'break-word'; // Prevent overflow
-        
-        titleContainer.appendChild(titleSpan);
-        titleCell.appendChild(titleContainer);
-        
-        // Date column - FIXED WIDTH to prevent layout shifts
-        const dateCell = document.createElement('td');
-        dateCell.className = 'px-4 py-3 text-gray-600 text-sm align-top whitespace-nowrap';
-        dateCell.style.width = '20%'; // Match header width
-        dateCell.textContent = dateCreated;
-        
-        // Actions column - FIXED WIDTH to prevent layout shifts
-        const actionsCell = document.createElement('td');
-        actionsCell.className = 'px-4 py-3 text-right align-top whitespace-nowrap';
-        actionsCell.style.width = '15%'; // Match header width
-        
-        const actionsContainer = document.createElement('div');
-        actionsContainer.className = 'flex gap-2 justify-end';
-        
-        // Always create Save button first, then Download button
-        // This maintains consistent layout and allows individual file saving
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs flex-shrink-0 transition-colors save-file-btn';
-        saveBtn.setAttribute('data-filename', file.filename);
-        saveBtn.setAttribute('data-content', encodeURIComponent(file.content));
-        saveBtn.setAttribute('data-title', file.title);
-        saveBtn.innerHTML = `
-            <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
-                <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
-            </svg>
-        `;
-        actionsContainer.appendChild(saveBtn);
-        
-        const downloadBtn = document.createElement('button');
-        downloadBtn.className = 'bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs flex-shrink-0 transition-colors download-file-btn';
-        downloadBtn.setAttribute('data-filename', file.filename);
-        downloadBtn.setAttribute('data-content', encodeURIComponent(file.content));
-        downloadBtn.innerHTML = `
-            <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
-                <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
-            </svg>
-        `;
-        
-        actionsContainer.appendChild(downloadBtn);
-        
-        actionsCell.appendChild(actionsContainer);
-        
-        row.appendChild(titleCell);
-        row.appendChild(dateCell);
-        row.appendChild(actionsCell);
-        
-        return row;
-    }
-
-    /**
-     * Render the files table with current page of files
-     * WHY: Displays paginated file list with sorting capabilities
-     */
-    renderFilesTable() {
-        const fileTableBody = document.getElementById('fileTableBody');
-        const resultsInfo = document.getElementById('resultsInfo');
-        const paginationContainer = document.getElementById('paginationContainer');
-        
-        if (!fileTableBody) {
-            logWarn('⚠️ File table body not found');
-            return;
-        }
-        
-        if (!this.allFiles || this.allFiles.length === 0) {
-            logWarn('⚠️ No files available to render');
-            
-            // Clear table and show no files message
-            fileTableBody.innerHTML = '';
-            if (resultsInfo) {
-                resultsInfo.textContent = 'No files available';
-            }
-            if (paginationContainer) {
-                paginationContainer.innerHTML = '';
-            }
-            return;
-        }
-        
-        // Sort files
-        const sortedFiles = this.sortFiles([...this.allFiles]);
-        
-        // Calculate pagination
-        const totalFiles = sortedFiles.length;
-        const totalPages = Math.ceil(totalFiles / this.filesPerPage);
-        const startIndex = (this.currentPage - 1) * this.filesPerPage;
-        const endIndex = Math.min(startIndex + this.filesPerPage, totalFiles);
-        const currentFiles = sortedFiles.slice(startIndex, endIndex);
-        
-        // Update results info
-        if (resultsInfo) {
-            resultsInfo.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalFiles} files`;
-        }
-        
-        // Store current scroll position to maintain user's position
-        const container = fileTableBody.closest('.card-content');
-        const scrollTop = container ? container.scrollTop : 0;
-        
-        // Clear table body 
-        fileTableBody.innerHTML = '';
-        
-        // Render current page files
-        currentFiles.forEach(file => {
-            const row = this.uiBuilder.createFileRow(file);
-            fileTableBody.appendChild(row);
-        });
-        
-        // Restore scroll position
-        if (container) {
-            container.scrollTop = scrollTop;
-        }
-        
-        // Add event listeners to buttons
-        this.attachFileButtonHandlers();
-        
-        // Update sort indicators after DOM is updated
-        this.updateSortIndicators();
-        
-        // Render pagination
-        this.renderPagination(totalPages);
-        
-        logInfo(`✅ Files table rendered: ${currentFiles.length} files on page ${this.currentPage} of ${totalPages}`);
-    }
-
-    /**
-     * Set up column header click handlers for sorting
-     * WHY: Provides natural table sorting interface
-     */
-    setupColumnSorting() {
-        const titleHeader = document.getElementById('titleHeader');
-        const dateHeader = document.getElementById('dateHeader');
-        
-        logDebug('🔧 Setting up column sorting...', { titleHeader: !!titleHeader, dateHeader: !!dateHeader });
-        
-        // Remove existing listeners to prevent duplicates
-        if (titleHeader) {
-            titleHeader.removeEventListener('click', this._titleSortHandler);
-            titleHeader.removeEventListener('mouseenter', this._titleMouseEnterHandler);
-            titleHeader.removeEventListener('mouseleave', this._titleMouseLeaveHandler);
-            
-            // Create bound handlers to ensure proper removal
-            this._titleSortHandler = () => this.handleColumnSort('title');
-            this._titleMouseEnterHandler = () => {
-                titleHeader.classList.add('bg-gray-100');
-            };
-            this._titleMouseLeaveHandler = () => {
-                titleHeader.classList.remove('bg-gray-100');
-            };
-            
-            titleHeader.addEventListener('click', this._titleSortHandler);
-            titleHeader.style.transition = 'background-color 0.2s ease';
-            titleHeader.addEventListener('mouseenter', this._titleMouseEnterHandler);
-            titleHeader.addEventListener('mouseleave', this._titleMouseLeaveHandler);
-            logDebug('✅ Title header click listener attached');
-        }
-        
-        if (dateHeader) {
-            dateHeader.removeEventListener('click', this._dateSortHandler);
-            dateHeader.removeEventListener('mouseenter', this._dateMouseEnterHandler);
-            dateHeader.removeEventListener('mouseleave', this._dateMouseLeaveHandler);
-            
-            // Create bound handlers to ensure proper removal
-            this._dateSortHandler = () => this.handleColumnSort('date');
-            this._dateMouseEnterHandler = () => {
-                dateHeader.classList.add('bg-gray-100');
-            };
-            this._dateMouseLeaveHandler = () => {
-                dateHeader.classList.remove('bg-gray-100');
-            };
-            
-            dateHeader.addEventListener('click', this._dateSortHandler);
-            dateHeader.style.transition = 'background-color 0.2s ease';
-            dateHeader.addEventListener('mouseenter', this._dateMouseEnterHandler);
-            dateHeader.addEventListener('mouseleave', this._dateMouseLeaveHandler);
-            logDebug('✅ Date header click listener attached');
-        }
-        
-        // Initial sort state - set date as default descending (only if not already set)
-        if (!this.currentSort) {
-            this.currentSort = 'date';
-            this.sortDirection = 'desc';
-        }
-        
-        // Update sort indicators
-        this.updateSortIndicators();
-    }
-
-    /**
-     * Handle column sort when user clicks on table headers
-     * WHY: Provides natural table sorting interface
-     */
-    handleColumnSort(column) {
-        logDebug(`🔄 Column sort clicked: ${column}, current: ${this.currentSort}, direction: ${this.sortDirection}`);
-        
-        const previousColumn = this.currentSort;
-        
-        if (this.currentSort === column) {
-            // Same column - toggle direction
-            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-            logDebug(`↕️ Toggling sort direction for ${column}: ${this.sortDirection}`);
-        } else {
-            // Different column - set new sort and default to ascending
-            this.currentSort = column;
-            this.sortDirection = 'asc';
-            logDebug(`🔄 Switching to new column ${column}: ${this.sortDirection}`);
-        }
-        
-        // Only reset to first page when changing columns, not when toggling direction
-        if (previousColumn !== column) {
-            this.currentPage = 1;
-        }
-        
-        // Re-render table with new sort
-        this.renderFilesTable();
-    }
-
-    /**
-     * Update visual sort indicators in table headers
-     * WHY: Shows users which column is active and sort direction
-     */
-    updateSortIndicators() {
-        const titleIndicator = document.querySelector('#titleHeader .sort-indicator');
-        const dateIndicator = document.querySelector('#dateHeader .sort-indicator');
-        
-        logDebug('🎨 Updating sort indicators...', { 
-            currentSort: this.currentSort, 
-            sortDirection: this.sortDirection,
-            titleIndicator: !!titleIndicator,
-            dateIndicator: !!dateIndicator 
-        });
-        
-        if (!titleIndicator || !dateIndicator) {
-            logWarn('⚠️ Sort indicators not found in DOM');
-            return;
-        }
-        
-        // Reset all indicators to inactive state (hide arrows)
-        titleIndicator.className = 'text-gray-400';
-        dateIndicator.className = 'text-gray-400';
-        titleIndicator.textContent = '';
-        dateIndicator.textContent = '';
-        
-        // Set active indicator with correct direction
-        const activeIndicator = this.currentSort === 'title' ? titleIndicator : dateIndicator;
-        activeIndicator.className = 'text-indigo-600';
-        activeIndicator.textContent = this.sortDirection === 'asc' ? '▲' : '▼';
-        
-        logDebug(`✨ Active sort: ${this.currentSort} ${this.sortDirection === 'asc' ? '(ascending)' : '(descending)'}`);
-    }
-
-    /**
-     * Get valid timestamp for sorting, treating invalid values as 0
-     * WHY: Ensures consistent sorting behavior for invalid date values
-     * 
-     * @param {*} timestamp - Raw timestamp value
-     * @returns {number} - Valid timestamp or 0 for invalid values
-     */
-    getValidTimestamp(timestamp) {
-        if (timestamp && !isNaN(timestamp) && timestamp > 0) {
-            try {
-                const date = new Date(timestamp * 1000);
-                // Check if date is valid
-                if (!isNaN(date.getTime())) {
-                    return timestamp;
-                }
-            } catch (error) {
-                logWarn('Error validating timestamp:', error);
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * Get properly formatted date from file object
-     * WHY: Handles different date property names and formats consistently
-     */
-    getFileDate(file) {
-        if (!file || typeof file !== 'object') {
-            return 'Unknown';
-        }
-        
-        // Try different possible date properties
-        const createTime = file.createTime || file.create_time;
-        
-        if (createTime && !isNaN(createTime) && createTime > 0) {
-            try {
-                const date = new Date(createTime * 1000);
-                // Check if date is valid
-                if (!isNaN(date.getTime())) {
-                    return date.toLocaleDateString();
-                }
-            } catch (error) {
-                logWarn('Error formatting date:', error);
-            }
-        }
-        
-        // Fallback to createdDate if available
-        if (file.createdDate && file.createdDate !== 'Unknown' && typeof file.createdDate === 'string') {
-            return file.createdDate;
-        }
-        
-        return 'Unknown';
-    }
-
-    /**
-     * Sort files based on current criteria
-     * WHY: Allows users to organize files by name or date with natural sorting
-     */
-    sortFiles(files) {
-        return files.sort((a, b) => {
-            let aValue, bValue;
-            
-            if (this.currentSort === 'title') {
-                // Natural string sorting - case insensitive
-                aValue = (a.title || a.filename || '').toLowerCase().trim();
-                bValue = (b.title || b.filename || '').toLowerCase().trim();
-                
-                // Handle natural sorting for numbers in titles
-                if (this.sortDirection === 'asc') {
-                    return aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
-                } else {
-                    return bValue.localeCompare(aValue, undefined, { numeric: true, sensitivity: 'base' });
-                }
-            } else if (this.currentSort === 'date') {
-                // Sort by timestamp for accurate chronological ordering
-                // Handle invalid dates by treating them as 0
-                aValue = this.getValidTimestamp(a.createTime || a.create_time);
-                bValue = this.getValidTimestamp(b.createTime || b.create_time);
-                
-                if (this.sortDirection === 'asc') {
-                    return aValue - bValue;
-                } else {
-                    return bValue - aValue;
-                }
-            }
-            
-            return 0;
-        });
-    }
-
-    /**
-     * Render pagination controls
-     * WHY: Provides navigation for large numbers of files
-     */
-    renderPagination(totalPages) {
-        const paginationContainer = document.getElementById('paginationContainer');
-        if (!paginationContainer || totalPages <= 1) {
-            if (paginationContainer) paginationContainer.innerHTML = '';
-            return;
-        }
-        
-        paginationContainer.innerHTML = '';
-        
-        const maxButtons = 7;
-        let startPage = Math.max(1, this.currentPage - Math.floor(maxButtons / 2));
-        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-        
-        // Adjust start if we're near the end
-        if (endPage - startPage + 1 < maxButtons) {
-            startPage = Math.max(1, endPage - maxButtons + 1);
-        }
-        
-        // First button (only show if not on first page and there are many pages)
-        if (this.currentPage > 1 && totalPages > 5) {
-            const firstBtn = this.createPaginationButton('«', 1);
-            paginationContainer.appendChild(firstBtn);
-        }
-        
-        // Previous button
-        if (this.currentPage > 1) {
-            const prevBtn = this.createPaginationButton('‹', this.currentPage - 1);
-            paginationContainer.appendChild(prevBtn);
-        }
-        
-        // Page number buttons
-        for (let i = startPage; i <= endPage; i++) {
-            const pageBtn = this.createPaginationButton(i.toString(), i, i === this.currentPage);
-            paginationContainer.appendChild(pageBtn);
-        }
-        
-        // Next button
-        if (this.currentPage < totalPages) {
-            const nextBtn = this.createPaginationButton('›', this.currentPage + 1);
-            paginationContainer.appendChild(nextBtn);
-        }
-        
-        // Last button (only show if not on last page and there are many pages)
-        if (this.currentPage < totalPages && totalPages > 5) {
-            const lastBtn = this.createPaginationButton('»', totalPages);
-            paginationContainer.appendChild(lastBtn);
-        }
-    }
-
-    /**
-     * Create pagination button
-     * WHY: Creates consistent pagination button styling and behavior
-     */
-    createPaginationButton(text, page, isActive = false) {
-        const button = document.createElement('button');
-        button.textContent = text;
-        button.className = `btn ${isActive ? 'btn-primary' : 'btn-secondary'}`;
-        button.style.padding = 'var(--space-2) var(--space-3)';
-        button.style.fontSize = 'var(--font-size-sm)';
-        button.style.minWidth = '40px';
-        
-        if (!isActive) {
-            button.addEventListener('click', () => {
-                this.currentPage = page;
-                this.renderFilesTable();
-            });
-        }
-        
-        return button;
-    }
-
-    /**
-     * Attach event handlers to file action buttons
-     * WHY: Enables download and save functionality for individual files
-     */
-    attachFileButtonHandlers() {
-        // Download buttons
-        document.querySelectorAll('.download-file-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const filename = btn.dataset.filename;
-                const content = decodeURIComponent(btn.dataset.content);
-                
-                // Create file object and use the proper download method
-                const file = {
-                    filename: filename,
-                    content: content
-                };
-                
-                this.downloadSingleFile(file);
-            });
-        });
-
-        // Save buttons - use individual file save method that lets user pick folder
-        document.querySelectorAll('.save-file-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const filename = btn.dataset.filename;
-                const content = decodeURIComponent(btn.dataset.content);
-                const title = btn.dataset.title;
-                
-                // Create file object for the save method
-                const file = {
-                    filename: filename,
-                    content: content,
-                    title: title
-                };
-                
-                // Use the dedicated individual file save method
-                await this.saveSingleFileToMarkdown(file);
-            });
-        });
-    }
-
-    /**
-     * Show success message
-     * WHY: Provides feedback when files are saved successfully
-     */
-    showSuccessMessage(message) {
-        // Create temporary success message
-        const successDiv = document.createElement('div');
-        successDiv.className = 'status success';
-        successDiv.style.position = 'fixed';
-        successDiv.style.top = 'var(--space-4)';
-        successDiv.style.right = 'var(--space-4)';
-        successDiv.style.zIndex = '1000';
-        successDiv.style.maxWidth = '300px';
-        successDiv.textContent = message;
-        
-        document.body.appendChild(successDiv);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            if (successDiv.parentNode) {
-                successDiv.remove();
-            }
-        }, 3000);
-    }
-
-    /**
-     * Create results summary element
-     * WHY: Provides clear feedback about conversion results
-     */
-    createResultsSummary(results) {
-        const summary = document.createElement('div');
-        summary.innerHTML = `
-            <h4>📊 Conversion Summary</h4>
-            <p>✅ Converted: ${results.processed} conversations</p>
-            ${results.errors > 0 ? `<p>❌ Errors: ${results.errors} conversations</p>` : ''}
-        `;
-        summary.style.marginBottom = '20px';
-        return summary;
-    }
-
-    /**
-     * Create summary card for results
-     * WHY: Displays conversion statistics in a clean card format
-     */
-    createResultsSummaryCard(results) {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl shadow-md p-6 mb-8';
-        
-        const header = document.createElement('div');
-        header.className = 'mb-4';
-        
-        const title = document.createElement('h3');
-        title.className = 'text-xl font-medium text-gray-800 flex items-center mb-2';
-        title.innerHTML = `
-            <i class="fas fa-check-circle mr-3 text-green-500"></i>
-            Conversion Summary
-        `;
-        
-        const description = document.createElement('p');
-        description.className = 'text-gray-600';
-        description.textContent = 'Your ChatGPT conversations have been successfully converted';
-        
-        header.appendChild(title);
-        header.appendChild(description);
-        
-        const content = document.createElement('div');
-        content.className = '';
-        
-        const stats = document.createElement('div');
-        stats.className = 'flex justify-center gap-4';
-        
-        // Create stat items - simplified to show only the main conversion result
-        const statItems = [
-            { label: 'Conversations Converted', value: results.processed, icon: 'M12,3C6.5,3 2,6.58 2,11A7.18,7.18 0 0,0 2.24,12.65C2.09,13.6 2,14.62 2,15.68C2,17.68 2.5,19.5 3.5,21L12,12.5C12,12.33 12,12.17 12,12A1,1 0 0,1 13,11A1,1 0 0,1 14,12C14,12.17 14,12.33 14,12.5L22.5,21C23.5,19.5 24,17.68 24,15.68C24,14.62 23.91,13.6 23.76,12.65A7.18,7.18 0 0,0 24,11C24,6.58 19.5,3 14,3H12Z' }
-        ];
-        
-        // Only show errors if there were any
-        if (results.errors > 0) {
-            statItems.push({ label: 'Errors', value: results.errors, icon: 'M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z' });
-        }
-        
-        statItems.forEach(item => {
-            const statCard = document.createElement('div');
-            statCard.className = 'bg-gray-50 p-6 rounded-lg text-center min-w-[200px]';
-            
-            // Use Font Awesome icon instead of SVG
-            const iconClass = item.label.includes('Error') ? 'fas fa-exclamation-triangle text-red-500' : 'fas fa-comments text-indigo-500';
-            
-            statCard.innerHTML = `
-                <i class="${iconClass} text-3xl mb-3 block"></i>
-                <div class="text-2xl font-bold text-gray-800 mb-2">${item.value}</div>
-                <div class="text-base text-gray-600">${item.label}</div>
-            `;
-            
-            stats.appendChild(statCard);
-        });
-        
-        content.appendChild(stats);
-        card.appendChild(header);
-        card.appendChild(content);
-        
-        return card;
-    }
-
-    /**
-     * Create directory selection card
-     * WHY: Provides local save options with clear instructions in card format
-     */
-    createDirectoryCard(results) {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl shadow-md p-6 mb-8';
-        
-        const header = document.createElement('div');
-        header.className = 'mb-4';
-        
-        const title = document.createElement('h3');
-        title.className = 'text-xl font-medium text-gray-800 flex items-center mb-2';
-        title.innerHTML = `
-            <i class="fas fa-folder mr-3 text-indigo-500"></i>
-            Save Location
-        `;
-        
-        const description = document.createElement('p');
-        description.className = 'text-gray-600';
-        description.textContent = 'Choose where to save your converted files';
-        
-        header.appendChild(title);
-        header.appendChild(description);
-        
-        const content = document.createElement('div');
-        content.className = '';
-        
-        if (isFileSystemAccessSupported()) {
-            // Directory selection buttons
-            const buttonGroup = document.createElement('div');
-            buttonGroup.className = 'flex flex-col gap-3 mb-4';
-            
-            const selectBtn = this.createDirectoryButton();
-            const saveBtn = this.createSaveButton(results);
-            
-            buttonGroup.appendChild(selectBtn);
-            buttonGroup.appendChild(saveBtn);
-            content.appendChild(buttonGroup);
-            
-            // Instructions
-            const instructions = this.createInstructions();
-            content.appendChild(instructions);
-            
-        } else {
-            const apiInfo = getFileSystemAccessInfo();
-            const warning = this.createUnsupportedWarning();
-            content.appendChild(warning);
-            
-            // Add prominent download button for mobile users
-            if (apiInfo.mobile) {
-                const downloadSection = document.createElement('div');
-                downloadSection.className = 'mt-4';
-                
-                const downloadTitle = document.createElement('h4');
-                downloadTitle.className = 'text-lg font-medium text-gray-800 mb-3 flex items-center';
-                downloadTitle.innerHTML = `
-                    <i class="fas fa-download mr-2 text-indigo-500"></i>
-                    Download Options
-                `;
-                
-                const downloadButton = document.createElement('button');
-                downloadButton.className = 'bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-lg transition-colors w-full mb-3 flex items-center justify-center';
-                downloadButton.innerHTML = `
-                    <i class="fas fa-download mr-3"></i>
-                    Download All as ZIP
-                `;
-                downloadButton.onclick = () => this.downloadAllAsZip();
-                
-                const downloadInfo = document.createElement('p');
-                downloadInfo.className = 'text-sm text-gray-600 mb-3';
-                downloadInfo.textContent = 'Download all converted files as a single ZIP archive for easy file management.';
-                
-                downloadSection.appendChild(downloadTitle);
-                downloadSection.appendChild(downloadInfo);
-                downloadSection.appendChild(downloadButton);
-                
-                content.appendChild(downloadSection);
-            }
-        }
-        
-        card.appendChild(header);
-        card.appendChild(content);
-        
-        return card;
-    }
 
 
 
 
 
 
-
-    /**
-     * Create directory selection button
-     * WHY: Primary directory selection interface
-     */
-    createDirectoryButton() {
-        const btn = document.createElement('button');
-        btn.className = 'bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center';
-        btn.innerHTML = this.selectedDirectoryHandle ? 
-            `<i class="fas fa-folder-open mr-2"></i>Change Directory (Current: ${this.selectedDirectoryHandle.name})` : 
-            '<i class="fas fa-folder mr-2"></i>Choose Folder';
-        btn.onclick = () => this.handleDirectorySelection();
-        return btn;
-    }
-
-
-
-    /**
-     * Create save to local folder button
-     * WHY: Main save action with visual feedback
-     */
-    createSaveButton(results) {
-        const btn = document.createElement('button');
-        btn.className = this.selectedDirectoryHandle ? 
-            'bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center' :
-            'bg-gray-300 text-gray-500 font-medium py-3 px-6 rounded-lg cursor-not-allowed flex items-center justify-center';
-        btn.innerHTML = this.selectedDirectoryHandle ? 
-            `<i class="fas fa-save mr-2"></i>Save ${results.files.length} files to selected folder` : 
-            '<i class="fas fa-save mr-2"></i>Save to Local Folder (Select folder first)';
-        btn.disabled = !this.selectedDirectoryHandle;
-        btn.onclick = () => this.handleLocalSave();
-        
-        // Store reference for updates
-        this.saveLocalButton = btn;
-        
-        return btn;
-    }
-
-    /**
-     * Create instructions element
-     * WHY: Provides clear guidance for saving files
-     */
-    createInstructions() {
-        const instructions = document.createElement('div');
-        instructions.className = 'mt-3 text-sm text-gray-600 leading-normal';
-        
-        if (this.selectedDirectoryHandle) {
-            instructions.innerHTML = `
-                <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-check-circle text-green-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-green-700">
-                                <strong>Ready to save</strong><br>
-                                Selected folder: <strong>${this.selectedDirectoryHandle.name}</strong><br>
-                                Click "Save to Local Folder" to save all files directly to your chosen location.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            instructions.innerHTML = `
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-info-circle text-blue-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-blue-700">
-                                <strong>Select your destination folder</strong><br>
-                                Choose where you want to save your converted Markdown files.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        return instructions;
-    }
-
-    /**
-     * Create unsupported API warning
-     * WHY: Informs users when File System Access API is unavailable
-     */
-    createUnsupportedWarning() {
-        const apiInfo = getFileSystemAccessInfo();
-        const warning = document.createElement('div');
-        warning.className = 'bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded mb-4';
-        
-        let message = 'Your browser doesn\'t support direct folder saving. ';
-        
-        if (apiInfo.mobile) {
-            if (apiInfo.ios) {
-                message += 'On iOS devices, use the download options below to save your files. You can then move them to your preferred folder using the Files app.';
-            } else {
-                message += 'On mobile devices, use the download options below to save your files.';
-            }
-        } else {
-            message += 'Use the download options below to save your files.';
-        }
-        
-        warning.innerHTML = `
-            <div class="flex items-start space-x-3">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
-                </div>
-                <div>
-                    <strong class="block mb-2 text-yellow-800">Mobile Browser Detected</strong>
-                    <p class="text-yellow-700 leading-normal mb-0">${message}</p>
-                    ${apiInfo.mobile ? `
-                        <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                            <strong class="block mb-1 text-blue-800"><i class="fas fa-lightbulb mr-1"></i>Mobile Tip:</strong>
-                            <p class="text-blue-700 text-sm mb-0">Download all files as a ZIP archive for easier file management on your device.</p>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-        
-        return warning;
-    }
 
     /**
      * Show success message
      * WHY: Provides positive feedback
      */
     showSuccess(message) {
+        if (this.notificationService) {
+            this.notificationService.showSuccess(message);
+            return;
+        }
         this.showStatusMessage(message, 'success');
     }
 
@@ -1576,6 +701,10 @@ export class ChatGPTConverter {
      * WHY: Provides informational feedback
      */
     showInfo(message) {
+        if (this.notificationService) {
+            this.notificationService.showInfo(message);
+            return;
+        }
         this.showStatusMessage(message, 'info');
     }
 
@@ -1584,168 +713,11 @@ export class ChatGPTConverter {
      * WHY: Provides error feedback
      */
     showError(message) {
+        if (this.notificationService) {
+            this.notificationService.showError(message);
+            return;
+        }
         this.showStatusMessage(message, 'error');
-    }
-
-    /**
-     * Show file save confirmation dialog
-     * WHY: Provides clear visual confirmation when individual files are saved
-     */
-    showFileSaveConfirmation(fileTitle, folderName, filename) {
-        // Create confirmation dialog
-        const dialog = document.createElement('div');
-        dialog.className = 'file-save-confirmation-dialog';
-        dialog.innerHTML = `
-            <div class="dialog-overlay">
-                <div class="dialog-content">
-                    <div class="success-icon">✅</div>
-                    <h3>File Saved Successfully!</h3>
-                    <p><strong>${fileTitle}</strong> has been saved to the <strong>${folderName}</strong> folder.</p>
-                    <p class="filename">Filename: <code>${filename}</code></p>
-                    <div class="dialog-buttons">
-                        <button class="btn btn-primary ok-btn">OK</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Add dialog styles
-        const style = document.createElement('style');
-        style.textContent = `
-            .file-save-confirmation-dialog .dialog-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                backdrop-filter: blur(2px);
-            }
-            .file-save-confirmation-dialog .dialog-content {
-                background: #2a2a2a;
-                border: 1px solid #444;
-                border-radius: 12px;
-                padding: 32px;
-                max-width: 450px;
-                width: 90%;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-                position: relative;
-                text-align: center;
-            }
-            .file-save-confirmation-dialog .success-icon {
-                font-size: 48px;
-                margin-bottom: 16px;
-                animation: bounce 0.6s ease-in-out;
-            }
-            .file-save-confirmation-dialog h3 {
-                margin: 0 0 20px 0;
-                color: #ffffff;
-                font-size: 20px;
-                font-weight: 600;
-            }
-            .file-save-confirmation-dialog p {
-                margin: 0 0 16px 0;
-                color: #cccccc;
-                line-height: 1.6;
-                font-size: 15px;
-            }
-            .file-save-confirmation-dialog .filename {
-                background: #1a1a1a;
-                border: 1px solid #333;
-                border-radius: 6px;
-                padding: 12px;
-                margin: 16px 0;
-                font-family: monospace;
-                font-size: 13px;
-            }
-            .file-save-confirmation-dialog .filename code {
-                color: #4CAF50;
-                background: #1a1a1a;
-                padding: 2px 6px;
-                border-radius: 3px;
-            }
-            .file-save-confirmation-dialog .dialog-buttons {
-                display: flex;
-                justify-content: center;
-                margin-top: 24px;
-            }
-            .file-save-confirmation-dialog .btn {
-                padding: 12px 24px;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: 500;
-                transition: all 0.2s ease;
-                min-width: 80px;
-            }
-            .file-save-confirmation-dialog .btn-primary {
-                background: #007acc;
-                color: #ffffff;
-            }
-            .file-save-confirmation-dialog .btn-primary:hover {
-                background: #0066aa;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
-            }
-            @keyframes bounce {
-                0%, 20%, 50%, 80%, 100% {
-                    transform: translateY(0);
-                }
-                40% {
-                    transform: translateY(-10px);
-                }
-                60% {
-                    transform: translateY(-5px);
-                }
-            }
-        `;
-        
-        // Add to document
-        document.head.appendChild(style);
-        document.body.appendChild(dialog);
-        
-        // Get button reference
-        const okBtn = dialog.querySelector('.ok-btn');
-        
-        // Handle button click and cleanup
-        const cleanup = () => {
-            try {
-                if (dialog.parentNode) {
-                    document.body.removeChild(dialog);
-                }
-                if (style.parentNode) {
-                    document.head.removeChild(style);
-                }
-            } catch (error) {
-                logWarn('⚠️ Error cleaning up confirmation dialog:', error);
-            }
-        };
-        
-        okBtn.addEventListener('click', cleanup);
-        
-        // Handle escape key
-        const handleKeyDown = (event) => {
-            if (event.key === 'Escape' || event.key === 'Enter') {
-                document.removeEventListener('keydown', handleKeyDown);
-                cleanup();
-            }
-        };
-        document.addEventListener('keydown', handleKeyDown);
-        
-        // Focus the OK button
-        setTimeout(() => okBtn.focus(), 100);
-        
-        // Auto-close after 5 seconds
-        setTimeout(() => {
-            if (dialog.parentNode) {
-                cleanup();
-            }
-        }, 5000);
     }
 
     /**
@@ -1753,16 +725,18 @@ export class ChatGPTConverter {
      * WHY: Centralizes status message display
      */
     showStatusMessage(message, type) {
+        if (this.notificationService) {
+            this.notificationService.show(message, type);
+            return;
+        }
+
         if (this.progressDisplay && this.progressDisplay.isVisible) {
-            // Use the correct methods that exist on ProgressDisplay
             if (type === 'error') {
                 this.progressDisplay.showError(message);
             } else {
-                // For info/success messages, use updateProgress with current or max percentage
                 this.progressDisplay.updateProgress(100, message);
             }
         } else {
-            // Fallback: log to console
             logInfo(`${type.toUpperCase()}: ${message}`);
         }
     }

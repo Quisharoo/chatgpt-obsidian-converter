@@ -11,6 +11,7 @@ import path from 'path';
 // Import modules from new structure
 import { processConversations } from '../../../src/modules/conversionEngine.js';
 import { ChatGPTConverter } from '../../../src/modules/applicationOrchestrator.js';
+import { DownloadService } from '../../../src/modules/ui/downloadService.js';
 import { 
     generateUniqueFilename, 
     sortConversationsChronologically 
@@ -113,16 +114,38 @@ describe('Full Workflow Integration Tests', () => {
             expect(results.files[1].createdDate).toBe(new Date(1703522700 * 1000).toLocaleDateString());
         });
 
-        test('ZIP fallback triggers individual downloads when JSZip not available', () => {
-            const converter = new ChatGPTConverter();
-            converter.convertedFiles = [
+        test('ZIP fallback triggers individual downloads when JSZip not available', async () => {
+            const notificationService = {
+                showInfo: jest.fn(),
+                showSuccess: jest.fn(),
+                showError: jest.fn()
+            };
+            const telemetry = {
+                trackFilesSaved: jest.fn(),
+                trackError: jest.fn(),
+                trackIndividualFileAction: jest.fn()
+            };
+            const accessibilityManager = {
+                announceFileOperation: jest.fn()
+            };
+
+            const service = new DownloadService({
+                createDownloadBlob: jest.fn(),
+                downloadFile: jest.fn(),
+                telemetry,
+                accessibilityManager,
+                notificationService
+            });
+
+            const files = [
                 { filename: 'a.md', content: 'A' },
                 { filename: 'b.md', content: 'B' }
             ];
+
             global.JSZip = undefined;
-            const spy = jest.spyOn(converter, 'downloadAllFiles');
-            converter.downloadAllAsZip();
-            expect(spy).toHaveBeenCalled();
+            const fallbackSpy = jest.spyOn(service, 'downloadAllFiles');
+            await service.downloadAllAsZip(files);
+            expect(fallbackSpy).toHaveBeenCalledWith(files);
         });
 
         test('handles real conversation export structure', async () => {
@@ -601,12 +624,17 @@ describe('Full Workflow Integration Tests', () => {
              `;
 
              // Mock the ChatGPTConverter class with the saveSingleFileToMarkdown method
-             const mockConverter = {
-                 showFileSaveConfirmation: jest.fn(),
-                 saveSingleFileToMarkdown: jest.fn().mockImplementation(async (file) => {
-                     // Simulate successful save by calling the confirmation
-                     mockConverter.showFileSaveConfirmation(file.title, 'TestFolder', file.filename);
-                 }),
+            const mockConverter = {
+                dialogService: {
+                    showFileSaveConfirmation: jest.fn()
+                },
+                saveSingleFileToMarkdown: jest.fn().mockImplementation(async (file) => {
+                    mockConverter.dialogService.showFileSaveConfirmation({
+                        fileTitle: file.title,
+                        folderName: 'TestFolder',
+                        filename: file.filename
+                    });
+                }),
                  attachFileButtonHandlers: function() {
                      // Replicate the save button handler logic
                      document.querySelectorAll('.save-file-btn').forEach(btn => {
@@ -635,11 +663,11 @@ describe('Full Workflow Integration Tests', () => {
              // Wait for async call and verify
              return new Promise(resolve => {
                  setTimeout(() => {
-                     expect(mockConverter.showFileSaveConfirmation).toHaveBeenCalledWith(
-                         'Test Conversation',
-                         'TestFolder',
-                         'test-conversation.md'
-                     );
+                    expect(mockConverter.dialogService.showFileSaveConfirmation).toHaveBeenCalledWith({
+                        fileTitle: 'Test Conversation',
+                        folderName: 'TestFolder',
+                        filename: 'test-conversation.md'
+                    });
                      resolve();
                  }, 0);
              });

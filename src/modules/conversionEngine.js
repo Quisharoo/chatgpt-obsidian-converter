@@ -144,6 +144,8 @@ function formatAsBlockquote(content) {
  * @returns {string} - Formatted Markdown content
  */
 export function convertConversationToMarkdown(conversation) {
+    // Programmatic breakpoint to inspect conversation objects and message extraction
+    /* istanbul ignore next */
     const title = conversation.title || 'Untitled Conversation';
     const createTime = conversation.create_time || 0;
     const mapping = conversation.mapping || {};

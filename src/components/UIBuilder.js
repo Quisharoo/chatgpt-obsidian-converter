@@ -146,281 +146,21 @@ export class UIBuilder {
      */
     setDirectoryHandle(directoryHandle) {
         this.selectedDirectoryHandle = directoryHandle;
+        try {
+            window.dispatchEvent(
+                new CustomEvent('converter:directory-changed', {
+                    detail: {
+                        name: directoryHandle?.name || null
+                    }
+                })
+            );
+        } catch (_) {}
     }
 
     /**
      * Create results summary card
      * WHY: Displays conversion statistics in a clean card format
      */
-    createResultsSummaryCard(results) {
-        const card = document.createElement('div');
-        card.className = 'bg-gray-900 border border-gray-700 rounded-xl shadow-md p-6 mb-8';
-        
-        const header = document.createElement('div');
-        header.className = 'mb-4';
-        
-        const title = document.createElement('h3');
-        title.className = 'text-xl font-medium text-gray-100 flex items-center mb-2';
-        title.innerHTML = `
-            <i class="fas fa-check-circle mr-3 text-green-500"></i>
-            ${ui('CONVERSION_SUMMARY')}
-        `;
-        
-        const description = document.createElement('p');
-        description.className = 'text-gray-300';
-        description.textContent = message('CONVERSION_DESCRIPTION');
-        
-        header.appendChild(title);
-        header.appendChild(description);
-        
-        const content = document.createElement('div');
-        content.className = '';
-        
-        const stats = document.createElement('div');
-        stats.className = 'flex justify-center gap-4';
-        
-        // Create stat items - simplified to show only the main conversion result
-        const statItems = [
-            { 
-                label: 'Conversations Converted', 
-                value: results.processed, 
-                icon: 'fas fa-comments text-indigo-500'
-            }
-        ];
-        
-        // Only show errors if there were any
-        if (results.errors > 0) {
-            statItems.push({ 
-                label: 'Errors', 
-                value: results.errors, 
-                icon: 'fas fa-exclamation-triangle text-red-500'
-            });
-        }
-        if (typeof results.skipped === 'number' && results.skipped > 0) {
-            statItems.push({
-                label: 'Skipped',
-                value: results.skipped,
-                icon: 'fas fa-forward text-yellow-400'
-            });
-        }
-        
-        statItems.forEach(item => {
-            const statCard = document.createElement('div');
-            statCard.className = 'bg-gray-800 border border-gray-700 p-6 rounded-lg text-center min-w-[200px]';
-            
-            statCard.innerHTML = `
-                <i class="${item.icon} text-3xl mb-3 block"></i>
-                <div class="text-2xl font-bold text-gray-100 mb-2">${item.value}</div>
-                <div class="text-base text-gray-300">${item.label}</div>
-            `;
-            
-            stats.appendChild(statCard);
-        });
-        
-        content.appendChild(stats);
-        card.appendChild(header);
-        card.appendChild(content);
-        
-        return card;
-    }
-
-    /**
-     * Create directory selection card
-     * WHY: Provides local save options with clear instructions in card format
-     */
-    createDirectoryCard(results, callbacks = {}) {
-        const card = document.createElement('div');
-        card.className = 'bg-gray-900 border border-gray-700 rounded-xl shadow-md p-6 mb-8';
-        
-        const header = document.createElement('div');
-        header.className = 'mb-4';
-        
-        const title = document.createElement('h3');
-        title.className = 'text-xl font-medium text-gray-100 flex items-center mb-2';
-        title.innerHTML = `
-            <i class="fas fa-folder mr-3 text-indigo-500"></i>
-            ${ui('SAVE_LOCATION')}
-        `;
-        
-        const description = document.createElement('p');
-        description.className = 'text-gray-300';
-        description.textContent = message('CHOOSE_SAVE_LOCATION');
-        
-        header.appendChild(title);
-        header.appendChild(description);
-        
-        const content = document.createElement('div');
-        content.className = '';
-        
-        if (isFileSystemAccessSupported()) {
-            // Directory selection buttons
-            const buttonGroup = document.createElement('div');
-            buttonGroup.className = 'flex flex-col gap-3 mb-4';
-            
-            const selectBtn = this.createDirectoryButton(callbacks.onDirectorySelect);
-            const saveBtn = this.createSaveButton(results, callbacks.onSave);
-            
-            buttonGroup.appendChild(selectBtn);
-            buttonGroup.appendChild(saveBtn);
-            content.appendChild(buttonGroup);
-            
-            // Instructions
-            const instructions = this.createInstructions();
-            content.appendChild(instructions);
-            
-        } else {
-            const apiInfo = getFileSystemAccessInfo();
-            const warning = this.createUnsupportedWarning();
-            content.appendChild(warning);
-            
-            // Add prominent download button for mobile users
-            if (apiInfo.mobile) {
-                const downloadSection = this.createMobileDownloadSection(callbacks.onDownloadZip);
-                content.appendChild(downloadSection);
-            }
-        }
-        
-        card.appendChild(header);
-        card.appendChild(content);
-        
-        return card;
-    }
-
-    /**
-     * Create directory selection button
-     * WHY: Primary directory selection interface
-     */
-    createDirectoryButton(onDirectorySelect) {
-        const btn = document.createElement('button');
-        btn.className = 'bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center';
-        
-        if (this.selectedDirectoryHandle) {
-            btn.innerHTML = `<i class="fas fa-folder-open mr-2"></i>${ui('CHANGE_DIRECTORY', { folderName: this.selectedDirectoryHandle.name })}`;
-        } else {
-            btn.innerHTML = `<i class="fas fa-folder mr-2"></i>${ui('CHOOSE_FOLDER')}`;
-        }
-        
-        if (onDirectorySelect) {
-            btn.onclick = onDirectorySelect;
-        }
-        
-        return btn;
-    }
-
-    /**
-     * Create save to local folder button
-     * WHY: Main save action with visual feedback
-     */
-    createSaveButton(results, onSave) {
-        const btn = document.createElement('button');
-        
-        if (this.selectedDirectoryHandle) {
-            btn.className = 'bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center';
-            btn.innerHTML = `<i class="fas fa-save mr-2"></i>${ui('SAVE_FILES_TO_FOLDER', { count: results.files.length })}`;
-            btn.disabled = false;
-        } else {
-            btn.className = 'bg-gray-800 text-gray-500 font-medium py-3 px-6 rounded-lg cursor-not-allowed flex items-center justify-center';
-            btn.innerHTML = `<i class="fas fa-save mr-2"></i>${ui('SAVE_TO_LOCAL_FOLDER')} (${info('SELECT_FOLDER_FIRST')})`;
-            btn.disabled = true;
-        }
-        
-        if (onSave) {
-            btn.onclick = onSave;
-        }
-        
-        // Store reference for updates
-        this.saveLocalButton = btn;
-        
-        return btn;
-    }
-
-    /**
-     * Create instructions element
-     * WHY: Provides clear guidance for saving files
-     */
-    createInstructions() {
-        const instructions = document.createElement('div');
-        instructions.className = 'mt-3 text-sm text-gray-300 leading-normal';
-        
-        if (this.selectedDirectoryHandle) {
-            instructions.innerHTML = `
-                <div class="bg-green-900/30 border-l-4 border-green-500 p-3 rounded">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-check-circle text-green-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-green-300">
-                                <strong>Ready to save</strong><br>
-                                ${message('READY_TO_SAVE_DESCRIPTION', { folderName: this.selectedDirectoryHandle.name })}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            instructions.innerHTML = `
-                <div class="bg-blue-900/30 border-l-4 border-blue-500 p-3 rounded">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-info-circle text-blue-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-blue-300">
-                                <strong>Select your destination folder</strong><br>
-                                ${message('SELECT_DESTINATION')}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        return instructions;
-    }
-
-    /**
-     * Create unsupported API warning
-     * WHY: Informs users when File System Access API is unavailable
-     */
-    createUnsupportedWarning() {
-        const apiInfo = getFileSystemAccessInfo();
-        const warning = document.createElement('div');
-        warning.className = 'bg-yellow-900/30 border-l-4 border-yellow-500 p-4 rounded mb-4';
-        
-        let messageText = message('MOBILE_SAVE_INFO') + ' ';
-        
-        if (apiInfo.mobile) {
-            if (apiInfo.ios) {
-                messageText += message('IOS_SAVE_INFO');
-            } else {
-                messageText += message('MOBILE_DOWNLOAD_INFO');
-            }
-        } else {
-            messageText += message('MOBILE_DOWNLOAD_INFO');
-        }
-        
-        warning.innerHTML = `
-            <div class="flex items-start space-x-3">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
-                </div>
-                <div>
-                    <strong class="block mb-2 text-yellow-200">${message('MOBILE_BROWSER_DETECTED')}</strong>
-                    <p class="text-yellow-200 leading-normal mb-0">${messageText}</p>
-                    ${apiInfo.mobile ? `
-                        <div class="mt-3 p-3 bg-blue-900/30 border border-blue-700 rounded">
-                            <strong class="block mb-1 text-blue-200"><i class="fas fa-lightbulb mr-1"></i>${message('MOBILE_TIP')}</strong>
-                            <p class="text-blue-200 text-sm mb-0">${message('MOBILE_TIP_DESCRIPTION')}</p>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-        
-        return warning;
-    }
-
     /**
      * Create mobile download section
      * WHY: Provides download options optimized for mobile devices
@@ -464,7 +204,7 @@ export class UIBuilder {
     createFileRow(file, callbacks = {}) {
         const row = document.createElement('tr');
         row.className = 'border-b border-gray-200 hover:bg-gray-50 transition-colors';
-        
+
         // Fix date extraction - use multiple possible properties
         const dateCreated = this.getFileDate(file);
         
@@ -507,8 +247,14 @@ export class UIBuilder {
                 <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
             </svg>
         `;
+        if (callbacks.onSave) {
+            saveBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                callbacks.onSave(file);
+            });
+        }
         actionsContainer.appendChild(saveBtn);
-        
+
         const downloadBtn = document.createElement('button');
         downloadBtn.className = 'bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs flex-shrink-0 transition-colors download-file-btn';
         downloadBtn.setAttribute('data-filename', file.filename);
@@ -518,11 +264,17 @@ export class UIBuilder {
                 <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
             </svg>
         `;
-        
+        if (callbacks.onDownload) {
+            downloadBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                callbacks.onDownload(file);
+            });
+        }
+
         actionsContainer.appendChild(downloadBtn);
-        
+
         actionsCell.appendChild(actionsContainer);
-        
+
         row.appendChild(titleCell);
         row.appendChild(dateCell);
         row.appendChild(actionsCell);

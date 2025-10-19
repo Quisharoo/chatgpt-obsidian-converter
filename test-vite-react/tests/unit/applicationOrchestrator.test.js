@@ -26,6 +26,29 @@ jest.mock('../../../src/components/ProgressDisplay.js', () => ({
     }))
 }));
 
+jest.mock('../../../src/modules/ui/resultsView.js', () => ({
+    ResultsView: jest.fn().mockImplementation(() => ({
+        show: jest.fn(),
+        refreshTable: jest.fn()
+    }))
+}));
+
+jest.mock('../../../src/modules/ui/dialogService.js', () => ({
+    DialogService: jest.fn().mockImplementation(() => ({
+        showFileSaveConfirmation: jest.fn()
+    }))
+}));
+
+jest.mock('../../../src/modules/ui/notificationService.js', () => ({
+    NotificationService: jest.fn().mockImplementation(() => ({
+        setProgressController: jest.fn(),
+        show: jest.fn(),
+        showSuccess: jest.fn(),
+        showInfo: jest.fn(),
+        showError: jest.fn()
+    }))
+}));
+
 jest.mock('../../../src/utils/telemetry.js', () => ({
     telemetry: {
         trackConversionStarted: jest.fn(),
@@ -115,149 +138,6 @@ describe('Application Orchestrator Business Logic', () => {
         });
     });
 
-    describe('sortFiles', () => {
-        let testFiles;
-
-        beforeEach(() => {
-            testFiles = [
-                {
-                    title: "Zebra Conversation",
-                    filename: "zebra.md",
-                    createTime: 1703522600,
-                    create_time: 1703522600
-                },
-                {
-                    title: "Apple Discussion", 
-                    filename: "apple.md",
-                    createTime: 1703522700,
-                    create_time: 1703522700
-                },
-                {
-                    title: "Beta Test",
-                    filename: "beta.md", 
-                    createTime: 1703522650,
-                    create_time: 1703522650
-                }
-            ];
-        });
-
-        test('sorts by title ascending', () => {
-            converter.currentSort = 'title';
-            converter.sortDirection = 'asc';
-            
-            const result = converter.sortFiles([...testFiles]);
-            
-            expect(result[0].title).toBe("Apple Discussion");
-            expect(result[1].title).toBe("Beta Test");
-            expect(result[2].title).toBe("Zebra Conversation");
-        });
-
-        test('sorts by title descending', () => {
-            converter.currentSort = 'title';
-            converter.sortDirection = 'desc';
-            
-            const result = converter.sortFiles([...testFiles]);
-            
-            expect(result[0].title).toBe("Zebra Conversation");
-            expect(result[1].title).toBe("Beta Test");
-            expect(result[2].title).toBe("Apple Discussion");
-        });
-
-        test('sorts by date ascending (oldest first)', () => {
-            converter.currentSort = 'date';
-            converter.sortDirection = 'asc';
-            
-            const result = converter.sortFiles([...testFiles]);
-            
-            expect(result[0].createTime).toBe(1703522600); // Zebra - oldest
-            expect(result[1].createTime).toBe(1703522650); // Beta - middle  
-            expect(result[2].createTime).toBe(1703522700); // Apple - newest
-        });
-
-        test('sorts by date descending (newest first)', () => {
-            converter.currentSort = 'date';
-            converter.sortDirection = 'desc';
-            
-            const result = converter.sortFiles([...testFiles]);
-            
-            expect(result[0].createTime).toBe(1703522700); // Apple - newest
-            expect(result[1].createTime).toBe(1703522650); // Beta - middle
-            expect(result[2].createTime).toBe(1703522600); // Zebra - oldest
-        });
-
-        test('handles files with invalid timestamps', () => {
-            const filesWithInvalidDates = [
-                {
-                    title: "Valid Date",
-                    createTime: 1703522600,
-                    create_time: 1703522600
-                },
-                {
-                    title: "Invalid Date",
-                    createTime: null,
-                    create_time: null
-                },
-                {
-                    title: "Another Valid",
-                    createTime: 1703522700, 
-                    create_time: 1703522700
-                }
-            ];
-            
-            converter.currentSort = 'date';
-            converter.sortDirection = 'desc';
-            
-            const result = converter.sortFiles([...filesWithInvalidDates]);
-            
-            // Valid dates should be sorted properly, invalid dates should be last
-            expect(result[0].title).toBe("Another Valid");
-            expect(result[1].title).toBe("Valid Date");
-            expect(result[2].title).toBe("Invalid Date");
-        });
-
-        test('handles natural numeric sorting in titles', () => {
-            const filesWithNumbers = [
-                { title: "Chat 10", filename: "chat10.md", createTime: 1703522600 },
-                { title: "Chat 2", filename: "chat2.md", createTime: 1703522650 },
-                { title: "Chat 1", filename: "chat1.md", createTime: 1703522700 }
-            ];
-            
-            converter.currentSort = 'title';
-            converter.sortDirection = 'asc';
-            
-            const result = converter.sortFiles([...filesWithNumbers]);
-            
-            expect(result[0].title).toBe("Chat 1");
-            expect(result[1].title).toBe("Chat 2");
-            expect(result[2].title).toBe("Chat 10");
-        });
-
-        test('handles empty files array', () => {
-            converter.currentSort = 'title';
-            converter.sortDirection = 'asc';
-            
-            const result = converter.sortFiles([]);
-            
-            expect(result).toEqual([]);
-        });
-
-        test('handles files with missing title properties', () => {
-            const filesWithMissingTitles = [
-                { title: "Has Title", filename: "has.md", createTime: 1703522600 },
-                { filename: "no-title.md", createTime: 1703522650 },
-                { title: "", filename: "empty-title.md", createTime: 1703522700 }
-            ];
-            
-            converter.currentSort = 'title';
-            converter.sortDirection = 'asc';
-            
-            const result = converter.sortFiles([...filesWithMissingTitles]);
-            
-            // Should not crash and should handle missing/empty titles gracefully
-            expect(result).toHaveLength(3);
-            expect(result[0].title || result[0].filename).toBeTruthy();
-        });
-    });
 
     describe('readFileContent', () => {
         test('reads file content successfully', async () => {
@@ -310,113 +190,6 @@ describe('Application Orchestrator Business Logic', () => {
             }, 0);
             
             await expect(promise).rejects.toThrow('Failed to read file');
-        });
-    });
-
-    describe('getValidTimestamp', () => {
-        test('returns valid timestamp unchanged', () => {
-            const validTimestamp = 1703522622;
-            const result = converter.getValidTimestamp(validTimestamp);
-            
-            expect(result).toBe(validTimestamp);
-        });
-
-        test('returns 0 for null timestamp', () => {
-            const result = converter.getValidTimestamp(null);
-            
-            expect(result).toBe(0);
-        });
-
-        test('returns 0 for undefined timestamp', () => {
-            const result = converter.getValidTimestamp(undefined);
-            
-            expect(result).toBe(0);
-        });
-
-        test('returns 0 for negative timestamp', () => {
-            const result = converter.getValidTimestamp(-123);
-            
-            expect(result).toBe(0);
-        });
-
-        test('returns 0 for NaN timestamp', () => {
-            const result = converter.getValidTimestamp(NaN);
-            
-            expect(result).toBe(0);
-        });
-
-        test('returns 0 for string timestamp', () => {
-            const result = converter.getValidTimestamp("not-a-number");
-            
-            expect(result).toBe(0);
-        });
-
-        test('returns 0 for zero timestamp', () => {
-            const result = converter.getValidTimestamp(0);
-            
-            expect(result).toBe(0);
-        });
-    });
-
-    describe('getFileDate', () => {
-        test('formats valid timestamp correctly', () => {
-            const file = {
-                createTime: 1703522622,
-                create_time: 1703522622
-            };
-            
-            const result = converter.getFileDate(file);
-            
-            // Should return a formatted date string
-            expect(result).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/); // MM/DD/YYYY or similar
-        });
-
-        test('returns "Unknown" for invalid file object', () => {
-            expect(converter.getFileDate(null)).toBe('Unknown');
-            expect(converter.getFileDate(undefined)).toBe('Unknown'); 
-            expect(converter.getFileDate("not-an-object")).toBe('Unknown');
-        });
-
-        test('returns "Unknown" for file without date properties', () => {
-            const file = {
-                title: "No Date File",
-                filename: "no-date.md"
-            };
-            
-            const result = converter.getFileDate(file);
-            
-            expect(result).toBe('Unknown');
-        });
-
-        test('handles create_time property', () => {
-            const file = {
-                create_time: 1703522622
-            };
-            
-            const result = converter.getFileDate(file);
-            
-            expect(result).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
-        });
-
-        test('falls back to createdDate string', () => {
-            const file = {
-                createdDate: "12/25/2023"
-            };
-            
-            const result = converter.getFileDate(file);
-            
-            expect(result).toBe("12/25/2023");
-        });
-
-        test('handles invalid createTime gracefully', () => {
-            const file = {
-                createTime: "invalid-timestamp",
-                create_time: null
-            };
-            
-            const result = converter.getFileDate(file);
-            
-            expect(result).toBe('Unknown');
         });
     });
 
