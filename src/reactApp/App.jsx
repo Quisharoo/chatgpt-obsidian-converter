@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useId, useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,8 @@ import { message } from '@/utils/strings.js';
 
 function UploadCard({ onFileSelect }) {
   const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
+  const fileInputId = useId();
 
   const handleFiles = useCallback(
     (files) => {
@@ -69,17 +71,25 @@ function UploadCard({ onFileSelect }) {
             <p className="text-muted-foreground text-sm">
               Drop your export here or click the button below.
             </p>
-            <label className="relative inline-flex cursor-pointer items-center justify-center">
-              <input
-                type="file"
-                accept=".json,.zip"
-                onChange={onChange}
-                className="sr-only"
-              />
-              <Button type="button" variant="secondary">
-                Browse files
-              </Button>
+            <input
+              id={fileInputId}
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.zip"
+              onChange={onChange}
+              className="sr-only"
+            />
+            <label htmlFor={fileInputId} className="sr-only">
+              Upload conversations export
             </label>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              aria-controls={fileInputId}
+            >
+              Browse files
+            </Button>
           </div>
         </div>
       </CardContent>
