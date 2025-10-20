@@ -45,7 +45,10 @@ function showFallbackError(message) {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
   errorDiv.setAttribute('role', 'alert');
-  errorDiv.textContent = message;
+  const safeMessage = typeof message === 'string' && message.trim().length > 0
+    ? message.trim()
+    : 'An unexpected error occurred. Please refresh the page and try again.';
+  errorDiv.textContent = safeMessage;
 
   document.body.appendChild(errorDiv);
 

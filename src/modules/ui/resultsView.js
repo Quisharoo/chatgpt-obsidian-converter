@@ -386,7 +386,7 @@ export class ResultsView {
         inactiveIndicator.textContent = '';
         activeIndicator.textContent = this.sortDirection === 'asc' ? '▲' : '▼';
         activeIndicator.classList.remove('text-gray-400');
-        activeIndicator.classList.add('text-indigo-500');
+        activeIndicator.classList.add('text-indigo-600');
 
         logDebug(`✨ Active sort: ${this.currentSort} ${this.sortDirection === 'asc' ? '(ascending)' : '(descending)'}`);
     }

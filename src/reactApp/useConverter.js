@@ -1,128 +1,20 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useToast } from '@/components/hooks/use-toast.js';
-import { processConversationsProgressive } from '@/modules/conversionEngine.js';
+import {
+  parseConversationsFile,
+  convertConversations,
+  saveFilesSequentially,
+  createZipBlob,
+} from '@/lib/conversionWorkflow.js';
 import {
   isFileSystemAccessSupported,
   getFileSystemAccessInfo,
   selectDirectory,
-  saveFileToDirectory,
   createDownloadBlob,
   downloadFile,
 } from '@/modules/fileSystemManager.js';
 import { message, status, success as successString, error as errorString } from '@/utils/strings.js';
 import { logError } from '@/utils/logger.js';
-
-function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = (e) => reject(e);
-    reader.readAsText(file);
-  });
-}
-
-async function parseZipFile(file, setProgress) {
-  if (typeof JSZip === 'undefined') {
-    throw new Error('ZIP support unavailable. Please upload conversations.json directly or enable JSZip.');
-  }
-  setProgress({ active: true, percent: 5, message: 'Scanning ZIP archive…' });
-  const buffer = await file.arrayBuffer();
-  const zip = await JSZip.loadAsync(buffer);
-  const candidatePaths = [
-    'conversations.json',
-    'conversations/conversations.json',
-    'data/conversations.json',
-  ];
-  let entry = null;
-
-  for (const path of candidatePaths) {
-    if (zip.file(path)) {
-      entry = zip.file(path);
-      break;
-    }
-  }
-
-  if (!entry) {
-    // fallback: search any conversations.json
-    const matches = Object.keys(zip.files).filter((name) => /conversations\.json$/i.test(name));
-    if (matches.length > 0) {
-      entry = zip.file(matches[0]);
-    }
-  }
-
-  if (!entry) {
-    throw new Error('Could not find conversations.json in the ZIP export.');
-  }
-
-  setProgress({ active: true, percent: 15, message: 'Extracting conversations.json…' });
-  const jsonText = await entry.async('text');
-  return jsonText;
-}
-
-async function parseConversationsFile(file, setProgress) {
-  const lowerName = (file.name || '').toLowerCase();
-  let jsonText;
-
-  if (lowerName.endsWith('.zip')) {
-    jsonText = await parseZipFile(file, setProgress);
-  } else {
-    setProgress({ active: true, percent: 5, message: 'Reading file…' });
-    jsonText = await readFileAsText(file);
-  }
-
-  setProgress({ active: true, percent: 20, message: status('PARSING_JSON') });
-  const conversations = JSON.parse(jsonText);
-  if (!Array.isArray(conversations)) {
-    throw new Error(errorString('INVALID_STRUCTURE'));
-  }
-
-  return conversations;
-}
-
-async function saveFilesSequentially(files, directoryHandle, onProgress) {
-  let successCount = 0;
-  let errorCount = 0;
-  let skippedCount = 0;
-
-  for (let index = 0; index < files.length; index++) {
-    const file = files[index];
-    if (onProgress) {
-      const percent = Math.floor(((index + 1) / files.length) * 100);
-      onProgress({
-        active: true,
-        percent,
-        message: `Saving ${file.filename} (${index + 1}/${files.length})`,
-      });
-    }
-
-    try {
-      const result = await saveFileToDirectory(file.filename, file.content, directoryHandle, true, 'version');
-      if (result.success) {
-        successCount++;
-      } else if (result.cancelled) {
-        skippedCount++;
-      } else {
-        errorCount++;
-      }
-    } catch (error) {
-      errorCount++;
-      logError(`Error saving ${file.filename}:`, error);
-    }
-  }
-
-  return { successCount, errorCount, skippedCount };
-}
-
-async function createZipBlob(files) {
-  if (typeof JSZip === 'undefined') {
-    return null;
-  }
-  const zip = new JSZip();
-  files.forEach((file) => {
-    zip.file(file.filename, file.content);
-  });
-  return zip.generateAsync({ type: 'blob' });
-}
 
 export function useConverter() {
   const { toast } = useToast();
@@ -142,21 +34,31 @@ export function useConverter() {
     setProgress({ active: false, percent: 0, message: 'Idle' });
   }, []);
 
+  const pushProgress = useCallback(
+    (update, fallbackMessage) => {
+      setProgress({
+        active: true,
+        percent: typeof update?.percent === 'number' ? update.percent : 0,
+        message: update?.message ?? fallbackMessage,
+      });
+    },
+    [setProgress],
+  );
+
   const convertFile = useCallback(
     async (file) => {
       try {
         setStatusState('processing');
-        setProgress({ active: true, percent: 0, message: status('READING_FILE') });
+        pushProgress({ percent: 0 }, status('READING_FILE'));
 
-        const conversations = await parseConversationsFile(file, setProgress);
-        const results = await processConversationsProgressive(
-          conversations,
-          processedIdsRef.current,
-          ({ percent, message }) => {
-            setProgress({ active: true, percent, message });
-          },
-          8,
-        );
+        const conversations = await parseConversationsFile(file, {
+          onProgress: (update) => pushProgress(update, status('READING_FILE')),
+        });
+
+        const results = await convertConversations(conversations, processedIdsRef.current, {
+          onProgress: (update) => pushProgress(update, status('CONVERTING')),
+          concurrency: 8,
+        });
 
         setFiles(results.files);
         setSummary({ processed: results.processed, skipped: results.skipped, errors: results.errors });
@@ -170,7 +72,7 @@ export function useConverter() {
         toast({ title: 'Conversion failed', description: error.message, variant: 'destructive' });
       }
     },
-    [toast],
+    [pushProgress, toast],
   );
 
   const selectDirectoryHandle = useCallback(async () => {
@@ -199,10 +101,13 @@ export function useConverter() {
     }
 
     setStatusState('saving');
+    pushProgress({ percent: 0 }, 'Saving files…');
     const { successCount, errorCount, skippedCount } = await saveFilesSequentially(
       files,
       directory.handle,
-      setProgress,
+      {
+        onProgress: (update) => pushProgress(update, 'Saving files…'),
+      },
     );
     resetProgress();
     setStatusState('complete');
@@ -212,7 +117,7 @@ export function useConverter() {
       description: `${successCount} saved, ${skippedCount} skipped, ${errorCount} errors`,
       variant: errorCount ? 'destructive' : undefined,
     });
-  }, [directory.handle, files, resetProgress, toast]);
+  }, [directory.handle, files, pushProgress, resetProgress, toast]);
 
   const downloadZip = useCallback(async () => {
     if (!files.length) {

@@ -7,7 +7,7 @@
 import { FileUploader } from '../components/FileUploader.js';
 import { ProgressDisplay } from '../components/ProgressDisplay.js';
 import UIBuilder from '../components/UIBuilder.js';
-import { processConversations, processConversationsProgressive } from './conversionEngine.js';
+import { parseConversationsFile, convertConversations, readFileAsText, parseConversationsJson } from '../lib/conversionWorkflow.js';
 import { 
     selectDirectory, 
     saveFilesChronologically, 
@@ -156,101 +156,36 @@ export class ChatGPTConverter {
             this.progressController.updateConversion(0, readingMessage);
             }
 
-            let conversations = [];
-            const lowerName = (file.name || '').toLowerCase();
-            if (lowerName.endsWith('.zip')) {
-                // ZIP ingestion path
-                if (this.progressController) {
-                    this.progressController.updateConversion(5, 'Scanning export…');
-                }
-                const arrayBuffer = await file.arrayBuffer();
-                // JSZip is loaded from CDN in index.html; guard if unavailable
-                if (typeof JSZip === 'undefined') {
-                    throw new Error('ZIP support unavailable. Please upload conversations.json directly or enable JSZip.');
-                }
-                const zip = await JSZip.loadAsync(arrayBuffer);
-                // Try common paths
-                const candidatePaths = ['conversations.json', 'conversations/conversations.json', 'data/conversations.json'];
-                let conversationsEntry = null;
-                for (const [idx, p] of candidatePaths.entries()) {
-                    if (zip.file(p)) { 
-                        conversationsEntry = zip.file(p); 
-                        // Show quick progress when preferred path is found
-                        const pct = 10 + (idx * 2);
-                        if (this.progressController) {
-                            this.progressController.updateConversion(pct, `Found ${p}…`);
-                        }
-                        break; 
+            const conversations = await parseConversationsFile(file, {
+                onProgress: (update) => {
+                    if (!this.progressController) {
+                        return;
                     }
+                    const baseMessage = update.message || status('PARSING_JSON');
+                    const percent = typeof update.percent === 'number' ? update.percent : 0;
+                    const scaled = Math.min(35, Math.max(5, Math.round((percent / 100) * 35)));
+                    this.progressController.updateConversion(scaled, baseMessage);
                 }
-                // Fallback: search any conversations.json
-                if (!conversationsEntry) {
-                    const allNames = Object.keys(zip.files);
-                    const total = allNames.length || 1;
-                    let seen = 0;
-                    for (const name of allNames) {
-                        seen++;
-                        if (/conversations\.json$/i.test(name)) {
-                            conversationsEntry = zip.file(name);
-                            break;
-                        }
-                        if (seen % 25 === 0) {
-                            const pct = Math.min(20 + Math.floor((seen / total) * 40), 60);
-                            if (this.progressController) {
-                                this.progressController.updateConversion(pct, `Scanning: ${name}`);
-                            }
-                            // Yield to UI
-                            await new Promise(r => setTimeout(r, 0));
-                        }
-                    }
-                }
-                if (!conversationsEntry) {
-                    throw new Error('Could not find conversations.json in the ZIP export.');
-                }
-                if (this.progressController) {
-                    this.progressController.updateConversion(15, 'Loading conversations.json…');
-                }
-                const jsonText = await conversationsEntry.async('text');
-                const parsingMessage = status('PARSING_JSON');
-                if (this.progressController) {
-                    this.progressController.updateConversion(20, parsingMessage);
-                }
-                conversations = this.parseConversations(jsonText);
-                if (this.progressController) {
-                    this.progressController.updateConversion(30, `Found ${conversations.length} conversations`);
-                }
-            } else {
-                // JSON file path
-                const fileContent = await this.readFileContent(file);
-                await this.delay(300);
-                const parsingMessage = status('PARSING_JSON');
-                if (this.progressController) {
-                    this.progressController.updateConversion(20, parsingMessage);
-                }
-                conversations = this.parseConversations(fileContent);
-            }
-            
-            // Add delay for parsing
-            await this.delay(400);
-            
-            // Convert conversations with more granular progress
+            });
+
+            await this.delay(200);
+
             const convertingMessage = status('CONVERTING');
             if (this.progressController) {
                 this.progressController.updateConversion(40, convertingMessage);
             }
-            // Progressive conversion to update UI
-            const results = await processConversationsProgressive(
-                conversations,
-                this.processedIds,
-                ({ percent, completed, total, message }) => {
-                    const adjusted = Math.min(80, 40 + Math.floor((percent / 100) * 40));
-                    const msg = message || convertingMessage;
-                    if (this.progressController) {
-                        this.progressController.updateConversion(adjusted, msg);
+            const results = await convertConversations(conversations, this.processedIds, {
+                concurrency: 8,
+                onProgress: (update) => {
+                    if (!this.progressController) {
+                        return;
                     }
-                },
-                8
-            );
+                    const percent = typeof update.percent === 'number' ? update.percent : 0;
+                    const adjusted = Math.min(80, 40 + Math.floor((percent / 100) * 40));
+                    const msg = update.message || convertingMessage;
+                    this.progressController.updateConversion(adjusted, msg);
+                }
+            });
             
             // Add delay for conversion processing
             await this.delay(500);
@@ -323,45 +258,6 @@ export class ChatGPTConverter {
         } finally {
             this.fileUploader.setProcessingState(false);
         }
-    }
-
-    /**
-     * Read file content as text
-     * WHY: Promisified file reading with error handling
-     * 
-     * @param {File} file - File to read
-     * @returns {Promise<string>} - File content
-     */
-    readFileContent(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(new Error('Failed to read file'));
-            reader.readAsText(file);
-        });
-    }
-
-    /**
-     * Parse conversations JSON with validation
-     * WHY: Validates JSON structure before processing
-     * 
-     * @param {string} fileContent - Raw file content
-     * @returns {Array} - Parsed conversations array
-     */
-    parseConversations(fileContent) {
-        let conversations;
-        
-        try {
-            conversations = JSON.parse(fileContent);
-        } catch (parseError) {
-            throw new Error(error('INVALID_JSON'));
-        }
-        
-        if (!Array.isArray(conversations)) {
-            throw new Error(error('INVALID_STRUCTURE'));
-        }
-        
-        return conversations;
     }
 
     /**
@@ -564,6 +460,14 @@ export class ChatGPTConverter {
      */
     downloadSingleFile(file) {
         this.downloadService?.downloadSingleFile(file);
+    }
+
+    readFileContent(file) {
+        return readFileAsText(file);
+    }
+
+    parseConversations(fileContent) {
+        return parseConversationsJson(fileContent);
     }
 
     /**

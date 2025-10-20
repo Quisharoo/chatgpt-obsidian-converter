@@ -239,9 +239,9 @@ export class UIBuilder {
         // This maintains consistent layout and allows individual file saving
         const saveBtn = document.createElement('button');
         saveBtn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs flex-shrink-0 transition-colors save-file-btn';
-        saveBtn.setAttribute('data-filename', file.filename);
-        saveBtn.setAttribute('data-content', encodeURIComponent(file.content));
-        saveBtn.setAttribute('data-title', file.title);
+        saveBtn.setAttribute('data-filename', this.encodeDataAttribute(file.filename));
+        saveBtn.setAttribute('data-content', this.encodeDataAttribute(file.content));
+        saveBtn.setAttribute('data-title', this.encodeDataAttribute(file.title));
         saveBtn.innerHTML = `
             <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
                 <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
@@ -257,8 +257,8 @@ export class UIBuilder {
 
         const downloadBtn = document.createElement('button');
         downloadBtn.className = 'bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs flex-shrink-0 transition-colors download-file-btn';
-        downloadBtn.setAttribute('data-filename', file.filename);
-        downloadBtn.setAttribute('data-content', encodeURIComponent(file.content));
+        downloadBtn.setAttribute('data-filename', this.encodeDataAttribute(file.filename));
+        downloadBtn.setAttribute('data-content', this.encodeDataAttribute(file.content));
         downloadBtn.innerHTML = `
             <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
                 <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
@@ -425,6 +425,10 @@ export class UIBuilder {
         dialog.querySelector('.close-btn')?.addEventListener('click', close);
         dialog.addEventListener('click', (e) => { if (e.target && e.target.classList.contains('dialog-overlay')) close(); });
         setTimeout(() => dialog.querySelector('.close-btn')?.focus(), 50);
+    }
+
+    encodeDataAttribute(value) {
+        return encodeURIComponent(String(value ?? ''));
     }
 
     escapeHtml(s) {
