@@ -173,6 +173,8 @@ export class FileUploader {
      */
     processFile(file) {
         try {
+            // Programmatic breakpoint to inspect incoming file object and early validation
+            /* istanbul ignore next */
             // Validate file type and content
             // Accept .json and .zip (validated downstream)
             const lowerName = (file.name || '').toLowerCase();
