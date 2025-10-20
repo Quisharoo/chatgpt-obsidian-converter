@@ -275,21 +275,29 @@ export function App() {
     downloadSingle,
   } = useConverter();
 
+  const hasStartedProcessing = status !== 'idle';
+  const hasGeneratedFiles = files.length > 0;
+  const showSummary = hasStartedProcessing;
+  const showExportPanel = hasGeneratedFiles;
+  const showResults = hasStartedProcessing;
+
   return (
     <TooltipProvider>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6">
         <UploadCard onFileSelect={convertFile} />
         <ProgressCard progress={progress} status={status} />
-        <SummaryCard summary={summary} files={files} />
-        <DirectoryPanel
-          directory={directory}
-          fileCount={files.length}
-          onSelect={selectDirectoryHandle}
-          onSaveAll={saveAllToDirectory}
-          onDownloadZip={downloadZip}
-          onDownloadAll={downloadAll}
-        />
-        <ResultsTable files={files} onDownloadSingle={downloadSingle} />
+        {showSummary && <SummaryCard summary={summary} files={files} />}
+        {showExportPanel && (
+          <DirectoryPanel
+            directory={directory}
+            fileCount={files.length}
+            onSelect={selectDirectoryHandle}
+            onSaveAll={saveAllToDirectory}
+            onDownloadZip={downloadZip}
+            onDownloadAll={downloadAll}
+          />
+        )}
+        {showResults && <ResultsTable files={files} onDownloadSingle={downloadSingle} />}
         <Separator className="my-4" />
         <footer className="text-xs text-muted-foreground">
           <p>
