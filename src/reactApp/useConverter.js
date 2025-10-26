@@ -144,8 +144,12 @@ export function useConverter() {
     link.download = `chatgpt-conversations-${new Date().toISOString().split('T')[0]}.zip`;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      if (link.parentNode) {
+        link.parentNode.removeChild(link);
+      }
+      URL.revokeObjectURL(url);
+    }, 100);
     toast({ title: 'Download started', description: 'ZIP file is downloading.' });
   }, [files, toast]);
 

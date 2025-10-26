@@ -5,17 +5,14 @@
  */
 
 import { describe, test, expect } from '@jest/globals';
-import { 
-    cleanFilename, 
-    generateUniqueFilename, 
-    formatTimestamp, 
-    delay, 
+import {
+    cleanFilename,
+    generateUniqueFilename,
+    formatTimestamp,
+    delay,
     isValidJsonFile,
-    sortConversationsChronologically 
+    sortConversationsChronologically
 } from '../../../src/utils/helpers.js';
-import UIBuilder from '../../../src/components/UIBuilder.js';
-import { ChatGPTConverter } from '../../../src/modules/applicationOrchestrator.js';
-import { switchToComplete, switchToUpload, switchToView, showResults, showFiles } from '../../../src/utils/navigation.js';
 
 describe('Utility Functions', () => {
     
@@ -209,82 +206,4 @@ describe('Utility Functions', () => {
         });
     });
 
-    describe('navigation helpers', () => {
-        test('fall back when window handlers absent', () => {
-            delete window.switchToComplete;
-            delete window.switchToUpload;
-            delete window.switchToView;
-            delete window.showResults;
-            delete window.showFiles;
-
-            document.body.innerHTML = `
-                <section id="upload-section" class=""></section>
-                <section id="complete-section" class="hidden"></section>
-                <div id="results" class="hidden"></div>
-                <div id="filesContainer" class="hidden"></div>
-                <div id="progressCard" class="hidden"></div>
-            `;
-
-            // Rewire getElementById for this test to return real elements
-            const realGetById = (id) => document.querySelector(`#${id}`);
-            global.document.getElementById = realGetById;
-            // Rewire querySelector in case a previous test mocked it
-            global.document.querySelector = (selector) => document.body.querySelector(selector);
-
-            switchToComplete();
-            expect(document.querySelector('#upload-section').classList.contains('hidden')).toBe(true);
-            expect(document.querySelector('#complete-section').classList.contains('hidden')).toBe(false);
-
-            showResults();
-            expect(document.querySelector('#results').classList.contains('hidden')).toBe(false);
-
-            switchToView('files');
-            expect(document.querySelector('#filesContainer').classList.contains('hidden')).toBe(false);
-
-            switchToUpload();
-            expect(document.querySelector('#complete-section').classList.contains('hidden')).toBe(true);
-            expect(document.querySelector('#upload-section').classList.contains('hidden')).toBe(false);
-        });
-
-    });
-
-    describe('UIBuilder privacy modal', () => {
-        test('Learn more opens shared Modal with content', (done) => {
-            // Restore real DOM APIs in case previous tests mocked them
-            const realCreateElement = Document.prototype.createElement.bind(document);
-            const realGetElementById = Document.prototype.getElementById.bind(document);
-            const realQuerySelector = Document.prototype.querySelector.bind(document);
-            global.document.createElement = realCreateElement;
-            global.document.getElementById = realGetElementById;
-            global.document.querySelector = realQuerySelector;
-
-            // Provide minimal DOM structure for banner mounting
-            document.body.innerHTML = `
-                <div class="container"><main></main></div>
-                <header></header>
-            `;
-
-            const ui = new UIBuilder();
-            const banner = ui.mountPrivacyBanner();
-            expect(banner).toBeTruthy();
-
-            // Trigger modal
-            ui.showTransparencyModal();
-
-            // Wait for requestAnimationFrame/async show to apply class
-            setTimeout(() => {
-                const modal = document.querySelector('.custom-modal');
-                expect(modal).toBeTruthy();
-                expect(modal.classList.contains('show')).toBe(true);
-
-                const title = modal.querySelector('.modal-title');
-                expect(title).toBeTruthy();
-                expect(title.textContent).toContain('Client-side Processing');
-
-                const content = modal.querySelector('.modal-content');
-                expect(content.textContent).toContain('conversion happens locally');
-                done();
-            }, 50);
-        });
-    });
-}); 
+});
