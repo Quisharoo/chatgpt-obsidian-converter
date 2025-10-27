@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils.js';
 import { message } from '@/utils/strings.js';
 import { useConverter } from './useConverter.js';
 import { buildPageList, getPaginatedFiles, sortFiles, SORT_FIELDS } from './resultsTableUtils.js';
+import { HoverPreview } from '@/components/ui/hover-preview.jsx';
 
 const ITEMS_PER_PAGE = 25;
 
@@ -338,16 +339,23 @@ function ResultsTable({ files, onDownloadSingle }) {
           </thead>
           <tbody className="divide-y divide-border/60">
             {currentFiles.map((file) => (
-              <tr key={file.filename} className="hover:bg-muted/40">
-                <td className="py-2 pr-3 font-medium text-foreground truncate" title={file.title}>{file.title}</td>
-                <td className="py-2 pr-3 text-muted-foreground truncate" title={file.filename}>{file.filename}</td>
-                <td className="py-2 pr-3 text-muted-foreground">{file.createdDate}</td>
-                <td className="py-2 pr-3">
-                  <Button size="sm" variant="ghost" onClick={() => onDownloadSingle(file)}>
-                    Download
-                  </Button>
-                </td>
-              </tr>
+              <HoverPreview
+                key={file.filename}
+                markdownContent={file.content}
+                title={file.title}
+                delay={300}
+              >
+                <tr className="hover:bg-muted/40">
+                  <td className="py-2 pr-3 font-medium text-foreground truncate" title={file.title}>{file.title}</td>
+                  <td className="py-2 pr-3 text-muted-foreground truncate" title={file.filename}>{file.filename}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{file.createdDate}</td>
+                  <td className="py-2 pr-3">
+                    <Button size="sm" variant="ghost" onClick={() => onDownloadSingle(file)}>
+                      Download
+                    </Button>
+                  </td>
+                </tr>
+              </HoverPreview>
             ))}
           </tbody>
         </table>
