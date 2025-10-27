@@ -11,9 +11,10 @@ export function mountReactApp() {
   const existing = document.getElementById('react-control-panel');
   const container = existing || createContainer();
   const containerChanged = container !== rootContainer;
+  const containerDetached = rootContainer && !document.contains(rootContainer);
 
-  if (!root || containerChanged) {
-    if (root && containerChanged) {
+  if (!root || containerChanged || containerDetached) {
+    if (root && (containerChanged || containerDetached)) {
       root.unmount();
     }
     root = createRoot(container);
