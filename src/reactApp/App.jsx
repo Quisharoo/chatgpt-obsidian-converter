@@ -1,4 +1,4 @@
-import React, { useCallback, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,9 +7,13 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toaster';
-import { useConverter } from './useConverter.js';
+import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import { message } from '@/utils/strings.js';
+import { useConverter } from './useConverter.js';
+import { buildPageList, getPaginatedFiles, sortFiles, SORT_FIELDS } from './resultsTableUtils.js';
+
+const ITEMS_PER_PAGE = 25;
 
 function UploadCard({ onFileSelect }) {
   const [dragActive, setDragActive] = useState(false);
@@ -47,7 +51,7 @@ function UploadCard({ onFileSelect }) {
   };
 
   return (
-    <Card className="bg-card/80 backdrop-blur">
+    <Card className="shadow-sm">
       <CardHeader className="flex flex-col gap-2">
         <CardTitle className="text-2xl font-semibold">Upload Conversations</CardTitle>
         <CardDescription className="text-sm text-muted-foreground">
@@ -84,7 +88,7 @@ function UploadCard({ onFileSelect }) {
             </label>
             <Button
               type="button"
-              variant="secondary"
+              variant="default"
               onClick={() => fileInputRef.current?.click()}
               aria-controls={fileInputId}
             >
@@ -104,7 +108,7 @@ function ProgressCard({ progress, status }) {
   const percent = Number.isFinite(progress.percent) ? progress.percent : 0;
 
   return (
-    <Card className="border-primary/30 bg-card/80">
+    <Card className="border border-primary/20 shadow-sm">
       <CardHeader className="py-3">
         <CardTitle className="text-base">{status === 'saving' ? 'Saving files' : 'Converting conversations'}</CardTitle>
         <CardDescription>{message}</CardDescription>
@@ -116,10 +120,9 @@ function ProgressCard({ progress, status }) {
   );
 }
 
-function SummaryCard({ summary, files }) {
-  const fileCount = files.length;
+function SummaryCard({ summary, fileCount }) {
   return (
-    <Card className="bg-card/80 backdrop-blur">
+    <Card className="shadow-sm">
       <CardHeader className="flex flex-col gap-2">
         <CardTitle className="text-2xl font-semibold">Conversion Summary</CardTitle>
         <CardDescription className="text-sm text-muted-foreground">
@@ -154,7 +157,7 @@ function DirectoryPanel({ directory, fileCount, onSelect, onSaveAll, onDownloadZ
   const hasDirectory = Boolean(directory.name);
 
   return (
-    <Card className="bg-card/80 backdrop-blur">
+    <Card className="shadow-sm">
       <CardHeader className="flex flex-col gap-2">
         <CardTitle className="text-2xl font-semibold">Save &amp; Export</CardTitle>
         <CardDescription className="text-sm text-muted-foreground">
@@ -163,7 +166,7 @@ function DirectoryPanel({ directory, fileCount, onSelect, onSaveAll, onDownloadZ
       </CardHeader>
       <CardContent className="space-y-4">
         {directory.supported ? (
-          <Alert variant={hasDirectory ? 'default' : 'secondary'} className="bg-muted/40">
+          <Alert variant={hasDirectory ? 'default' : 'secondary'}>
             <AlertTitle className="text-sm font-semibold">
               {hasDirectory ? 'Folder selected' : 'Select a destination folder'}
             </AlertTitle>
@@ -174,7 +177,7 @@ function DirectoryPanel({ directory, fileCount, onSelect, onSaveAll, onDownloadZ
             </AlertDescription>
           </Alert>
         ) : (
-          <Alert variant="destructive" className="bg-destructive/10 text-foreground">
+          <Alert variant="destructive">
             <AlertTitle className="text-sm font-semibold">{message('MOBILE_BROWSER_DETECTED')}</AlertTitle>
             <AlertDescription className="text-sm">
               {message('MOBILE_SAVE_INFO')} {directory.apiInfo?.ios ? message('IOS_SAVE_INFO') : message('MOBILE_DOWNLOAD_INFO')}
@@ -184,7 +187,7 @@ function DirectoryPanel({ directory, fileCount, onSelect, onSaveAll, onDownloadZ
 
         <div className="flex flex-wrap gap-3">
           {directory.supported && (
-            <Button onClick={onSelect} variant="secondary">
+            <Button onClick={onSelect} variant="outline">
               {hasDirectory ? `Change folder (current: ${directory.name})` : 'Choose folder'}
             </Button>
           )}
@@ -219,9 +222,13 @@ function DirectoryPanel({ directory, fileCount, onSelect, onSaveAll, onDownloadZ
 }
 
 function ResultsTable({ files, onDownloadSingle }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState(SORT_FIELDS.CREATED);
+  const [sortDirection, setSortDirection] = useState('desc');
+
   if (!files.length) {
     return (
-      <Card className="bg-card/80 backdrop-blur">
+      <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-xl">Generated files</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
@@ -232,8 +239,61 @@ function ResultsTable({ files, onDownloadSingle }) {
     );
   }
 
+  const handleSort = (field) => {
+    setCurrentPage(1);
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortDirection(field === SORT_FIELDS.CREATED ? 'desc' : 'asc');
+  };
+
+  const sortedFiles = useMemo(
+    () => sortFiles(files, sortField, sortDirection),
+    [files, sortField, sortDirection],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sortedFiles.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [files]);
+
+  const currentFiles = useMemo(
+    () => getPaginatedFiles(sortedFiles, currentPage, ITEMS_PER_PAGE),
+    [sortedFiles, currentPage],
+  );
+
+  const pageNumbers = useMemo(
+    () => buildPageList(currentPage, totalPages),
+    [currentPage, totalPages],
+  );
+
+  const sortIconForField = (field) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4 text-muted-foreground/60" />;
+    }
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="h-4 w-4" />
+    ) : (
+      <ChevronDown className="h-4 w-4" />
+    );
+  };
+
+  const ariaSortForField = (field) => {
+    if (sortField !== field) return 'none';
+    return sortDirection === 'asc' ? 'ascending' : 'descending';
+  };
+
   return (
-    <Card className="bg-card/80 backdrop-blur">
+    <Card className="shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl">Generated files</CardTitle>
         <CardDescription className="text-sm text-muted-foreground">
@@ -241,20 +301,46 @@ function ResultsTable({ files, onDownloadSingle }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[640px] text-sm table-fixed">
           <thead className="text-left text-muted-foreground">
             <tr>
-              <th className="py-2 pr-3 font-medium">Title</th>
-              <th className="py-2 pr-3 font-medium">Filename</th>
-              <th className="py-2 pr-3 font-medium">Created</th>
-              <th className="py-2 pr-3 font-medium">Actions</th>
+              <th 
+                scope="col"
+                className="py-2 pr-3 font-medium w-[60%]"
+                aria-sort={ariaSortForField(SORT_FIELDS.TITLE)}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleSort(SORT_FIELDS.TITLE)}
+                  className="flex w-full items-center gap-1 text-left font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <span>Title</span>
+                  {sortIconForField(SORT_FIELDS.TITLE)}
+                </button>
+              </th>
+              <th scope="col" className="py-2 pr-3 font-medium w-[25%] text-muted-foreground">Filename</th>
+              <th 
+                scope="col"
+                className="py-2 pr-3 font-medium w-[25%]"
+                aria-sort={ariaSortForField(SORT_FIELDS.CREATED)}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleSort(SORT_FIELDS.CREATED)}
+                  className="flex w-full items-center gap-1 text-left font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <span>Created</span>
+                  {sortIconForField(SORT_FIELDS.CREATED)}
+                </button>
+              </th>
+              <th className="py-2 pr-3 font-medium text-right w-[15%]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {files.map((file) => (
+            {currentFiles.map((file) => (
               <tr key={file.filename} className="hover:bg-muted/40">
-                <td className="py-2 pr-3 font-medium text-foreground">{file.title}</td>
-                <td className="py-2 pr-3 text-muted-foreground">{file.filename}</td>
+                <td className="py-2 pr-3 font-medium text-foreground truncate" title={file.title}>{file.title}</td>
+                <td className="py-2 pr-3 text-muted-foreground truncate" title={file.filename}>{file.filename}</td>
                 <td className="py-2 pr-3 text-muted-foreground">{file.createdDate}</td>
                 <td className="py-2 pr-3">
                   <Button size="sm" variant="ghost" onClick={() => onDownloadSingle(file)}>
@@ -265,6 +351,61 @@ function ResultsTable({ files, onDownloadSingle }) {
             ))}
           </tbody>
         </table>
+        
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-1 mt-4">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+            >
+              First
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Prev
+            </Button>
+
+            {pageNumbers.map((page, idx) =>
+              page === '...' ? (
+                <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                  ...
+                </span>
+              ) : (
+                <Button
+                  key={page}
+                  size="sm"
+                  variant={currentPage === page ? 'default' : 'outline'}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              ),
+            )}
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+            >
+              Last
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -289,31 +430,37 @@ export function App() {
   const hasGeneratedFiles = files.length > 0;
   const showSummary = hasStartedProcessing;
   const showExportPanel = hasGeneratedFiles;
-  const showResults = hasStartedProcessing;
+  const showResults = hasGeneratedFiles;
 
   return (
     <TooltipProvider>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6">
-        <UploadCard onFileSelect={convertFile} />
-        <ProgressCard progress={progress} status={status} />
-        {showSummary && <SummaryCard summary={summary} files={files} />}
-        {showExportPanel && (
-          <DirectoryPanel
-            directory={directory}
-            fileCount={files.length}
-            onSelect={selectDirectoryHandle}
-            onSaveAll={saveAllToDirectory}
-            onDownloadZip={downloadZip}
-            onDownloadAll={downloadAll}
-          />
-        )}
-        {showResults && <ResultsTable files={files} onDownloadSingle={downloadSingle} />}
-        <Separator className="my-4" />
-        <footer className="text-xs text-muted-foreground">
-          <p>
-            React + shadcn UI powered entirely client-side. Converted files never leave your browser.
-          </p>
-        </footer>
+      <div className="min-h-screen bg-background">
+        <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-12">
+          <section className="space-y-2">
+            <h1 className="text-3xl font-semibold tracking-tight">ChatGPT to Markdown Converter</h1>
+            <p className="text-muted-foreground">
+              Convert your ChatGPT export into tidy Markdown notes without leaving the browser.
+            </p>
+          </section>
+          <UploadCard onFileSelect={convertFile} />
+          <ProgressCard progress={progress} status={status} />
+          {showSummary && <SummaryCard summary={summary} fileCount={files.length} />}
+          {showExportPanel && (
+            <DirectoryPanel
+              directory={directory}
+              fileCount={files.length}
+              onSelect={selectDirectoryHandle}
+              onSaveAll={saveAllToDirectory}
+              onDownloadZip={downloadZip}
+              onDownloadAll={downloadAll}
+            />
+          )}
+          {showResults && <ResultsTable files={files} onDownloadSingle={downloadSingle} />}
+          <Separator />
+          <footer className="text-sm text-muted-foreground">
+            <p>React + shadcn UI powered entirely client-side. Converted files never leave your browser.</p>
+          </footer>
+        </main>
         <Toaster />
       </div>
     </TooltipProvider>

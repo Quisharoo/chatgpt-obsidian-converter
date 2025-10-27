@@ -112,7 +112,23 @@
         .hidden {
             display: none !important;
         }
+        
+        /* Hide legacy content until React loads - prevents flash */
+        .container {
+            opacity: 0;
+            transition: opacity 0.2s ease-in;
+        }
+        
+        /* Show container when React mounts or if JS fails after 2s */
+        .container.loaded,
+        body.no-react .container {
+            opacity: 1;
+        }
     </style>
+    <script>
+        // Fallback: show content if React doesn't load within 2 seconds
+        setTimeout(() => document.body.classList.add('no-react'), 2000);
+    </script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -299,136 +315,6 @@
     <!-- JSZip library for ZIP file creation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script type="module" src="src/main.js"></script>
-    <script>
-        // Set current date in footer
-        document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-
-        // File upload functionality integration
-        const dropzone = document.getElementById('dropzone');
-        const fileInput = document.getElementById('fileInput');
-        const browseBtn = document.getElementById('browse-btn');
-        const uploadSection = document.getElementById('upload-section');
-        const completeSection = document.getElementById('complete-section');
-        const newConversionBtn = document.getElementById('new-conversion-btn');
-
-        // Handle drag and drop events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropzone.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropzone.addEventListener(eventName, highlight, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropzone.addEventListener(eventName, unhighlight, false);
-        });
-
-        function highlight() {
-            dropzone.classList.add('active');
-        }
-
-        function unhighlight() {
-            dropzone.classList.remove('active');
-        }
-
-        // Handle dropped files
-        dropzone.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            if (files.length) {
-                // Let the existing FileUploader component handle this
-                fileInput.files = files;
-                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        }
-
-        // Handle file selection via button
-        browseBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            fileInput.click();
-        });
-
-        // New conversion button
-        newConversionBtn.addEventListener('click', () => {
-            completeSection.classList.add('hidden');
-            uploadSection.classList.remove('hidden');
-            fileInput.value = '';
-            
-            // Reset any visible progress or results
-            document.getElementById('conversionProgressCard').classList.add('hidden');
-            document.getElementById('results').classList.add('hidden');
-            document.getElementById('filesContainer').classList.add('hidden');
-            document.getElementById('progressCard').classList.add('hidden');
-        });
-
-        // Search functionality
-        document.getElementById('search-conversations').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const items = document.querySelectorAll('.conversation-item');
-            
-            items.forEach(item => {
-                const title = item.querySelector('h4').textContent.toLowerCase();
-                if (title.includes(searchTerm)) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
-
-        // Basic sort functionality for conversation list (existing app will override this)
-        document.getElementById('sortSelect') && document.getElementById('sortSelect').addEventListener('change', function() {
-            // This will be handled by the existing application logic
-        });
-
-        // ZIP download button functionality
-        document.getElementById('downloadZip') && document.getElementById('downloadZip').addEventListener('click', function() {
-            // This will be connected by the application when results are displayed
-            if (window.ChatGPTConverterApp && window.ChatGPTConverterApp.getInstance()) {
-                window.ChatGPTConverterApp.getInstance().downloadAllAsZip();
-            }
-        });
-
-        // View switching compatibility (for new design)
-        window.switchToComplete = function() {
-            uploadSection.classList.add('hidden');
-            completeSection.classList.remove('hidden');
-        };
-
-        window.switchToUpload = function() {
-            completeSection.classList.add('hidden');
-            uploadSection.classList.remove('hidden');
-        };
-
-        window.showResults = function() {
-            document.getElementById('results').classList.remove('hidden');
-        };
-
-        window.showFiles = function() {
-            document.getElementById('filesContainer').classList.remove('hidden');
-        };
-
-        window.hideProgressCard = function() {
-            document.getElementById('progressCard').classList.add('hidden');
-        };
-
-        window.showProgressCard = function() {
-            document.getElementById('progressCard').classList.remove('hidden');
-        };
-    </script>
 
     <footer>
         <p class="sr-only">
