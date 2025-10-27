@@ -9,8 +9,7 @@ function initializeApplication() {
     configureLogger({ level: LOGGING_CONFIG.DEFAULT_LEVEL });
 
     applyStoredTheme();
-    addPulseAnimation();
-    addAccessibilityStyles();
+    removeLegacyArtifacts();
     mountReactApp();
     /* istanbul ignore next */
 
@@ -24,8 +23,43 @@ function initializeApplication() {
 function applyStoredTheme() {
   try {
     const prefs = getPreferences();
-    document.documentElement.setAttribute('data-theme', prefs.theme || 'dark');
-  } catch (_) {}
+    const theme = prefs.theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  } catch (_) {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
+function removeLegacyArtifacts() {
+  document.documentElement.removeAttribute('data-theme');
+  document.body.classList.remove('no-react');
+  document.body.classList.remove('bg-gray-50', 'min-h-screen');
+  document.body.style.removeProperty('background-color');
+
+  const existingHost = document.getElementById('app-root');
+  const host = existingHost || document.createElement('div');
+  host.id = 'app-root';
+  host.dataset.reactHost = 'true';
+
+  const preservedNodes = new Set([host]);
+
+  Array.from(document.body.children).forEach((node) => {
+    if (preservedNodes.has(node)) return;
+    if (node.tagName === 'SCRIPT') return;
+    node.remove();
+  });
+
+  if (!existingHost) {
+    document.body.prepend(host);
+  }
+
+  document
+    .querySelectorAll('script[src*="cdn.tailwindcss.com"], link[href*="font-awesome"], link[href*="fonts.googleapis"]')
+    .forEach((el) => el.remove());
+
+  document.querySelectorAll('style[id^="tailwind"], style[data-tailwind], style[tailwind]').forEach((el) => {
+    el.remove();
+  });
 }
 
 function showFallbackError(message) {
@@ -58,55 +92,6 @@ function showFallbackError(message) {
       errorDiv.remove();
     }
   }, 10000);
-}
-
-function addPulseAnimation() {
-  if (document.getElementById('pulseStyle')) return;
-
-  const style = document.createElement('style');
-  style.id = 'pulseStyle';
-  style.textContent = `
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
-        }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-    `;
-  document.head.appendChild(style);
-}
-
-function addAccessibilityStyles() {
-  if (document.getElementById('accessibilityStyles')) return;
-
-  const style = document.createElement('style');
-  style.id = 'accessibilityStyles';
-  style.textContent = `
-        .sr-only {
-            position: absolute !important;
-            width: 1px !important;
-            height: 1px !important;
-            padding: 0 !important;
-            margin: -1px !important;
-            overflow: hidden !important;
-            clip: rect(0, 0, 0, 0) !important;
-            white-space: nowrap !important;
-            border: 0 !important;
-        }
-        
-        @media (prefers-reduced-motion: reduce) {
-            .progress-fill,
-            .btn,
-            .upload-area {
-                transition: none !important;
-                animation: none !important;
-            }
-        }
-    `;
-  document.head.appendChild(style);
 }
 
 if (document.readyState === 'loading') {

@@ -137,11 +137,11 @@ export function getPreferences() {
             includeParticipants: true,
             includeSource: true,
             generateIndex: true,
-            theme: 'dark',
+            theme: 'light',
             ...parsed
         };
     } catch (_) {
-        return { filenamePreset: 'obsidian', frontmatterEnabled: true, includeParticipants: true, includeSource: true, generateIndex: true, theme: 'dark' };
+        return { filenamePreset: 'obsidian', frontmatterEnabled: true, includeParticipants: true, includeSource: true, generateIndex: true, theme: 'light' };
     }
 }
 
