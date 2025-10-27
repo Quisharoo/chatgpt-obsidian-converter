@@ -41,20 +41,31 @@ function removeLegacyArtifacts() {
   host.id = 'app-root';
   host.dataset.reactHost = 'true';
 
+  const hostParent = host.parentElement;
+  if (hostParent && hostParent !== document.body) {
+    hostParent.removeChild(host);
+  }
+
+  if (!document.body.contains(host)) {
+    document.body.prepend(host);
+  } else {
+    document.body.prepend(host);
+  }
+
   const preservedNodes = new Set([host]);
 
   Array.from(document.body.children).forEach((node) => {
     if (preservedNodes.has(node)) return;
+    if (node.contains(host)) return;
     if (node.tagName === 'SCRIPT') return;
+    if (node.dataset?.reactHost === 'true') return;
     node.remove();
   });
 
-  if (!existingHost) {
-    document.body.prepend(host);
-  }
-
   document
-    .querySelectorAll('script[src*="cdn.tailwindcss.com"], link[href*="font-awesome"], link[href*="fonts.googleapis"]')
+    .querySelectorAll(
+      'script[src^="https://cdn.tailwindcss.com"], link[href^="https://cdnjs.cloudflare.com/ajax/libs/font-awesome"], link[href^="https://fonts.googleapis"]',
+    )
     .forEach((el) => el.remove());
 
   document.querySelectorAll('style[id^="tailwind"], style[data-tailwind], style[tailwind]').forEach((el) => {

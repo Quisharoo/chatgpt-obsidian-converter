@@ -69,7 +69,7 @@ function ensureHost() {
 function removeLegacyNodes() {
   const legacyNodes = document.querySelectorAll('.container, body > header, body > main, body > footer');
   legacyNodes.forEach((node) => {
-    if (!node.dataset || node.dataset.reactHost !== 'true') {
+    if (node.dataset?.reactHost !== 'true') {
       node.remove();
     }
   });

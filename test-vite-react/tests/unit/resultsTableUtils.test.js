@@ -40,12 +40,12 @@ describe('resultsTableUtils', () => {
       createTime: index,
     }));
 
-    const sorted = sortFiles(files, SORT_FIELDS.CREATED, 'desc');
-    const paged = getPaginatedFiles(sorted, 2, 10);
+  const sorted = sortFiles(files, SORT_FIELDS.CREATED, 'desc');
+  const paged = getPaginatedFiles(sorted, 2, 10);
 
-    expect(paged).toHaveLength(10);
-    expect(paged[0].filename).toBe('file-10.md');
-    expect(paged[9].filename).toBe('file-1.md');
+  expect(paged).toHaveLength(10);
+  expect(paged[0].filename).toBe('file-20.md');
+  expect(paged[9].filename).toBe('file-11.md');
 
     const pages = buildPageList(4, 10);
     expect(pages).toEqual([1, '...', 3, 4, 5, '...', 10]);

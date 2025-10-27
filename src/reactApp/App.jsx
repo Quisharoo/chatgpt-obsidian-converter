@@ -287,6 +287,11 @@ function ResultsTable({ files, onDownloadSingle }) {
     );
   };
 
+  const ariaSortForField = (field) => {
+    if (sortField !== field) return 'none';
+    return sortDirection === 'asc' ? 'ascending' : 'descending';
+  };
+
   return (
     <Card className="shadow-sm">
       <CardHeader>
@@ -300,21 +305,33 @@ function ResultsTable({ files, onDownloadSingle }) {
           <thead className="text-left text-muted-foreground">
             <tr>
               <th 
-                className="py-2 pr-3 font-medium cursor-pointer hover:text-foreground transition-colors w-[60%]"
-                onClick={() => handleSort(SORT_FIELDS.TITLE)}
+                scope="col"
+                className="py-2 pr-3 font-medium w-[60%]"
+                aria-sort={ariaSortForField(SORT_FIELDS.TITLE)}
               >
-                <span className="flex items-center gap-1">
-                  Title {sortIconForField(SORT_FIELDS.TITLE)}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSort(SORT_FIELDS.TITLE)}
+                  className="flex w-full items-center gap-1 text-left font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <span>Title</span>
+                  {sortIconForField(SORT_FIELDS.TITLE)}
+                </button>
               </th>
-              <th className="py-2 pr-3 font-medium w-[25%] text-muted-foreground">Filename</th>
+              <th scope="col" className="py-2 pr-3 font-medium w-[25%] text-muted-foreground">Filename</th>
               <th 
-                className="py-2 pr-3 font-medium cursor-pointer hover:text-foreground transition-colors w-[25%]"
-                onClick={() => handleSort(SORT_FIELDS.CREATED)}
+                scope="col"
+                className="py-2 pr-3 font-medium w-[25%]"
+                aria-sort={ariaSortForField(SORT_FIELDS.CREATED)}
               >
-                <span className="flex items-center gap-1">
-                  Created {sortIconForField(SORT_FIELDS.CREATED)}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSort(SORT_FIELDS.CREATED)}
+                  className="flex w-full items-center gap-1 text-left font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <span>Created</span>
+                  {sortIconForField(SORT_FIELDS.CREATED)}
+                </button>
               </th>
               <th className="py-2 pr-3 font-medium text-right w-[15%]">Actions</th>
             </tr>
@@ -322,8 +339,8 @@ function ResultsTable({ files, onDownloadSingle }) {
           <tbody className="divide-y divide-border/60">
             {currentFiles.map((file) => (
               <tr key={file.filename} className="hover:bg-muted/40">
-                <td className="py-2 pr-3 font-medium text-foreground truncate">{file.title}</td>
-                <td className="py-2 pr-3 text-muted-foreground truncate">{file.filename}</td>
+                <td className="py-2 pr-3 font-medium text-foreground truncate" title={file.title}>{file.title}</td>
+                <td className="py-2 pr-3 text-muted-foreground truncate" title={file.filename}>{file.filename}</td>
                 <td className="py-2 pr-3 text-muted-foreground">{file.createdDate}</td>
                 <td className="py-2 pr-3">
                   <Button size="sm" variant="ghost" onClick={() => onDownloadSingle(file)}>
