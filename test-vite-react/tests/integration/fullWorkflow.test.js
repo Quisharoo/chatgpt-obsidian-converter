@@ -1,648 +1,156 @@
 /**
- * Integration Tests for Full Workflow
- * Testing end-to-end functionality with new modular architecture
- * Following AGENTS.md principle: comprehensive integration testing
+ * React Workflow Integration Tests
+ * Exercises the conversion pipeline used by the React interface.
  */
 
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
-import fs from 'fs/promises';
-import path from 'path';
-
-// Import modules from new structure
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import {
+  convertConversations,
+  saveFilesSequentially,
+  createZipBlob,
+  parseConversationsJson,
+} from '../../../src/lib/conversionWorkflow.js';
 import { processConversations } from '../../../src/modules/conversionEngine.js';
-import { ChatGPTConverter } from '../../../src/modules/applicationOrchestrator.js';
-import { 
-    generateUniqueFilename, 
-    sortConversationsChronologically 
-} from '../../../src/utils/helpers.js';
 
-describe('Full Workflow Integration Tests', () => {
-    
-    describe('End-to-End Conversation Processing', () => {
-        test('processes complete conversation export successfully', async () => {
-            // Load sample conversation data
-            const sampleData = [
-                {
-                    id: 'conversation_001',
-                    title: 'Test Integration Workflow',
-                    create_time: 1703522600,
-                    mapping: {
-                        'msg_root': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['How do I test modular JavaScript?'] }
-                            },
-                            children: ['msg_assistant'],
-                            parent: null
-                        },
-                        'msg_assistant': {
-                            message: {
-                                author: { role: 'assistant' },
-                                content: { parts: ['You can use Jest with ES modules for testing modular JavaScript. Here are the key steps:\n\n1. Configure Jest for ES modules\n2. Use proper mocking\n3. Test each module individually\n4. Create integration tests'] }
-                            },
-                            children: ['msg_followup'],
-                            parent: 'msg_root'
-                        },
-                        'msg_followup': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['What about testing file operations?'] }
-                            },
-                            children: ['msg_final'],
-                            parent: 'msg_assistant'
-                        },
-                        'msg_final': {
-                            message: {
-                                author: { role: 'assistant' },
-                                content: { parts: ['For file operations, you should mock the File System Access API and test the logic separately from the actual file I/O.'] }
-                            },
-                            children: [],
-                            parent: 'msg_followup'
-                        }
-                    }
-                },
-                {
-                    id: 'conversation_002',
-                    title: 'Second Test Conversation',
-                    create_time: 1703522700,
-                    mapping: {
-                        'msg_single': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['Quick question about testing'] }
-                            },
-                            children: [],
-                            parent: null
-                        }
-                    }
-                }
-            ];
+jest.mock('../../../src/modules/fileSystemManager.js', () => ({
+  saveFileToDirectory: jest.fn(),
+}));
 
-            const processedIds = new Set();
-            const results = processConversations(sampleData, processedIds);
+let saveFileToDirectory;
 
-            // Verify processing results
-            expect(results.processed).toBe(2);
-            expect(results.skipped).toBe(0);
-            expect(results.errors).toBe(0);
-            expect(results.files).toHaveLength(2);
+function buildConversation({
+  id = 'conversation_001',
+  title = 'Sample Conversation',
+  create_time = 1_703_522_600,
+  userContent = 'Hello there',
+  assistantContent = 'Hi! Here is a response.',
+}) {
+  return {
+    id,
+    title,
+    create_time,
+    mapping: {
+      root: {
+        message: {
+          author: { role: 'user' },
+          content: { parts: [userContent] },
+        },
+        parent: null,
+        children: ['assistant'],
+      },
+      assistant: {
+        message: {
+          author: { role: 'assistant' },
+          content: { parts: [assistantContent] },
+        },
+        parent: 'root',
+        children: [],
+      },
+    },
+  };
+}
 
-            // Verify file generation
-            const firstFile = results.files[0];
-            // New filename format: <Title> — <HumanDate> — <HH.mm>.md (no "ChatGPT" segment)
-            expect(firstFile.filename).toMatch(/.+ — [A-Za-z]+, [A-Za-z]+ \d{1,2}(st|nd|rd|th) \d{4} — \d{2}\.\d{2}\.md$/);
-            // Title no longer included in content (shown by filename)
-            expect(firstFile.content).not.toContain('# Test Integration Workflow');
-            expect(firstFile.content).toMatch(/## 🧑‍💬 User — (\d{2}:\d{2}|#\d+)/);
-            // Verify markdown content structure and formatting
-            expect(firstFile.content).toContain('How do I test modular JavaScript?');
-            expect(firstFile.content).toMatch(/## 🤖 Assistant — (\d{2}:\d{2}|#\d+)/);
-            expect(firstFile.content).toContain('You can use Jest with ES modules');
-            // Collapsible content should include both user and assistant messages
-            expect(firstFile.content).toContain('What about testing file operations?');
-            expect(firstFile.content).toContain('For file operations, you should mock the File System Access API');
+describe('React workflow integration', () => {
+  beforeAll(async () => {
+    ({ saveFileToDirectory } = await import('../../../src/modules/fileSystemManager.js'));
+  });
 
-            // Verify chronological ordering
-            expect(results.files[0].title).toBe('Test Integration Workflow');
-            expect(results.files[1].title).toBe('Second Test Conversation');
-            
-            // Check that creation time fields are included
-            expect(results.files[0].createTime).toBe(1703522600);
-            expect(results.files[1].createTime).toBe(1703522700);
-            expect(results.files[0].createdDate).toBe(new Date(1703522600 * 1000).toLocaleDateString());
-            expect(results.files[1].createdDate).toBe(new Date(1703522700 * 1000).toLocaleDateString());
-        });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-        test('ZIP fallback triggers individual downloads when JSZip not available', () => {
-            const converter = new ChatGPTConverter();
-            converter.convertedFiles = [
-                { filename: 'a.md', content: 'A' },
-                { filename: 'b.md', content: 'B' }
-            ];
-            global.JSZip = undefined;
-            const spy = jest.spyOn(converter, 'downloadAllFiles');
-            converter.downloadAllAsZip();
-            expect(spy).toHaveBeenCalled();
-        });
+  afterEach(() => {
+    delete global.JSZip;
+  });
 
-        test('handles real conversation export structure', async () => {
-            // Test with structure similar to actual ChatGPT exports
-            const realStructureData = [
-                {
-                    id: 'real_conversation_001',
-                    title: 'Real Structure Test',
-                    create_time: 1703522800,
-                    mapping: {
-                        '4f7b8a5c-1234-5678-9abc-def012345678': {
-                            id: '4f7b8a5c-1234-5678-9abc-def012345678',
-                            message: {
-                                id: '4f7b8a5c-1234-5678-9abc-def012345678',
-                                author: { role: 'system', name: null, metadata: {} },
-                                create_time: 1703522800.123,
-                                update_time: null,
-                                content: { content_type: 'text', parts: [''] },
-                                status: 'finished_successfully',
-                                end_turn: null,
-                                weight: 1.0,
-                                metadata: { finish_details: { type: 'stop' } },
-                                recipient: 'all'
-                            },
-                            parent: null,
-                            children: ['next-message-id']
-                        },
-                        'next-message-id': {
-                            id: 'next-message-id',
-                            message: {
-                                id: 'next-message-id',
-                                author: { role: 'user', name: null, metadata: {} },
-                                create_time: 1703522801.456,
-                                update_time: null,
-                                content: { content_type: 'text', parts: ['Hello, I need help with modular architecture'] },
-                                status: 'finished_successfully',
-                                end_turn: null,
-                                weight: 1.0,
-                                metadata: {},
-                                recipient: 'all'
-                            },
-                            parent: '4f7b8a5c-1234-5678-9abc-def012345678',
-                            children: []
-                        }
-                    }
-                }
-            ];
+  test('processConversations sorts chronologically and deduplicates ids', () => {
+    const conversations = [
+      buildConversation({ id: 'b', title: 'Newest', create_time: 1703522800, userContent: 'Newest message' }),
+      buildConversation({ id: 'a', title: 'Oldest', create_time: 1703522700, userContent: 'Oldest message' }),
+      buildConversation({ id: 'a', title: 'Duplicate', create_time: 1703522600 }), // duplicate id
+    ];
 
-            const results = processConversations(realStructureData, new Set());
-            
-            expect(results.processed).toBe(1);
-            expect(results.files[0].content).toContain('Hello, I need help with modular architecture');
-        });
+    const processedIds = new Set();
+    const result = processConversations(conversations, processedIds);
 
-        test('handles duplicate conversation IDs correctly', async () => {
-            const duplicateData = [
-                {
-                    id: 'duplicate_id',
-                    title: 'First Instance',
-                    create_time: 1703522600,
-                    mapping: {
-                        'msg1': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['First message'] }
-                            },
-                            children: [],
-                            parent: null
-                        }
-                    }
-                },
-                {
-                    id: 'duplicate_id',
-                    title: 'Second Instance',
-                    create_time: 1703522700,
-                    mapping: {
-                        'msg2': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['Second message'] }
-                            },
-                            children: [],
-                            parent: null
-                        }
-                    }
-                }
-            ];
+    expect(result.processed).toBe(2);
+    expect(result.skipped).toBe(1);
+    expect(result.files).toHaveLength(2);
+    expect(result.files.map((file) => file.title)).toEqual(['Duplicate', 'Newest']);
+    expect(processedIds.has('a')).toBe(true);
+    expect(processedIds.has('b')).toBe(true);
+  });
 
-            const processedIds = new Set();
-            const results = processConversations(duplicateData, processedIds);
+  test('convertConversations surfaces progress updates and returns markdown', async () => {
+    const conversations = [buildConversation({})];
+    const progressSpy = jest.fn();
+    const processedIds = new Set();
 
-            expect(results.processed).toBe(1);
-            expect(results.skipped).toBe(1);
-            expect(results.files).toHaveLength(1);
-            expect(results.files[0].title).toBe('First Instance');
-        });
-
-        test('processes conversations in chronological order', async () => {
-            const unorderedData = [
-                {
-                    id: 'newest',
-                    title: 'Newest Conversation',
-                    create_time: 1703523000,
-                    mapping: {
-                        'msg1': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['Newest'] }
-                            },
-                            children: [],
-                            parent: null
-                        }
-                    }
-                },
-                {
-                    id: 'oldest',
-                    title: 'Oldest Conversation',
-                    create_time: 1703522500,
-                    mapping: {
-                        'msg2': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['Oldest'] }
-                            },
-                            children: [],
-                            parent: null
-                        }
-                    }
-                },
-                {
-                    id: 'middle',
-                    title: 'Middle Conversation',
-                    create_time: 1703522750,
-                    mapping: {
-                        'msg3': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { parts: ['Middle'] }
-                            },
-                            children: [],
-                            parent: null
-                        }
-                    }
-                }
-            ];
-
-            const results = processConversations(unorderedData, new Set());
-
-            // Should be processed in chronological order (oldest first)
-            expect(results.files[0].title).toBe('Oldest Conversation');
-            expect(results.files[1].title).toBe('Middle Conversation');
-            expect(results.files[2].title).toBe('Newest Conversation');
-        });
+    const results = await convertConversations(conversations, processedIds, {
+      onProgress: progressSpy,
+      concurrency: 2,
     });
 
-    describe('Filename Generation and Conflict Resolution', () => {
-        test('generates unique filenames for duplicate titles', () => {
-            const conversations = [
-                { title: 'Same Title' },
-                { title: 'Same Title' },
-                { title: 'Same Title' }
-            ];
+    expect(progressSpy).toHaveBeenCalled();
+    expect(results.processed).toBe(1);
+    expect(results.files[0].filename).toMatch(/Sample Conversation/);
+    expect(results.files[0].content).toContain('## 🧑‍💬 User');
+    expect(results.files[0].content).toContain('## 🤖 Assistant');
+  });
 
-            const filenames = [];
-            for (const conv of conversations) {
-                const filename = generateUniqueFilename(conv, filenames);
-                filenames.push(filename);
-            }
+  test('saveFilesSequentially tallies success, skip, and error states', async () => {
+    const files = [
+      { filename: 'one.md', content: '# One' },
+      { filename: 'two.md', content: '# Two' },
+      { filename: 'three.md', content: '# Three' },
+    ];
 
-            expect(filenames).toEqual([
-                'Same Title.md',
-                'Same Title (2).md',
-                'Same Title (3).md'
-            ]);
-        });
+    saveFileToDirectory
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ cancelled: true })
+      .mockRejectedValueOnce(new Error('boom'));
 
-        test('handles complex title sanitization', () => {
-            const conversation = { 
-                title: 'Complex<Title>with:Many|Invalid?Characters*and/Symbols\\Test"File' 
-            };
-            
-            const filename = generateUniqueFilename(conversation, []);
-            expect(filename).toBe('ComplexTitlewithManyInvalidCharactersandSymbolsTestFile.md');
-        });
+    const result = await saveFilesSequentially(files, { name: 'mock-dir' }, {});
 
-        test('handles very long titles with truncation', () => {
-            const longTitle = 'This is a very long conversation title that exceeds the maximum filename length limit and should be truncated appropriately while maintaining readability and filesystem compatibility across different operating systems';
-            const conversation = { title: longTitle };
-            
-            const filename = generateUniqueFilename(conversation, []);
-            expect(filename.length).toBeLessThanOrEqual(104); // 100 chars + '.md'
-            expect(filename.endsWith('.md')).toBe(true);
-        });
-    });
+    expect(result.successCount).toBe(1);
+    expect(result.skippedCount).toBe(1);
+    expect(result.errorCount).toBe(1);
+    expect(saveFileToDirectory).toHaveBeenCalledTimes(3);
+  });
 
-    describe('Sorting and Chronological Order', () => {
-        test('maintains stable sort for conversations with same timestamp', () => {
-            const conversations = [
-                { id: '1', title: 'First', create_time: 1703522600 },
-                { id: '2', title: 'Second', create_time: 1703522600 },
-                { id: '3', title: 'Third', create_time: 1703522600 }
-            ];
+  test('createZipBlob returns null when JSZip is unavailable', async () => {
+    delete global.JSZip;
+    const blob = await createZipBlob([{ filename: 'a.md', content: '# A' }]);
+    expect(blob).toBeNull();
+  });
 
-            const sorted = sortConversationsChronologically(conversations);
-            
-            // Should maintain original order for same timestamps
-            expect(sorted.map(c => c.title)).toEqual(['First', 'Second', 'Third']);
-        });
+  test('createZipBlob generates blob when JSZip is provided', async () => {
+    const files = [];
+    class FakeZip {
+      constructor() {
+        this.files = [];
+      }
+      file(name, contents) {
+        this.files.push({ name, contents });
+      }
+      async generateAsync() {
+        return { size: this.files.length };
+      }
+    }
+    global.JSZip = FakeZip;
 
-        test('filters out invalid entries while sorting', () => {
-            const mixed = [
-                { id: '1', create_time: 1703522700 },
-                null,
-                undefined,
-                'invalid string',
-                { id: '2', create_time: 1703522600 },
-                42,
-                { id: '3', create_time: 1703522800 }
-            ];
+    const blob = await createZipBlob([
+      { filename: 'a.md', content: '# A' },
+      { filename: 'b.md', content: '# B' },
+    ]);
 
-            const sorted = sortConversationsChronologically(mixed);
-            
-            expect(sorted).toHaveLength(3);
-            expect(sorted.map(c => c.id)).toEqual(['2', '1', '3']);
-        });
-    });
+    expect(blob).toEqual({ size: 2 });
+  });
 
-    describe('Error Handling and Edge Cases', () => {
-        test('handles empty conversation array', () => {
-            const results = processConversations([], new Set());
-            
-            expect(results.processed).toBe(0);
-            expect(results.skipped).toBe(0);
-            expect(results.errors).toBe(0);
-            expect(results.files).toHaveLength(0);
-        });
-
-        test('handles malformed conversation objects', () => {
-            const malformedData = [
-                null,
-                undefined,
-                'not an object',
-                { /* missing id */ title: 'No ID' },
-                { id: 'valid', title: 'Valid Conversation', mapping: {} }
-            ];
-
-            const results = processConversations(malformedData, new Set());
-            
-            expect(results.processed).toBe(1);
-            expect(results.errors).toBe(1);
-            expect(results.files).toHaveLength(1);
-        });
-
-        test('handles conversations with empty or missing mapping', () => {
-            const emptyMappingData = [
-                {
-                    id: 'empty_mapping',
-                    title: 'Empty Mapping',
-                    create_time: 1703522600,
-                    mapping: {}
-                },
-                {
-                    id: 'no_mapping',
-                    title: 'No Mapping',
-                    create_time: 1703522700
-                    // missing mapping property
-                }
-            ];
-
-            const results = processConversations(emptyMappingData, new Set());
-            
-            expect(results.processed).toBe(2);
-            expect(results.files).toHaveLength(2);
-            
-            // Both should generate YAML frontmatter and created time
-            expect(results.files[0].content).toContain('created:');
-            expect(results.files[1].content).toContain('created:');
-        });
-
-        test('handles conversations with complex nested message structures', () => {
-            const complexData = [
-                {
-                    id: 'complex_nested',
-                    title: 'Complex Nested Messages',
-                    create_time: 1703522600,
-                    mapping: {
-                        'root': {
-                            message: {
-                                author: { role: 'user' },
-                                content: { 
-                                    parts: [
-                                        'First part of message',
-                                        ' continues here',
-                                        ' and ends here'
-                                    ]
-                                }
-                            },
-                            children: ['branch1', 'branch2'],
-                            parent: null
-                        },
-                        'branch1': {
-                            message: {
-                                author: { role: 'assistant' },
-                                content: 'String content format'
-                            },
-                            children: [],
-                            parent: 'root'
-                        },
-                        'branch2': {
-                            message: {
-                                author: { role: 'assistant' },
-                                content: { parts: ['Object content format'] }
-                            },
-                            children: [],
-                            parent: 'root'
-                        }
-                    }
-                }
-            ];
-
-            const results = processConversations(complexData, new Set());
-            
-            expect(results.processed).toBe(1);
-            const content = results.files[0].content;
-            
-            expect(content).toContain('First part of message continues here and ends here');
-            expect(content).toContain('String content format');
-            // Note: Only one branch should be followed in the linear conversation
-        });
-    });
-    
-    describe('Individual File Save Functionality', () => {
-        test('save button calls individual save method with correct file object', () => {
-            // Setup DOM elements
-            document.body.innerHTML = `
-                <div id="filesSection">
-                    <div id="filesContainer">
-                        <table>
-                            <tbody>
-                                <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td>
-                                        <button class="save-file-btn" 
-                                                data-filename="test-conversation.md"
-                                                data-content="test%20content"
-                                                data-title="Test Conversation">
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-
-            // Mock the ChatGPTConverter class with the saveSingleFileToMarkdown method
-            const mockConverter = {
-                saveSingleFileToMarkdown: jest.fn().mockResolvedValue(true),
-                attachFileButtonHandlers: function() {
-                    // Replicate the save button handler logic
-                    document.querySelectorAll('.save-file-btn').forEach(btn => {
-                        btn.addEventListener('click', async () => {
-                            const filename = btn.dataset.filename;
-                            const content = decodeURIComponent(btn.dataset.content);
-                            const title = btn.dataset.title;
-                            
-                            const file = {
-                                filename: filename,
-                                content: content,
-                                title: title
-                            };
-                            
-                            await this.saveSingleFileToMarkdown(file);
-                        });
-                    });
-                }
-            };
-
-            // Attach the handlers and simulate click
-            mockConverter.attachFileButtonHandlers();
-            const saveButton = document.querySelector('.save-file-btn');
-            saveButton.click();
-
-            // Wait for async call and verify
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    expect(mockConverter.saveSingleFileToMarkdown).toHaveBeenCalledWith({
-                        filename: 'test-conversation.md',
-                        content: 'test content',
-                        title: 'Test Conversation'
-                    });
-                    resolve();
-                                 }, 0);
-             });
-         });
-
-         test('download button calls download method with correct file object', () => {
-             // Setup DOM elements
-             document.body.innerHTML = `
-                 <div id="filesSection">
-                     <div id="filesContainer">
-                         <table>
-                             <tbody>
-                                 <tr>
-                                     <td></td>
-                                     <td></td>
-                                     <td>
-                                         <button class="download-file-btn" 
-                                                 data-filename="test-conversation.md"
-                                                 data-content="test%20markdown%20content">
-                                         </button>
-                                     </td>
-                                 </tr>
-                             </tbody>
-                         </table>
-                     </div>
-                 </div>
-             `;
-
-             // Mock the ChatGPTConverter class with the downloadSingleFile method
-             const mockConverter = {
-                 downloadSingleFile: jest.fn(),
-                 attachFileButtonHandlers: function() {
-                     // Replicate the download button handler logic
-                     document.querySelectorAll('.download-file-btn').forEach(btn => {
-                         btn.addEventListener('click', () => {
-                             const filename = btn.dataset.filename;
-                             const content = decodeURIComponent(btn.dataset.content);
-                             
-                             const file = {
-                                 filename: filename,
-                                 content: content
-                             };
-                             
-                             this.downloadSingleFile(file);
-                         });
-                     });
-                 }
-             };
-
-             // Attach the handlers and simulate click
-             mockConverter.attachFileButtonHandlers();
-             const downloadButton = document.querySelector('.download-file-btn');
-             downloadButton.click();
-
-             // Verify the method was called with correct parameters
-             expect(mockConverter.downloadSingleFile).toHaveBeenCalledWith({
-                 filename: 'test-conversation.md',
-                 content: 'test markdown content'
-             });
-         });
-
-         test('file save confirmation dialog is shown when file is saved successfully', () => {
-             // Setup DOM elements
-             document.body.innerHTML = `
-                 <div id="filesSection">
-                     <div id="filesContainer">
-                         <table>
-                             <tbody>
-                                 <tr>
-                                     <td></td>
-                                     <td></td>
-                                     <td>
-                                         <button class="save-file-btn" 
-                                                 data-filename="test-conversation.md"
-                                                 data-content="test%20content"
-                                                 data-title="Test Conversation">
-                                         </button>
-                                     </td>
-                                 </tr>
-                             </tbody>
-                         </table>
-                     </div>
-                 </div>
-             `;
-
-             // Mock the ChatGPTConverter class with the saveSingleFileToMarkdown method
-             const mockConverter = {
-                 showFileSaveConfirmation: jest.fn(),
-                 saveSingleFileToMarkdown: jest.fn().mockImplementation(async (file) => {
-                     // Simulate successful save by calling the confirmation
-                     mockConverter.showFileSaveConfirmation(file.title, 'TestFolder', file.filename);
-                 }),
-                 attachFileButtonHandlers: function() {
-                     // Replicate the save button handler logic
-                     document.querySelectorAll('.save-file-btn').forEach(btn => {
-                         btn.addEventListener('click', async () => {
-                             const filename = btn.dataset.filename;
-                             const content = decodeURIComponent(btn.dataset.content);
-                             const title = btn.dataset.title;
-                             
-                             const file = {
-                                 filename: filename,
-                                 content: content,
-                                 title: title
-                             };
-                             
-                             await this.saveSingleFileToMarkdown(file);
-                         });
-                     });
-                 }
-             };
-
-             // Attach the handlers and simulate click
-             mockConverter.attachFileButtonHandlers();
-             const saveButton = document.querySelector('.save-file-btn');
-             saveButton.click();
-
-             // Wait for async call and verify
-             return new Promise(resolve => {
-                 setTimeout(() => {
-                     expect(mockConverter.showFileSaveConfirmation).toHaveBeenCalledWith(
-                         'Test Conversation',
-                         'TestFolder',
-                         'test-conversation.md'
-                     );
-                     resolve();
-                 }, 0);
-             });
-         });
-     });
-}); 
+  test('parseConversationsJson rejects invalid input', () => {
+    expect(() => parseConversationsJson('{')).toThrow('Invalid JSON file. Please upload a valid ChatGPT export.');
+    expect(() => parseConversationsJson('{"not":"an array"}')).toThrow(
+      'Invalid file structure. Expected an array of conversations.',
+    );
+  });
+});

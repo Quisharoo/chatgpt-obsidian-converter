@@ -69,3 +69,8 @@ ENV/
 # Local test files
 conversations.json
 test_conversations.json 
+
+AGENTS.md 
+.cursorrules
+.cursor.json
+LOGGING.md 
