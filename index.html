@@ -112,7 +112,23 @@
         .hidden {
             display: none !important;
         }
+        
+        /* Hide legacy content until React loads - prevents flash */
+        .container {
+            opacity: 0;
+            transition: opacity 0.2s ease-in;
+        }
+        
+        /* Show container when React mounts or if JS fails after 2s */
+        .container.loaded,
+        body.no-react .container {
+            opacity: 1;
+        }
     </style>
+    <script>
+        // Fallback: show content if React doesn't load within 2 seconds
+        setTimeout(() => document.body.classList.add('no-react'), 2000);
+    </script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-4xl">

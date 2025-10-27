@@ -1,3 +1,4 @@
+import './index.css';
 import { configureLogger, logError, logInfo } from './utils/logger.js';
 import { LOGGING_CONFIG } from './utils/constants.js';
 import { getPreferences } from './utils/helpers.js';

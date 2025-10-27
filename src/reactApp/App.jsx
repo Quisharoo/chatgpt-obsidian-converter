@@ -179,7 +179,7 @@ function DirectoryPanel({ directory, fileCount, onSelect, onSaveAll, onDownloadZ
 
         <div className="flex flex-wrap gap-3">
           {directory.supported && (
-            <Button onClick={onSelect} variant="secondary">
+            <Button onClick={onSelect} variant="outline">
               {hasDirectory ? `Change folder (current: ${directory.name})` : 'Choose folder'}
             </Button>
           )}
@@ -204,7 +204,7 @@ function DirectoryPanel({ directory, fileCount, onSelect, onSaveAll, onDownloadZ
           <Button onClick={onDownloadZip} variant="outline" disabled={!fileCount}>
             Download ZIP
           </Button>
-          <Button onClick={onDownloadAll} variant="ghost" disabled={!fileCount}>
+          <Button onClick={onDownloadAll} variant="outline" disabled={!fileCount}>
             Download individually
           </Button>
         </div>
@@ -298,8 +298,8 @@ function ResultsTable({ files, onDownloadSingle }) {
   };
 
   const SortIcon = ({ field }) => {
-    if (sortField !== field) return <span className="text-muted-foreground/40">↕</span>;
-    return <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+    if (sortField !== field) return <span className="inline-block w-4 text-center text-muted-foreground/40">↕</span>;
+    return <span className="inline-block w-4 text-center">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
   };
 
   return (
@@ -311,28 +311,32 @@ function ResultsTable({ files, onDownloadSingle }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[640px] text-sm table-fixed">
           <thead className="text-left text-muted-foreground">
             <tr>
               <th 
-                className="py-2 pr-3 font-medium cursor-pointer hover:text-foreground transition-colors"
+                className="py-2 pr-3 font-medium cursor-pointer hover:text-foreground transition-colors w-[60%]"
                 onClick={() => handleSort('title')}
               >
-                Title <SortIcon field="title" />
+                <span className="flex items-center gap-1">
+                  Title <SortIcon field="title" />
+                </span>
               </th>
               <th 
-                className="py-2 pr-3 font-medium cursor-pointer hover:text-foreground transition-colors"
+                className="py-2 pr-3 font-medium cursor-pointer hover:text-foreground transition-colors w-[25%]"
                 onClick={() => handleSort('created')}
               >
-                Created <SortIcon field="created" />
+                <span className="flex items-center gap-1">
+                  Created <SortIcon field="created" />
+                </span>
               </th>
-              <th className="py-2 pr-3 font-medium">Actions</th>
+              <th className="py-2 pr-3 font-medium text-right w-[15%]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
             {currentFiles.map((file) => (
               <tr key={file.filename} className="hover:bg-muted/40">
-                <td className="py-2 pr-3 font-medium text-foreground">{file.title}</td>
+                <td className="py-2 pr-3 font-medium text-foreground truncate">{file.title}</td>
                 <td className="py-2 pr-3 text-muted-foreground">{file.createdDate}</td>
                 <td className="py-2 pr-3">
                   <Button size="sm" variant="ghost" onClick={() => onDownloadSingle(file)}>

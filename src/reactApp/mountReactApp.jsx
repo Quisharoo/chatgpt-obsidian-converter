@@ -40,6 +40,12 @@ function createContainer() {
   const legacyMain = host.querySelector('main');
   if (legacyHeader) legacyHeader.style.display = 'none';
   if (legacyMain) legacyMain.style.display = 'none';
+  
+  // Mark container as loaded to show React content
+  if (host.classList) {
+    host.classList.add('loaded');
+  }
+  
   host.insertBefore(container, host.firstChild);
   return container;
 }

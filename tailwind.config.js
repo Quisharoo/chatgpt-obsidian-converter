@@ -31,7 +31,7 @@ module.exports = {
           foreground: 'hsl(214 32% 99%)'
         },
         secondary: {
-          DEFAULT: 'hsl(214 32% 18%)',
+          DEFAULT: 'hsl(217 33% 24%)',
           foreground: 'hsl(214 32% 96%)'
         },
         muted: {
