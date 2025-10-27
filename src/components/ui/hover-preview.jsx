@@ -3,7 +3,7 @@
  * Displays a markdown preview of conversation content on hover
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, cloneElement, isValidElement } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
@@ -22,48 +22,122 @@ import 'highlight.js/styles/github.css';
 export function HoverPreview({ children, markdownContent, title, delay = 500 }) {
   const [open, setOpen] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
-  const timeoutRef = useRef(null);
-  const hoverRef = useRef(false);
+  const openTimeoutRef = useRef(null);
+  const closeTimeoutRef = useRef(null);
+  const hideTimeoutRef = useRef(null);
+  const hoverWithinRef = useRef(false);
+
+  const clearTimer = (timerRef) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const clearAllTimers = () => {
+    clearTimer(openTimeoutRef);
+    clearTimer(closeTimeoutRef);
+    clearTimer(hideTimeoutRef);
+  };
+
+  const openPopover = () => {
+    setShouldRender(true);
+    setOpen(true);
+  };
+
+  const scheduleClose = () => {
+    clearTimer(closeTimeoutRef);
+    closeTimeoutRef.current = setTimeout(() => {
+      if (hoverWithinRef.current) return;
+      setOpen(false);
+      clearTimer(hideTimeoutRef);
+      hideTimeoutRef.current = setTimeout(() => {
+        if (!hoverWithinRef.current) {
+          setShouldRender(false);
+        }
+      }, 150);
+    }, 120);
+  };
 
   // Handle mouse enter with delay
-  const handleMouseEnter = () => {
-    hoverRef.current = true;
-    timeoutRef.current = setTimeout(() => {
-      if (hoverRef.current) {
-        setOpen(true);
-        setShouldRender(true);
+  const handleTriggerMouseEnter = () => {
+    hoverWithinRef.current = true;
+    clearAllTimers();
+    openTimeoutRef.current = setTimeout(() => {
+      if (hoverWithinRef.current) {
+        openPopover();
       }
     }, delay);
   };
 
   // Handle mouse leave
-  const handleMouseLeave = () => {
-    hoverRef.current = false;
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setOpen(false);
+  const handleTriggerMouseLeave = () => {
+    hoverWithinRef.current = false;
+    clearTimer(openTimeoutRef);
+    scheduleClose();
+  };
+
+  const handleContentMouseEnter = () => {
+    hoverWithinRef.current = true;
+    clearTimer(closeTimeoutRef);
+    clearTimer(hideTimeoutRef);
+  };
+
+  const handleContentMouseLeave = () => {
+    hoverWithinRef.current = false;
+    scheduleClose();
   };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      clearAllTimers();
     };
   }, []);
 
+  const renderTriggerChild = () => {
+    if (!isValidElement(children)) {
+      return children;
+    }
+
+    const { onMouseEnter, onMouseLeave, style, ...restProps } = children.props;
+
+    return cloneElement(children, {
+      ...restProps,
+      style: { cursor: 'pointer', ...style },
+      onMouseEnter: (event) => {
+        if (onMouseEnter) {
+          onMouseEnter(event);
+        }
+        handleTriggerMouseEnter();
+      },
+      onMouseLeave: (event) => {
+        if (onMouseLeave) {
+          onMouseLeave(event);
+        }
+        handleTriggerMouseLeave();
+      },
+    });
+  };
+
   return (
-    <Popover.Root open={open}>
+    <Popover.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          hoverWithinRef.current = true;
+          clearAllTimers();
+          openPopover();
+        } else {
+          hoverWithinRef.current = false;
+          clearAllTimers();
+          setOpen(false);
+          setShouldRender(false);
+        }
+      }}
+    >
       <Popover.Trigger asChild>
-        <div
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          style={{ cursor: 'pointer' }}
-        >
-          {children}
-        </div>
+        {renderTriggerChild()}
       </Popover.Trigger>
 
       {shouldRender && (
@@ -72,10 +146,8 @@ export function HoverPreview({ children, markdownContent, title, delay = 500 }) 
             side="right"
             align="start"
             sideOffset={10}
-            onMouseEnter={() => {
-              hoverRef.current = true;
-            }}
-            onMouseLeave={handleMouseLeave}
+            onMouseEnter={handleContentMouseEnter}
+            onMouseLeave={handleContentMouseLeave}
             className="hover-preview-content"
             style={{
               backgroundColor: 'white',
