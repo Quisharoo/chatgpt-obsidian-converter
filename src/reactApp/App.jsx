@@ -84,7 +84,7 @@ function UploadCard({ onFileSelect }) {
             </label>
             <Button
               type="button"
-              variant="secondary"
+              variant="default"
               onClick={() => fileInputRef.current?.click()}
               aria-controls={fileInputId}
             >
@@ -116,8 +116,7 @@ function ProgressCard({ progress, status }) {
   );
 }
 
-function SummaryCard({ summary, files }) {
-  const fileCount = files.length;
+function SummaryCard({ summary }) {
   return (
     <Card className="bg-card/80 backdrop-blur">
       <CardHeader className="flex flex-col gap-2">
@@ -139,10 +138,6 @@ function SummaryCard({ summary, files }) {
           <Badge variant="secondary" className="px-3 py-1">
             Skipped
             <span className="ml-2 rounded bg-muted px-2 py-0.5 text-foreground">{summary.skipped}</span>
-          </Badge>
-          <Badge variant="secondary" className="px-3 py-1">
-            Files ready
-            <span className="ml-2 rounded bg-muted px-2 py-0.5 text-foreground">{fileCount}</span>
           </Badge>
         </div>
       </CardContent>
@@ -219,6 +214,11 @@ function DirectoryPanel({ directory, fileCount, onSelect, onSaveAll, onDownloadZ
 }
 
 function ResultsTable({ files, onDownloadSingle }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState('created');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const itemsPerPage = 25;
+
   if (!files.length) {
     return (
       <Card className="bg-card/80 backdrop-blur">
@@ -232,6 +232,76 @@ function ResultsTable({ files, onDownloadSingle }) {
     );
   }
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'created' ? 'desc' : 'asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const sortedFiles = [...files].sort((a, b) => {
+    let aVal, bVal;
+    
+    if (sortField === 'title') {
+      aVal = a.title.toLowerCase();
+      bVal = b.title.toLowerCase();
+    } else if (sortField === 'created') {
+      aVal = new Date(a.createdDate).getTime();
+      bVal = new Date(b.createdDate).getTime();
+    }
+    
+    if (sortDirection === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+
+  const totalPages = Math.ceil(sortedFiles.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentFiles = sortedFiles.slice(startIndex, endIndex);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 7;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+      
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <span className="text-muted-foreground/40">↕</span>;
+    return <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   return (
     <Card className="bg-card/80 backdrop-blur">
       <CardHeader>
@@ -244,17 +314,25 @@ function ResultsTable({ files, onDownloadSingle }) {
         <table className="w-full min-w-[640px] text-sm">
           <thead className="text-left text-muted-foreground">
             <tr>
-              <th className="py-2 pr-3 font-medium">Title</th>
-              <th className="py-2 pr-3 font-medium">Filename</th>
-              <th className="py-2 pr-3 font-medium">Created</th>
+              <th 
+                className="py-2 pr-3 font-medium cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort('title')}
+              >
+                Title <SortIcon field="title" />
+              </th>
+              <th 
+                className="py-2 pr-3 font-medium cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort('created')}
+              >
+                Created <SortIcon field="created" />
+              </th>
               <th className="py-2 pr-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {files.map((file) => (
+            {currentFiles.map((file) => (
               <tr key={file.filename} className="hover:bg-muted/40">
                 <td className="py-2 pr-3 font-medium text-foreground">{file.title}</td>
-                <td className="py-2 pr-3 text-muted-foreground">{file.filename}</td>
                 <td className="py-2 pr-3 text-muted-foreground">{file.createdDate}</td>
                 <td className="py-2 pr-3">
                   <Button size="sm" variant="ghost" onClick={() => onDownloadSingle(file)}>
@@ -265,6 +343,59 @@ function ResultsTable({ files, onDownloadSingle }) {
             ))}
           </tbody>
         </table>
+        
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-1 mt-4">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+            >
+              First
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Prev
+            </Button>
+            
+            {getPageNumbers().map((page, idx) => (
+              page === '...' ? (
+                <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+              ) : (
+                <Button
+                  key={page}
+                  size="sm"
+                  variant={currentPage === page ? 'default' : 'outline'}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              )
+            ))}
+            
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+            >
+              Last
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -287,16 +418,17 @@ export function App() {
 
   const hasStartedProcessing = status !== 'idle';
   const hasGeneratedFiles = files.length > 0;
-  const showSummary = hasStartedProcessing;
+  const isComplete = status === 'complete';
+  const showSummary = isComplete;
   const showExportPanel = hasGeneratedFiles;
-  const showResults = hasStartedProcessing;
+  const showResults = isComplete;
 
   return (
     <TooltipProvider>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6">
         <UploadCard onFileSelect={convertFile} />
         <ProgressCard progress={progress} status={status} />
-        {showSummary && <SummaryCard summary={summary} files={files} />}
+        {showSummary && <SummaryCard summary={summary} />}
         {showExportPanel && (
           <DirectoryPanel
             directory={directory}
