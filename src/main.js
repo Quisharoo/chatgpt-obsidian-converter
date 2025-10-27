@@ -46,11 +46,7 @@ function removeLegacyArtifacts() {
     hostParent.removeChild(host);
   }
 
-  if (!document.body.contains(host)) {
-    document.body.prepend(host);
-  } else {
-    document.body.prepend(host);
-  }
+  document.body.prepend(host);
 
   const preservedNodes = new Set([host]);
 
@@ -64,7 +60,11 @@ function removeLegacyArtifacts() {
 
   document
     .querySelectorAll(
-      'script[src^="https://cdn.tailwindcss.com"], link[href^="https://cdnjs.cloudflare.com/ajax/libs/font-awesome"], link[href^="https://fonts.googleapis"]',
+      [
+        'script[src^="https://cdn.tailwindcss.com"]',
+        'link[href^="https://cdnjs.cloudflare.com/ajax/libs/font-awesome"]',
+        'link[href^="https://fonts.googleapis"]',
+      ].join(', '),
     )
     .forEach((el) => el.remove());
 
