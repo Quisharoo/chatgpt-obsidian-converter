@@ -3,21 +3,29 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 
 let root = null;
+let rootContainer = null;
 
 export function mountReactApp() {
   if (typeof document === 'undefined') return;
 
   const existing = document.getElementById('react-control-panel');
   const container = existing || createContainer();
+  const containerChanged = container !== rootContainer;
 
-  if (!root) {
+  if (!root || containerChanged) {
+    if (root && containerChanged) {
+      root.unmount();
+    }
     root = createRoot(container);
+    rootContainer = container;
   }
 
   root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
+    React.createElement(
+      React.StrictMode,
+      null,
+      React.createElement(App),
+    ),
   );
 }
 

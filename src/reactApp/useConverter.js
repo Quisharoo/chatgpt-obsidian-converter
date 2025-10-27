@@ -50,6 +50,7 @@ export function useConverter() {
       try {
         setStatusState('processing');
         pushProgress({ percent: 0 }, status('READING_FILE'));
+        processedIdsRef.current = new Set();
 
         const conversations = await parseConversationsFile(file, {
           onProgress: (update) => pushProgress(update, status('READING_FILE')),

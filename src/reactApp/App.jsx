@@ -101,7 +101,7 @@ function ProgressCard({ progress, status }) {
   if (!progress.active && status !== 'saving') return null;
 
   const message = progress.message || (status === 'saving' ? 'Saving files…' : 'Processing…');
-  const percent = progress.percent || (status === 'saving' ? 30 : 0);
+  const percent = Number.isFinite(progress.percent) ? progress.percent : 0;
 
   return (
     <Card className="border-primary/30 bg-card/80">

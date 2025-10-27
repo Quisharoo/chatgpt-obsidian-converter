@@ -30,6 +30,10 @@
     "coverageDirectory": "coverage",
     "coverageReporters": ["text", "html", "lcov"],
     "moduleFileExtensions": ["js", "json"],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/../src/$1",
+      "^\\./App\\.jsx$": "<rootDir>/tests/__mocks__/AppStub.js"
+    },
     "transform": {
       "^.+\\.(js|jsx)$": "babel-jest"
     },
