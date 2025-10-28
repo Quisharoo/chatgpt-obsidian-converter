@@ -56,7 +56,7 @@ export function HoverPreview({ children, markdownContent, title, delay = 500 }) 
           setShouldRender(false);
         }
       }, 150);
-    }, 120);
+    }, 450);
   };
 
   // Handle mouse enter with delay
@@ -145,9 +145,15 @@ export function HoverPreview({ children, markdownContent, title, delay = 500 }) 
           <Popover.Content
             side="right"
             align="start"
-            sideOffset={10}
+            sideOffset={3}
+            collisionPadding={8}
+            avoidCollisions={true}
             onMouseEnter={handleContentMouseEnter}
             onMouseLeave={handleContentMouseLeave}
+            onEscapeKeyDown={() => {
+              setOpen(false);
+              setShouldRender(false);
+            }}
             className="hover-preview-content"
             style={{
               backgroundColor: 'white',
