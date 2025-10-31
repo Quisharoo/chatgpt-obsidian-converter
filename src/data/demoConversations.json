@@ -1,0 +1,2962 @@
+[
+  {
+    "id": "demo_conv_001",
+    "title": "Python List Comprehensions",
+    "create_time": 1703607022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Can you explain Python list comprehensions?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "List comprehensions are a concise way to create lists in Python.\n\n```python\nsquares = [x**2 for x in range(10)]\nevens = [x for x in range(20) if x % 2 == 0]\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_002",
+    "title": "JavaScript Promises vs Async/Await",
+    "create_time": 1703693422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What's the difference between Promises and async/await?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Async/await is syntactic sugar over Promises:\n\n```javascript\n// Promise\nfetch(url).then(res => res.json()).then(data => console.log(data));\n\n// Async/await\nconst response = await fetch(url);\nconst data = await response.json();\nconsole.log(data);\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_003",
+    "title": "CSS Grid Layout",
+    "create_time": 1703779822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I create a responsive grid layout?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Use CSS Grid with auto-fit:\n\n```css\n.grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n  gap: 1rem;\n}\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_004",
+    "title": "React Hooks Basics",
+    "create_time": 1703866222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Explain useState and useEffect"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Core React hooks:\n\n```javascript\nfunction Component() {\n  const [count, setCount] = useState(0);\n  \n  useEffect(() => {\n    document.title = `Count: ${count}`;\n  }, [count]);\n}\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_005",
+    "title": "SQL JOIN Types",
+    "create_time": 1703952622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Explain different types of SQL joins"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Main JOIN types:\n\n```sql\n-- INNER JOIN: matching rows only\nSELECT * FROM users INNER JOIN orders ON users.id = orders.user_id;\n\n-- LEFT JOIN: all left rows + matches\nSELECT * FROM users LEFT JOIN orders ON users.id = orders.user_id;\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_006",
+    "title": "Docker Basics",
+    "create_time": 1704039022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is Docker and why use it?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Docker containers ensure consistency:\n\n```dockerfile\nFROM node:18\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nCMD [\"npm\", \"start\"]\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_007",
+    "title": "REST API Design",
+    "create_time": 1704125422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What are REST API best practices?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Key principles:\n\n- Use proper HTTP methods (GET, POST, PUT, DELETE)\n- Use nouns for resources: `/api/users` not `/api/getUsers`\n- Version your API: `/api/v1/users`\n- Return appropriate status codes\n- Use JSON for responses"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_008",
+    "title": "Git Rebase vs Merge",
+    "create_time": 1704211822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "When should I use rebase vs merge?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**Merge**: Preserves history\n```bash\ngit merge feature-branch\n```\n\n**Rebase**: Cleaner history\n```bash\ngit rebase main\n```\n\nUse rebase for feature branches, merge for shared branches."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_009",
+    "title": "Python Decorators",
+    "create_time": 1704298222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do Python decorators work?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Decorators modify function behavior:\n\n```python\ndef timer(func):\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        print(f'Time: {time.time() - start}')\n        return result\n    return wrapper\n\n@timer\ndef my_function():\n    pass\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_010",
+    "title": "MongoDB vs PostgreSQL",
+    "create_time": 1704384622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "When should I use MongoDB vs PostgreSQL?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**PostgreSQL**: Structured data, complex queries, ACID transactions\n\n**MongoDB**: Flexible schema, rapid development, horizontal scaling\n\nChoose based on your data structure and query patterns."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_011",
+    "title": "Perfect Scrambled Eggs",
+    "create_time": 1704471022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I make creamy scrambled eggs?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The secret is low heat and patience:\n\n## Ingredients\n- 3 eggs\n- 1 tbsp butter\n- 2 tbsp cream\n- Salt and pepper\n\n## Method\n1. Whisk eggs with cream\n2. Melt butter on LOW heat\n3. Add eggs, stir constantly\n4. Remove from heat when still slightly wet\n5. Season and serve\n\nTakes 10 minutes but worth it!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_012",
+    "title": "Knife Skills 101",
+    "create_time": 1704557422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I improve my knife skills?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Master these cuts:\n\n**Dice**: uniform cubes\n**Julienne**: thin matchsticks\n**Chiffonade**: ribbon cuts for herbs\n**Brunoise**: tiny 1-2mm dice\n\n## Safety tips:\n- Keep knives sharp (dull knives are dangerous)\n- Curl fingertips under when holding food\n- Use a stable cutting board\n- Let the knife do the work"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_013",
+    "title": "Making Stock from Scratch",
+    "create_time": 1704643822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I make chicken stock?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Homemade stock is game-changing:\n\n## Ingredients\n- Chicken bones/carcass\n- 2 carrots, 2 celery, 1 onion\n- Bay leaf, peppercorns, parsley\n- Cold water to cover\n\n## Method\n1. Roast bones at 400°F for 30 min\n2. Add to pot with vegetables\n3. Cover with cold water\n4. Simmer 3-4 hours, skim foam\n5. Strain and cool\n\nFreezes for 3 months!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_014",
+    "title": "Steak Doneness Guide",
+    "create_time": 1704730222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I know when my steak is done?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Use the finger test:\n\n**Rare**: Touch thumb to index finger, feel base of thumb\n**Medium-rare**: Thumb to middle finger\n**Medium**: Thumb to ring finger\n**Well-done**: Thumb to pinky\n\nOr use a thermometer:\n- Rare: 125°F / 52°C\n- Medium-rare: 135°F / 57°C\n- Medium: 145°F / 63°C\n- Well-done: 160°F / 71°C"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_015",
+    "title": "Emulsification Explained",
+    "create_time": 1704816622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is emulsification in cooking?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Emulsification combines fat and water:\n\n## Examples\n- **Mayonnaise**: Oil + egg yolk\n- **Vinaigrette**: Oil + vinegar + mustard\n- **Hollandaise**: Butter + egg yolk + lemon\n\n## The Science\nEmulsifiers (like egg yolk) have molecules that bond to both fat and water, keeping them mixed.\n\n## Common mistake\nAdding fat too quickly causes it to \"break\" (separate)."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_016",
+    "title": "Mise en Place",
+    "create_time": 1704903022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What does mise en place mean?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "\"Mise en place\" = \"everything in its place\"\n\n## Why it matters\n- Prevents mistakes\n- Reduces stress while cooking\n- Ensures you have all ingredients\n- Makes cooking faster and more enjoyable\n\n## How to do it\n1. Read recipe completely\n2. Measure all ingredients\n3. Prep vegetables\n4. Organize by order of use\n5. Clean as you go\n\nProfessional chefs always mise en place!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_017",
+    "title": "Deglazing Explained",
+    "create_time": 1704989422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is deglazing?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Deglazing captures fond (browned bits) for sauce:\n\n## The Process\n1. Sear meat/vegetables\n2. Remove from pan\n3. Add wine/stock/liquid to hot pan\n4. Scrape up browned bits with wooden spoon\n5. Reduce to make sauce\n\n## Best liquids\n- Red wine (beef)\n- White wine (chicken, fish)\n- Stock\n- Apple cider (pork)\n\nNever waste that flavor!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_018",
+    "title": "Tempering Chocolate",
+    "create_time": 1705075822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I temper chocolate?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Tempering gives chocolate snap and shine:\n\n## Method\n1. Melt 2/3 chocolate to 115°F (46°C)\n2. Remove from heat\n3. Add remaining 1/3 chocolate\n4. Stir until 88-90°F (31-32°C)\n5. Use immediately\n\n## Why temper?\n- Shiny finish\n- Crisp snap\n- Doesn't melt on fingers\n- No bloom (white streaks)\n\nSkip this and you get dull, soft chocolate."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_019",
+    "title": "Hitchcock's MacGuffin",
+    "create_time": 1705162222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is a MacGuffin in film?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "A MacGuffin is a plot device that drives the story but isn't important itself.\n\n## Famous examples\n- **Pulp Fiction**: The briefcase (we never see what's inside)\n- **The Maltese Falcon**: The falcon statue\n- **Raiders of the Lost Ark**: The Ark\n- **Titanic**: The Heart of the Ocean diamond\n\nHitchcock said: \"The audience doesn't care what it is, they only care that the characters care about it.\""
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_020",
+    "title": "The 180-Degree Rule",
+    "create_time": 1705248622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is the 180-degree rule in filmmaking?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The 180-degree rule maintains spatial consistency:\n\n## The Rule\nDraw an imaginary line between two characters. Keep the camera on ONE side of that line.\n\n## Why it matters\nBreaking it confuses viewers about who's where.\n\n## When to break it\n- Intentionally disorienting the viewer\n- Character's world is turning upside down\n- Transitioning between scenes\n\nMost films follow this religiously."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_021",
+    "title": "Practical Effects vs CGI",
+    "create_time": 1705335022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Why do practical effects sometimes look better than CGI?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Practical effects have tangible reality:\n\n## Why practical can be better\n- Real lighting interactions\n- Actors react to real objects\n- Ages better (looks real 30 years later)\n- Forces creative problem-solving\n\n## Examples\n- **Mad Max Fury Road**: Real stunts\n- **The Thing (1982)**: Practical creatures\n- **Inception**: Rotating hallway was a real set\n\n## When CGI wins\n- Impossible shots\n- Safety concerns\n- Budget constraints\n\nBest films blend both!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_022",
+    "title": "Continuity Errors",
+    "create_time": 1705421422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What are continuity errors?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Continuity errors break the illusion:\n\n## Common types\n- **Prop positions**: Coffee cup jumps around\n- **Costume changes**: Tie appears/disappears\n- **Hair/makeup**: Hair length changes\n- **Time of day**: Shadows inconsistent\n\n## Famous examples\n- **Braveheart**: Car in battle scene\n- **Gladiator**: Gas canister in chariot\n- **Pulp Fiction**: Bullet holes before shooting\n\n## Why they happen\nScenes shot out of order, over multiple days.\n\nScript supervisors try to prevent these!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_023",
+    "title": "Aspect Ratios Explained",
+    "create_time": 1705507822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What do aspect ratios like 16:9 mean?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Aspect ratio is width:height of the frame:\n\n## Common ratios\n- **16:9**: Standard widescreen (TV, YouTube)\n- **2.39:1**: Cinematic widescreen (most movies)\n- **4:3**: Old TV, Wes Anderson sometimes uses\n- **1:1**: Square (Instagram)\n- **IMAX**: 1.43:1 (tallest)\n\n## Why directors choose\n- **Widescreen**: Epic landscapes\n- **4:3**: Intimate, claustrophobic\n- **IMAX**: Immersive\n\n**The Grand Budapest Hotel** changes ratios for different time periods!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_024",
+    "title": "Method Acting",
+    "create_time": 1705594222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is method acting?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Method acting: staying in character even off-camera\n\n## Famous examples\n- **Daniel Day-Lewis** (Lincoln): Kept accent 24/7\n- **Heath Ledger** (Joker): Isolated himself for weeks\n- **Robert De Niro** (Taxi Driver): Got taxi license, drove 12hr shifts\n\n## Controversy\nSome think it's essential, others say it's excessive.\n\n## Risks\n- Mental health impacts\n- Difficult for cast/crew\n- Can be used as excuse for bad behavior\n\nNot all great actors are method actors!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_025",
+    "title": "Diegetic vs Non-Diegetic Sound",
+    "create_time": 1705680622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What's the difference?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**Diegetic**: Sound that exists in the film's world\n- Characters can hear it\n- Radio playing, dialogue, footsteps\n\n**Non-diegetic**: Sound only audience hears\n- Background music score\n- Narration\n- Sound effects for emphasis\n\n## Creative uses\n- **Baby Driver**: Diegetic music drives action\n- **Goodfellas**: Switches between diegetic/non-diegetic\n- **Guardians of the Galaxy**: Walkman makes music diegetic\n\nSome films play with the boundary!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_026",
+    "title": "The Kuleshov Effect",
+    "create_time": 1705767022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is the Kuleshov Effect?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The Kuleshov Effect: editing creates meaning\n\n## The Experiment (1918)\nShow same shot of an actor's neutral face, but cut to:\n- Bowl of soup → viewers see hunger\n- Dead woman → viewers see sadness  \n- Child playing → viewers see happiness\n\nSame face, different context = different emotion!\n\n## Why it matters\nProves editing is as important as acting.\n\n## Modern examples\nEvery reaction shot relies on this principle.\n\nYou're not just watching performances, you're watching editing!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_027",
+    "title": "Python List Comprehensions",
+    "create_time": 1705853422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Can you explain Python list comprehensions?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "List comprehensions are a concise way to create lists in Python.\n\n```python\nsquares = [x**2 for x in range(10)]\nevens = [x for x in range(20) if x % 2 == 0]\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_028",
+    "title": "JavaScript Promises vs Async/Await",
+    "create_time": 1705939822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What's the difference between Promises and async/await?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Async/await is syntactic sugar over Promises:\n\n```javascript\n// Promise\nfetch(url).then(res => res.json()).then(data => console.log(data));\n\n// Async/await\nconst response = await fetch(url);\nconst data = await response.json();\nconsole.log(data);\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_029",
+    "title": "CSS Grid Layout",
+    "create_time": 1706026222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I create a responsive grid layout?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Use CSS Grid with auto-fit:\n\n```css\n.grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n  gap: 1rem;\n}\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_030",
+    "title": "React Hooks Basics",
+    "create_time": 1706112622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Explain useState and useEffect"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Core React hooks:\n\n```javascript\nfunction Component() {\n  const [count, setCount] = useState(0);\n  \n  useEffect(() => {\n    document.title = `Count: ${count}`;\n  }, [count]);\n}\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_031",
+    "title": "SQL JOIN Types",
+    "create_time": 1706199022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Explain different types of SQL joins"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Main JOIN types:\n\n```sql\n-- INNER JOIN: matching rows only\nSELECT * FROM users INNER JOIN orders ON users.id = orders.user_id;\n\n-- LEFT JOIN: all left rows + matches\nSELECT * FROM users LEFT JOIN orders ON users.id = orders.user_id;\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_032",
+    "title": "Docker Basics",
+    "create_time": 1706285422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is Docker and why use it?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Docker containers ensure consistency:\n\n```dockerfile\nFROM node:18\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nCMD [\"npm\", \"start\"]\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_033",
+    "title": "REST API Design",
+    "create_time": 1706371822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What are REST API best practices?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Key principles:\n\n- Use proper HTTP methods (GET, POST, PUT, DELETE)\n- Use nouns for resources: `/api/users` not `/api/getUsers`\n- Version your API: `/api/v1/users`\n- Return appropriate status codes\n- Use JSON for responses"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_034",
+    "title": "Git Rebase vs Merge",
+    "create_time": 1706458222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "When should I use rebase vs merge?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**Merge**: Preserves history\n```bash\ngit merge feature-branch\n```\n\n**Rebase**: Cleaner history\n```bash\ngit rebase main\n```\n\nUse rebase for feature branches, merge for shared branches."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_035",
+    "title": "Python Decorators",
+    "create_time": 1706544622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do Python decorators work?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Decorators modify function behavior:\n\n```python\ndef timer(func):\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        print(f'Time: {time.time() - start}')\n        return result\n    return wrapper\n\n@timer\ndef my_function():\n    pass\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_036",
+    "title": "MongoDB vs PostgreSQL",
+    "create_time": 1706631022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "When should I use MongoDB vs PostgreSQL?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**PostgreSQL**: Structured data, complex queries, ACID transactions\n\n**MongoDB**: Flexible schema, rapid development, horizontal scaling\n\nChoose based on your data structure and query patterns."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_037",
+    "title": "Perfect Scrambled Eggs",
+    "create_time": 1706717422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I make creamy scrambled eggs?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The secret is low heat and patience:\n\n## Ingredients\n- 3 eggs\n- 1 tbsp butter\n- 2 tbsp cream\n- Salt and pepper\n\n## Method\n1. Whisk eggs with cream\n2. Melt butter on LOW heat\n3. Add eggs, stir constantly\n4. Remove from heat when still slightly wet\n5. Season and serve\n\nTakes 10 minutes but worth it!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_038",
+    "title": "Knife Skills 101",
+    "create_time": 1706803822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I improve my knife skills?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Master these cuts:\n\n**Dice**: uniform cubes\n**Julienne**: thin matchsticks\n**Chiffonade**: ribbon cuts for herbs\n**Brunoise**: tiny 1-2mm dice\n\n## Safety tips:\n- Keep knives sharp (dull knives are dangerous)\n- Curl fingertips under when holding food\n- Use a stable cutting board\n- Let the knife do the work"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_039",
+    "title": "Making Stock from Scratch",
+    "create_time": 1706890222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I make chicken stock?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Homemade stock is game-changing:\n\n## Ingredients\n- Chicken bones/carcass\n- 2 carrots, 2 celery, 1 onion\n- Bay leaf, peppercorns, parsley\n- Cold water to cover\n\n## Method\n1. Roast bones at 400°F for 30 min\n2. Add to pot with vegetables\n3. Cover with cold water\n4. Simmer 3-4 hours, skim foam\n5. Strain and cool\n\nFreezes for 3 months!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_040",
+    "title": "Steak Doneness Guide",
+    "create_time": 1706976622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I know when my steak is done?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Use the finger test:\n\n**Rare**: Touch thumb to index finger, feel base of thumb\n**Medium-rare**: Thumb to middle finger\n**Medium**: Thumb to ring finger\n**Well-done**: Thumb to pinky\n\nOr use a thermometer:\n- Rare: 125°F / 52°C\n- Medium-rare: 135°F / 57°C\n- Medium: 145°F / 63°C\n- Well-done: 160°F / 71°C"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_041",
+    "title": "Emulsification Explained",
+    "create_time": 1707063022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is emulsification in cooking?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Emulsification combines fat and water:\n\n## Examples\n- **Mayonnaise**: Oil + egg yolk\n- **Vinaigrette**: Oil + vinegar + mustard\n- **Hollandaise**: Butter + egg yolk + lemon\n\n## The Science\nEmulsifiers (like egg yolk) have molecules that bond to both fat and water, keeping them mixed.\n\n## Common mistake\nAdding fat too quickly causes it to \"break\" (separate)."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_042",
+    "title": "Mise en Place",
+    "create_time": 1707149422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What does mise en place mean?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "\"Mise en place\" = \"everything in its place\"\n\n## Why it matters\n- Prevents mistakes\n- Reduces stress while cooking\n- Ensures you have all ingredients\n- Makes cooking faster and more enjoyable\n\n## How to do it\n1. Read recipe completely\n2. Measure all ingredients\n3. Prep vegetables\n4. Organize by order of use\n5. Clean as you go\n\nProfessional chefs always mise en place!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_043",
+    "title": "Deglazing Explained",
+    "create_time": 1707235822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is deglazing?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Deglazing captures fond (browned bits) for sauce:\n\n## The Process\n1. Sear meat/vegetables\n2. Remove from pan\n3. Add wine/stock/liquid to hot pan\n4. Scrape up browned bits with wooden spoon\n5. Reduce to make sauce\n\n## Best liquids\n- Red wine (beef)\n- White wine (chicken, fish)\n- Stock\n- Apple cider (pork)\n\nNever waste that flavor!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_044",
+    "title": "Tempering Chocolate",
+    "create_time": 1707322222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I temper chocolate?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Tempering gives chocolate snap and shine:\n\n## Method\n1. Melt 2/3 chocolate to 115°F (46°C)\n2. Remove from heat\n3. Add remaining 1/3 chocolate\n4. Stir until 88-90°F (31-32°C)\n5. Use immediately\n\n## Why temper?\n- Shiny finish\n- Crisp snap\n- Doesn't melt on fingers\n- No bloom (white streaks)\n\nSkip this and you get dull, soft chocolate."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_045",
+    "title": "Hitchcock's MacGuffin",
+    "create_time": 1707408622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is a MacGuffin in film?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "A MacGuffin is a plot device that drives the story but isn't important itself.\n\n## Famous examples\n- **Pulp Fiction**: The briefcase (we never see what's inside)\n- **The Maltese Falcon**: The falcon statue\n- **Raiders of the Lost Ark**: The Ark\n- **Titanic**: The Heart of the Ocean diamond\n\nHitchcock said: \"The audience doesn't care what it is, they only care that the characters care about it.\""
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_046",
+    "title": "The 180-Degree Rule",
+    "create_time": 1707495022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is the 180-degree rule in filmmaking?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The 180-degree rule maintains spatial consistency:\n\n## The Rule\nDraw an imaginary line between two characters. Keep the camera on ONE side of that line.\n\n## Why it matters\nBreaking it confuses viewers about who's where.\n\n## When to break it\n- Intentionally disorienting the viewer\n- Character's world is turning upside down\n- Transitioning between scenes\n\nMost films follow this religiously."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_047",
+    "title": "Practical Effects vs CGI",
+    "create_time": 1707581422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Why do practical effects sometimes look better than CGI?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Practical effects have tangible reality:\n\n## Why practical can be better\n- Real lighting interactions\n- Actors react to real objects\n- Ages better (looks real 30 years later)\n- Forces creative problem-solving\n\n## Examples\n- **Mad Max Fury Road**: Real stunts\n- **The Thing (1982)**: Practical creatures\n- **Inception**: Rotating hallway was a real set\n\n## When CGI wins\n- Impossible shots\n- Safety concerns\n- Budget constraints\n\nBest films blend both!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_048",
+    "title": "Continuity Errors",
+    "create_time": 1707667822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What are continuity errors?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Continuity errors break the illusion:\n\n## Common types\n- **Prop positions**: Coffee cup jumps around\n- **Costume changes**: Tie appears/disappears\n- **Hair/makeup**: Hair length changes\n- **Time of day**: Shadows inconsistent\n\n## Famous examples\n- **Braveheart**: Car in battle scene\n- **Gladiator**: Gas canister in chariot\n- **Pulp Fiction**: Bullet holes before shooting\n\n## Why they happen\nScenes shot out of order, over multiple days.\n\nScript supervisors try to prevent these!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_049",
+    "title": "Aspect Ratios Explained",
+    "create_time": 1707754222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What do aspect ratios like 16:9 mean?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Aspect ratio is width:height of the frame:\n\n## Common ratios\n- **16:9**: Standard widescreen (TV, YouTube)\n- **2.39:1**: Cinematic widescreen (most movies)\n- **4:3**: Old TV, Wes Anderson sometimes uses\n- **1:1**: Square (Instagram)\n- **IMAX**: 1.43:1 (tallest)\n\n## Why directors choose\n- **Widescreen**: Epic landscapes\n- **4:3**: Intimate, claustrophobic\n- **IMAX**: Immersive\n\n**The Grand Budapest Hotel** changes ratios for different time periods!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_050",
+    "title": "Method Acting",
+    "create_time": 1707840622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is method acting?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Method acting: staying in character even off-camera\n\n## Famous examples\n- **Daniel Day-Lewis** (Lincoln): Kept accent 24/7\n- **Heath Ledger** (Joker): Isolated himself for weeks\n- **Robert De Niro** (Taxi Driver): Got taxi license, drove 12hr shifts\n\n## Controversy\nSome think it's essential, others say it's excessive.\n\n## Risks\n- Mental health impacts\n- Difficult for cast/crew\n- Can be used as excuse for bad behavior\n\nNot all great actors are method actors!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_051",
+    "title": "Diegetic vs Non-Diegetic Sound",
+    "create_time": 1707927022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What's the difference?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**Diegetic**: Sound that exists in the film's world\n- Characters can hear it\n- Radio playing, dialogue, footsteps\n\n**Non-diegetic**: Sound only audience hears\n- Background music score\n- Narration\n- Sound effects for emphasis\n\n## Creative uses\n- **Baby Driver**: Diegetic music drives action\n- **Goodfellas**: Switches between diegetic/non-diegetic\n- **Guardians of the Galaxy**: Walkman makes music diegetic\n\nSome films play with the boundary!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_052",
+    "title": "The Kuleshov Effect",
+    "create_time": 1708013422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is the Kuleshov Effect?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The Kuleshov Effect: editing creates meaning\n\n## The Experiment (1918)\nShow same shot of an actor's neutral face, but cut to:\n- Bowl of soup → viewers see hunger\n- Dead woman → viewers see sadness  \n- Child playing → viewers see happiness\n\nSame face, different context = different emotion!\n\n## Why it matters\nProves editing is as important as acting.\n\n## Modern examples\nEvery reaction shot relies on this principle.\n\nYou're not just watching performances, you're watching editing!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_053",
+    "title": "Python List Comprehensions",
+    "create_time": 1708099822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Can you explain Python list comprehensions?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "List comprehensions are a concise way to create lists in Python.\n\n```python\nsquares = [x**2 for x in range(10)]\nevens = [x for x in range(20) if x % 2 == 0]\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_054",
+    "title": "JavaScript Promises vs Async/Await",
+    "create_time": 1708186222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What's the difference between Promises and async/await?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Async/await is syntactic sugar over Promises:\n\n```javascript\n// Promise\nfetch(url).then(res => res.json()).then(data => console.log(data));\n\n// Async/await\nconst response = await fetch(url);\nconst data = await response.json();\nconsole.log(data);\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_055",
+    "title": "CSS Grid Layout",
+    "create_time": 1708272622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I create a responsive grid layout?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Use CSS Grid with auto-fit:\n\n```css\n.grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n  gap: 1rem;\n}\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_056",
+    "title": "React Hooks Basics",
+    "create_time": 1708359022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Explain useState and useEffect"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Core React hooks:\n\n```javascript\nfunction Component() {\n  const [count, setCount] = useState(0);\n  \n  useEffect(() => {\n    document.title = `Count: ${count}`;\n  }, [count]);\n}\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_057",
+    "title": "SQL JOIN Types",
+    "create_time": 1708445422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Explain different types of SQL joins"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Main JOIN types:\n\n```sql\n-- INNER JOIN: matching rows only\nSELECT * FROM users INNER JOIN orders ON users.id = orders.user_id;\n\n-- LEFT JOIN: all left rows + matches\nSELECT * FROM users LEFT JOIN orders ON users.id = orders.user_id;\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_058",
+    "title": "Docker Basics",
+    "create_time": 1708531822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is Docker and why use it?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Docker containers ensure consistency:\n\n```dockerfile\nFROM node:18\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nCMD [\"npm\", \"start\"]\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_059",
+    "title": "REST API Design",
+    "create_time": 1708618222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What are REST API best practices?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Key principles:\n\n- Use proper HTTP methods (GET, POST, PUT, DELETE)\n- Use nouns for resources: `/api/users` not `/api/getUsers`\n- Version your API: `/api/v1/users`\n- Return appropriate status codes\n- Use JSON for responses"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_060",
+    "title": "Git Rebase vs Merge",
+    "create_time": 1708704622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "When should I use rebase vs merge?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**Merge**: Preserves history\n```bash\ngit merge feature-branch\n```\n\n**Rebase**: Cleaner history\n```bash\ngit rebase main\n```\n\nUse rebase for feature branches, merge for shared branches."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_061",
+    "title": "Python Decorators",
+    "create_time": 1708791022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do Python decorators work?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Decorators modify function behavior:\n\n```python\ndef timer(func):\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        print(f'Time: {time.time() - start}')\n        return result\n    return wrapper\n\n@timer\ndef my_function():\n    pass\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_062",
+    "title": "MongoDB vs PostgreSQL",
+    "create_time": 1708877422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "When should I use MongoDB vs PostgreSQL?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**PostgreSQL**: Structured data, complex queries, ACID transactions\n\n**MongoDB**: Flexible schema, rapid development, horizontal scaling\n\nChoose based on your data structure and query patterns."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_063",
+    "title": "Perfect Scrambled Eggs",
+    "create_time": 1708963822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I make creamy scrambled eggs?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The secret is low heat and patience:\n\n## Ingredients\n- 3 eggs\n- 1 tbsp butter\n- 2 tbsp cream\n- Salt and pepper\n\n## Method\n1. Whisk eggs with cream\n2. Melt butter on LOW heat\n3. Add eggs, stir constantly\n4. Remove from heat when still slightly wet\n5. Season and serve\n\nTakes 10 minutes but worth it!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_064",
+    "title": "Knife Skills 101",
+    "create_time": 1709050222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I improve my knife skills?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Master these cuts:\n\n**Dice**: uniform cubes\n**Julienne**: thin matchsticks\n**Chiffonade**: ribbon cuts for herbs\n**Brunoise**: tiny 1-2mm dice\n\n## Safety tips:\n- Keep knives sharp (dull knives are dangerous)\n- Curl fingertips under when holding food\n- Use a stable cutting board\n- Let the knife do the work"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_065",
+    "title": "Making Stock from Scratch",
+    "create_time": 1709136622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I make chicken stock?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Homemade stock is game-changing:\n\n## Ingredients\n- Chicken bones/carcass\n- 2 carrots, 2 celery, 1 onion\n- Bay leaf, peppercorns, parsley\n- Cold water to cover\n\n## Method\n1. Roast bones at 400°F for 30 min\n2. Add to pot with vegetables\n3. Cover with cold water\n4. Simmer 3-4 hours, skim foam\n5. Strain and cool\n\nFreezes for 3 months!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_066",
+    "title": "Steak Doneness Guide",
+    "create_time": 1709223022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I know when my steak is done?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Use the finger test:\n\n**Rare**: Touch thumb to index finger, feel base of thumb\n**Medium-rare**: Thumb to middle finger\n**Medium**: Thumb to ring finger\n**Well-done**: Thumb to pinky\n\nOr use a thermometer:\n- Rare: 125°F / 52°C\n- Medium-rare: 135°F / 57°C\n- Medium: 145°F / 63°C\n- Well-done: 160°F / 71°C"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_067",
+    "title": "Emulsification Explained",
+    "create_time": 1709309422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is emulsification in cooking?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Emulsification combines fat and water:\n\n## Examples\n- **Mayonnaise**: Oil + egg yolk\n- **Vinaigrette**: Oil + vinegar + mustard\n- **Hollandaise**: Butter + egg yolk + lemon\n\n## The Science\nEmulsifiers (like egg yolk) have molecules that bond to both fat and water, keeping them mixed.\n\n## Common mistake\nAdding fat too quickly causes it to \"break\" (separate)."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_068",
+    "title": "Mise en Place",
+    "create_time": 1709395822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What does mise en place mean?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "\"Mise en place\" = \"everything in its place\"\n\n## Why it matters\n- Prevents mistakes\n- Reduces stress while cooking\n- Ensures you have all ingredients\n- Makes cooking faster and more enjoyable\n\n## How to do it\n1. Read recipe completely\n2. Measure all ingredients\n3. Prep vegetables\n4. Organize by order of use\n5. Clean as you go\n\nProfessional chefs always mise en place!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_069",
+    "title": "Deglazing Explained",
+    "create_time": 1709482222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is deglazing?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Deglazing captures fond (browned bits) for sauce:\n\n## The Process\n1. Sear meat/vegetables\n2. Remove from pan\n3. Add wine/stock/liquid to hot pan\n4. Scrape up browned bits with wooden spoon\n5. Reduce to make sauce\n\n## Best liquids\n- Red wine (beef)\n- White wine (chicken, fish)\n- Stock\n- Apple cider (pork)\n\nNever waste that flavor!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_070",
+    "title": "Tempering Chocolate",
+    "create_time": 1709568622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "How do I temper chocolate?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Tempering gives chocolate snap and shine:\n\n## Method\n1. Melt 2/3 chocolate to 115°F (46°C)\n2. Remove from heat\n3. Add remaining 1/3 chocolate\n4. Stir until 88-90°F (31-32°C)\n5. Use immediately\n\n## Why temper?\n- Shiny finish\n- Crisp snap\n- Doesn't melt on fingers\n- No bloom (white streaks)\n\nSkip this and you get dull, soft chocolate."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_071",
+    "title": "Hitchcock's MacGuffin",
+    "create_time": 1709655022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is a MacGuffin in film?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "A MacGuffin is a plot device that drives the story but isn't important itself.\n\n## Famous examples\n- **Pulp Fiction**: The briefcase (we never see what's inside)\n- **The Maltese Falcon**: The falcon statue\n- **Raiders of the Lost Ark**: The Ark\n- **Titanic**: The Heart of the Ocean diamond\n\nHitchcock said: \"The audience doesn't care what it is, they only care that the characters care about it.\""
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_072",
+    "title": "The 180-Degree Rule",
+    "create_time": 1709741422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is the 180-degree rule in filmmaking?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The 180-degree rule maintains spatial consistency:\n\n## The Rule\nDraw an imaginary line between two characters. Keep the camera on ONE side of that line.\n\n## Why it matters\nBreaking it confuses viewers about who's where.\n\n## When to break it\n- Intentionally disorienting the viewer\n- Character's world is turning upside down\n- Transitioning between scenes\n\nMost films follow this religiously."
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_073",
+    "title": "Practical Effects vs CGI",
+    "create_time": 1709827822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Why do practical effects sometimes look better than CGI?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Practical effects have tangible reality:\n\n## Why practical can be better\n- Real lighting interactions\n- Actors react to real objects\n- Ages better (looks real 30 years later)\n- Forces creative problem-solving\n\n## Examples\n- **Mad Max Fury Road**: Real stunts\n- **The Thing (1982)**: Practical creatures\n- **Inception**: Rotating hallway was a real set\n\n## When CGI wins\n- Impossible shots\n- Safety concerns\n- Budget constraints\n\nBest films blend both!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_074",
+    "title": "Continuity Errors",
+    "create_time": 1709914222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What are continuity errors?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Continuity errors break the illusion:\n\n## Common types\n- **Prop positions**: Coffee cup jumps around\n- **Costume changes**: Tie appears/disappears\n- **Hair/makeup**: Hair length changes\n- **Time of day**: Shadows inconsistent\n\n## Famous examples\n- **Braveheart**: Car in battle scene\n- **Gladiator**: Gas canister in chariot\n- **Pulp Fiction**: Bullet holes before shooting\n\n## Why they happen\nScenes shot out of order, over multiple days.\n\nScript supervisors try to prevent these!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_075",
+    "title": "Aspect Ratios Explained",
+    "create_time": 1710000622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What do aspect ratios like 16:9 mean?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Aspect ratio is width:height of the frame:\n\n## Common ratios\n- **16:9**: Standard widescreen (TV, YouTube)\n- **2.39:1**: Cinematic widescreen (most movies)\n- **4:3**: Old TV, Wes Anderson sometimes uses\n- **1:1**: Square (Instagram)\n- **IMAX**: 1.43:1 (tallest)\n\n## Why directors choose\n- **Widescreen**: Epic landscapes\n- **4:3**: Intimate, claustrophobic\n- **IMAX**: Immersive\n\n**The Grand Budapest Hotel** changes ratios for different time periods!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_076",
+    "title": "Method Acting",
+    "create_time": 1710087022,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is method acting?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Method acting: staying in character even off-camera\n\n## Famous examples\n- **Daniel Day-Lewis** (Lincoln): Kept accent 24/7\n- **Heath Ledger** (Joker): Isolated himself for weeks\n- **Robert De Niro** (Taxi Driver): Got taxi license, drove 12hr shifts\n\n## Controversy\nSome think it's essential, others say it's excessive.\n\n## Risks\n- Mental health impacts\n- Difficult for cast/crew\n- Can be used as excuse for bad behavior\n\nNot all great actors are method actors!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_077",
+    "title": "Diegetic vs Non-Diegetic Sound",
+    "create_time": 1710173422,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What's the difference?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "**Diegetic**: Sound that exists in the film's world\n- Characters can hear it\n- Radio playing, dialogue, footsteps\n\n**Non-diegetic**: Sound only audience hears\n- Background music score\n- Narration\n- Sound effects for emphasis\n\n## Creative uses\n- **Baby Driver**: Diegetic music drives action\n- **Goodfellas**: Switches between diegetic/non-diegetic\n- **Guardians of the Galaxy**: Walkman makes music diegetic\n\nSome films play with the boundary!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_078",
+    "title": "The Kuleshov Effect",
+    "create_time": 1710259822,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What is the Kuleshov Effect?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "The Kuleshov Effect: editing creates meaning\n\n## The Experiment (1918)\nShow same shot of an actor's neutral face, but cut to:\n- Bowl of soup → viewers see hunger\n- Dead woman → viewers see sadness  \n- Child playing → viewers see happiness\n\nSame face, different context = different emotion!\n\n## Why it matters\nProves editing is as important as acting.\n\n## Modern examples\nEvery reaction shot relies on this principle.\n\nYou're not just watching performances, you're watching editing!"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_079",
+    "title": "Python List Comprehensions",
+    "create_time": 1710346222,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Can you explain Python list comprehensions?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "List comprehensions are a concise way to create lists in Python.\n\n```python\nsquares = [x**2 for x in range(10)]\nevens = [x for x in range(20) if x % 2 == 0]\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  },
+  {
+    "id": "demo_conv_080",
+    "title": "JavaScript Promises vs Async/Await",
+    "create_time": 1710432622,
+    "mapping": {
+      "msg_001": {
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "What's the difference between Promises and async/await?"
+            ]
+          }
+        },
+        "children": [
+          "msg_002"
+        ],
+        "parent": null
+      },
+      "msg_002": {
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Async/await is syntactic sugar over Promises:\n\n```javascript\n// Promise\nfetch(url).then(res => res.json()).then(data => console.log(data));\n\n// Async/await\nconst response = await fetch(url);\nconst data = await response.json();\nconsole.log(data);\n```"
+            ]
+          }
+        },
+        "children": [],
+        "parent": "msg_001"
+      }
+    }
+  }
+]

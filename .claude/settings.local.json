@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm run dev:*)",
       "mcp__chrome-devtools__new_page",
-      "Bash(mdfind:*)"
+      "Bash(mdfind:*)",
+      "Bash(node generate-demo-data.js:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

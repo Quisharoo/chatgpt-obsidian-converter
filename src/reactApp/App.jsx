@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toaster';
-import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import { message } from '@/utils/strings.js';
 import { useConverter } from './useConverter.js';
@@ -16,7 +16,7 @@ import { HoverPreview } from '@/components/ui/hover-preview.jsx';
 
 const ITEMS_PER_PAGE = 25;
 
-function UploadCard({ onFileSelect }) {
+function UploadCard({ onFileSelect, onLoadDemo }) {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
   const fileInputId = useId();
@@ -87,18 +87,41 @@ function UploadCard({ onFileSelect }) {
             <label htmlFor={fileInputId} className="sr-only">
               Upload conversations export
             </label>
-            <Button
-              type="button"
-              variant="default"
-              onClick={() => fileInputRef.current?.click()}
-              aria-controls={fileInputId}
-            >
-              Browse files
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => fileInputRef.current?.click()}
+                aria-controls={fileInputId}
+              >
+                Browse files
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onLoadDemo}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Try Demo
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function DemoModeIndicator() {
+  return (
+    <Alert className="border-primary/50 bg-primary/5">
+      <Sparkles className="h-4 w-4" />
+      <AlertTitle>Demo Mode</AlertTitle>
+      <AlertDescription>
+        You're viewing sample data. Upload your own ChatGPT export to convert your conversations.
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -424,7 +447,9 @@ export function App() {
     summary,
     files,
     directory,
+    isDemoMode,
     convertFile,
+    loadDemoData,
     selectDirectoryHandle,
     saveAllToDirectory,
     downloadZip,
@@ -448,7 +473,8 @@ export function App() {
               Convert your ChatGPT export into tidy Markdown notes without leaving the browser.
             </p>
           </section>
-          <UploadCard onFileSelect={convertFile} />
+          <UploadCard onFileSelect={convertFile} onLoadDemo={loadDemoData} />
+          {isDemoMode && <DemoModeIndicator />}
           <ProgressCard progress={progress} status={status} />
           {showSummary && <SummaryCard summary={summary} fileCount={files.length} />}
           {showExportPanel && (
