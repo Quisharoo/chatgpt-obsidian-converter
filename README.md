@@ -4,6 +4,7 @@ Convert ChatGPT exports to clean Markdown. Web UI + Python CLI. All processing s
 
 ## Features
 - Drag-and-drop web UI (browser-only; no uploads)
+- **Demo mode** - Try the app with sample conversations (no upload needed!)
 - Python script for batch and automation
 - Clean Markdown with clear User/Assistant sections
 - Duplicate detection by conversation ID
@@ -45,6 +46,10 @@ Convert ChatGPT exports to clean Markdown. Web UI + Python CLI. All processing s
 - CLI: chatgpt_converter.py
 - Tests: tests/, test-vite-react/
 - Contributor rules: see AGENTS.md
+- Browser automation: see [CHROME_DEVTOOLS_MCP.md](CHROME_DEVTOOLS_MCP.md)
+
+## Browser Automation & Testing
+This project includes [chrome-devtools-mcp](https://www.npmjs.com/package/chrome-devtools-mcp) for automated browser testing with Claude Code. See [CHROME_DEVTOOLS_MCP.md](CHROME_DEVTOOLS_MCP.md) for details.
 
 ## License
 MIT

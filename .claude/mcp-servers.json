@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp"
+      ],
+      "env": {},
+      "description": "Chrome DevTools MCP server for browser automation and testing"
+    }
+  }
+}

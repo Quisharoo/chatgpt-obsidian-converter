@@ -15,6 +15,7 @@ import {
 } from '@/modules/fileSystemManager.js';
 import { message, status, success as successString, error as errorString } from '@/utils/strings.js';
 import { logError } from '@/utils/logger.js';
+import demoConversations from '@/data/demoConversations.json';
 
 export function useConverter() {
   const { toast } = useToast();
@@ -22,6 +23,7 @@ export function useConverter() {
   const [progress, setProgress] = useState({ active: false, percent: 0, message: 'Idle' });
   const [summary, setSummary] = useState({ processed: 0, skipped: 0, errors: 0 });
   const [files, setFiles] = useState([]);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [directory, setDirectory] = useState({
     name: null,
     handle: null,
@@ -29,6 +31,7 @@ export function useConverter() {
     apiInfo: getFileSystemAccessInfo(),
   });
   const processedIdsRef = useRef(new Set());
+  const isProcessingRef = useRef(false);
 
   const resetProgress = useCallback(() => {
     setProgress({ active: false, percent: 0, message: 'Idle' });
@@ -47,8 +50,19 @@ export function useConverter() {
 
   const convertFile = useCallback(
     async (file) => {
+      if (isProcessingRef.current) {
+        toast({
+          title: 'Operation in progress',
+          description: 'Please wait for the current operation to complete.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
       try {
+        isProcessingRef.current = true;
         setStatusState('processing');
+        setIsDemoMode(false); // Exit demo mode when uploading real file
         pushProgress({ percent: 0 }, status('READING_FILE'));
         processedIdsRef.current = new Set();
 
@@ -71,6 +85,55 @@ export function useConverter() {
         setStatusState('error');
         setProgress({ active: false, percent: 0, message: errorString('FAILED_TO_PROCESS') });
         toast({ title: 'Conversion failed', description: error.message, variant: 'destructive' });
+      } finally {
+        isProcessingRef.current = false;
+      }
+    },
+    [pushProgress, toast],
+  );
+
+  const loadDemoData = useCallback(
+    async () => {
+      if (isProcessingRef.current) {
+        toast({
+          title: 'Operation in progress',
+          description: 'Please wait for the current operation to complete.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      try {
+        isProcessingRef.current = true;
+        setStatusState('processing');
+        setIsDemoMode(true);
+        pushProgress({ percent: 0 }, 'Loading demo data...');
+        processedIdsRef.current = new Set();
+
+        // Simulate loading delay for better UX
+        await new Promise(resolve => setTimeout(resolve, 300));
+        pushProgress({ percent: 30 }, 'Processing demo conversations...');
+
+        const results = await convertConversations(demoConversations, processedIdsRef.current, {
+          onProgress: (update) => pushProgress(update, 'Converting demo conversations...'),
+          concurrency: 8,
+        });
+
+        setFiles(results.files);
+        setSummary({ processed: results.processed, skipped: results.skipped, errors: results.errors });
+        setStatusState('complete');
+        setProgress({ active: false, percent: 100, message: 'Demo data loaded' });
+        toast({
+          title: 'Demo mode activated',
+          description: `${results.processed} sample conversations loaded. Try all features!`
+        });
+      } catch (error) {
+        logError('Demo data loading failed:', error);
+        setStatusState('error');
+        setProgress({ active: false, percent: 0, message: 'Failed to load demo data' });
+        toast({ title: 'Demo loading failed', description: error.message, variant: 'destructive' });
+      } finally {
+        isProcessingRef.current = false;
       }
     },
     [pushProgress, toast],
@@ -178,7 +241,9 @@ export function useConverter() {
     summary,
     files,
     directory,
+    isDemoMode,
     convertFile,
+    loadDemoData,
     selectDirectoryHandle,
     saveAllToDirectory,
     downloadZip,
