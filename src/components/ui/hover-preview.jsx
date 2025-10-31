@@ -10,6 +10,29 @@ import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
 import 'highlight.js/styles/github.css';
 
+// Inject animations
+if (typeof document !== 'undefined' && !document.getElementById('hover-preview-animations')) {
+  const style = document.createElement('style');
+  style.id = 'hover-preview-animations';
+  style.textContent = `
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -48%);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 /**
  * HoverPreview - Shows markdown preview on hover with delay
  *
@@ -143,11 +166,6 @@ export function HoverPreview({ children, markdownContent, title, delay = 500 }) 
       {shouldRender && (
         <Popover.Portal>
           <Popover.Content
-            side="right"
-            align="start"
-            sideOffset={3}
-            collisionPadding={8}
-            avoidCollisions={true}
             onMouseEnter={handleContentMouseEnter}
             onMouseLeave={handleContentMouseLeave}
             onEscapeKeyDown={() => {
@@ -156,16 +174,21 @@ export function HoverPreview({ children, markdownContent, title, delay = 500 }) 
             }}
             className="hover-preview-content"
             style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
               backgroundColor: 'white',
               borderRadius: '8px',
-              boxShadow: '0 10px 38px -10px rgba(22, 23, 24, 0.35), 0 10px 20px -15px rgba(22, 23, 24, 0.2)',
+              boxShadow: '0 20px 50px -12px rgba(22, 23, 24, 0.5)',
               padding: '20px',
-              width: '600px',
-              maxWidth: '90vw',
-              maxHeight: '80vh',
+              width: '90vw',
+              maxWidth: '800px',
+              maxHeight: '85vh',
               overflow: 'auto',
               zIndex: 9999,
               border: '1px solid #e5e7eb',
+              animation: 'slideIn 200ms ease-out',
             }}
           >
             {/* Header */}
@@ -293,10 +316,23 @@ export function HoverPreview({ children, markdownContent, title, delay = 500 }) 
                 {markdownContent}
               </ReactMarkdown>
             </div>
-
-            <Popover.Arrow style={{ fill: 'white' }} />
           </Popover.Content>
         </Popover.Portal>
+      )}
+
+      {/* Backdrop overlay - rendered separately outside Popover */}
+      {open && shouldRender && typeof document !== 'undefined' && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            zIndex: 9998,
+            animation: 'fadeIn 150ms ease-out',
+            pointerEvents: 'all',
+          }}
+          onMouseEnter={handleContentMouseLeave}
+        />
       )}
     </Popover.Root>
   );

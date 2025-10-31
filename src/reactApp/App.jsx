@@ -319,10 +319,9 @@ function ResultsTable({ files, onDownloadSingle }) {
                   {sortIconForField(SORT_FIELDS.TITLE)}
                 </button>
               </th>
-              <th scope="col" className="py-2 pr-3 font-medium w-[25%] text-muted-foreground">Filename</th>
-              <th 
+              <th
                 scope="col"
-                className="py-2 pr-3 font-medium w-[25%]"
+                className="py-2 pr-3 font-medium w-[20%]"
                 aria-sort={ariaSortForField(SORT_FIELDS.CREATED)}
               >
                 <button
@@ -346,10 +345,9 @@ function ResultsTable({ files, onDownloadSingle }) {
                 delay={300}
               >
                 <tr className="hover:bg-muted/40">
-                  <td className="py-2 pr-3 font-medium text-foreground truncate" title={file.title}>{file.title}</td>
-                  <td className="py-2 pr-3 text-muted-foreground truncate" title={file.filename}>{file.filename}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{file.createdDate}</td>
-                  <td className="py-2 pr-3">
+                  <td className="py-2 pr-3 font-medium text-foreground truncate max-w-0" title={file.title}>{file.title}</td>
+                  <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">{file.createdDate}</td>
+                  <td className="py-2 pr-3 text-right">
                     <Button size="sm" variant="ghost" onClick={() => onDownloadSingle(file)}>
                       Download
                     </Button>
