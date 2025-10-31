@@ -365,7 +365,7 @@ function ResultsTable({ files, onDownloadSingle }) {
                 key={file.filename}
                 markdownContent={file.content}
                 title={file.title}
-                delay={300}
+                delay={900}
               >
                 <tr className="hover:bg-muted/40">
                   <td className="py-2 pr-3 font-medium text-foreground truncate max-w-0" title={file.title}>{file.title}</td>
