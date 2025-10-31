@@ -329,9 +329,9 @@ export function HoverPreview({ children, markdownContent, title, delay = 500 }) 
             backgroundColor: 'rgba(0, 0, 0, 0.4)',
             zIndex: 9998,
             animation: 'fadeIn 150ms ease-out',
-            pointerEvents: 'all',
+            pointerEvents: 'none',
           }}
-          onMouseEnter={handleContentMouseLeave}
+          aria-hidden="true"
         />
       )}
     </Popover.Root>

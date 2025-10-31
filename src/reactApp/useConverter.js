@@ -31,6 +31,7 @@ export function useConverter() {
     apiInfo: getFileSystemAccessInfo(),
   });
   const processedIdsRef = useRef(new Set());
+  const isProcessingRef = useRef(false);
 
   const resetProgress = useCallback(() => {
     setProgress({ active: false, percent: 0, message: 'Idle' });
@@ -49,7 +50,17 @@ export function useConverter() {
 
   const convertFile = useCallback(
     async (file) => {
+      if (isProcessingRef.current) {
+        toast({
+          title: 'Operation in progress',
+          description: 'Please wait for the current operation to complete.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
       try {
+        isProcessingRef.current = true;
         setStatusState('processing');
         setIsDemoMode(false); // Exit demo mode when uploading real file
         pushProgress({ percent: 0 }, status('READING_FILE'));
@@ -74,6 +85,8 @@ export function useConverter() {
         setStatusState('error');
         setProgress({ active: false, percent: 0, message: errorString('FAILED_TO_PROCESS') });
         toast({ title: 'Conversion failed', description: error.message, variant: 'destructive' });
+      } finally {
+        isProcessingRef.current = false;
       }
     },
     [pushProgress, toast],
@@ -81,7 +94,17 @@ export function useConverter() {
 
   const loadDemoData = useCallback(
     async () => {
+      if (isProcessingRef.current) {
+        toast({
+          title: 'Operation in progress',
+          description: 'Please wait for the current operation to complete.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
       try {
+        isProcessingRef.current = true;
         setStatusState('processing');
         setIsDemoMode(true);
         pushProgress({ percent: 0 }, 'Loading demo data...');
@@ -109,6 +132,8 @@ export function useConverter() {
         setStatusState('error');
         setProgress({ active: false, percent: 0, message: 'Failed to load demo data' });
         toast({ title: 'Demo loading failed', description: error.message, variant: 'destructive' });
+      } finally {
+        isProcessingRef.current = false;
       }
     },
     [pushProgress, toast],

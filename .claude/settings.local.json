@@ -5,8 +5,8 @@
       "mcp__chrome-devtools__new_page",
       "Bash(mdfind:*)",
       "Bash(node generate-demo-data.js:*)",
-      "Bash(node:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npx chrome-devtools-mcp:*)"
     ],
     "deny": [],
     "ask": []
